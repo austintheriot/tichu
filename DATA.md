@@ -1,4 +1,4 @@
-# Data Contacts Blueprint
+# Data Contract Blueprint
 
 ## Architecture
 
