@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate rocket;
+extern crate common;
 
 use rocket::{tokio::time::{sleep, Duration}};
 use rocket::serde::{Serialize, json::Json};

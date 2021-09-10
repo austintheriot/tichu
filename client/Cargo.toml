@@ -17,6 +17,7 @@ wasm-bindgen = "0.2.58"
 wasm-logger = "0.2"
 wee_alloc = { version = "0.4.4", optional = true }
 yew = "0.17"
+common = { path = "../common" }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
