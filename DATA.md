@@ -111,8 +111,17 @@ enum UserRole {
 
 Client actions: 
  -   Create game
+     -   user_id
+     -   display_name
  -   Join game
+     -   user_id
+     -   display_name
+     -   game_id
  -   Choose team
+     -   user_id
+     -   team_id
+ -   Rename team
+     -   team_name
  -   Start game
  -   Submit card trade
  -   Play cards 
@@ -124,6 +133,7 @@ Client actions:
 Server actions:
 - Game create
 - Stage changed
+- Team renamed
 - User moved teams
 - Small Tichu called
 - Grand Tichu called
