@@ -1,11 +1,15 @@
 [package]
-name = "tichu-server"
+name = "server"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rocket = { version = "0.5.0-rc.1", features = ["json"] }
-serde = { version = "1.0", features = ["derive"] }
-common = { path = "../common" }
+warp = "*"
+tokio = { version = "1.0", features = ["full"] }
+tokio-stream = "0.1.1"
+futures = { version = "0.3", default-features = false, features = ["alloc"] }
+serde = "1.0"
+serde_json = "1.0"
+pretty_env_logger = "0.4.0"
