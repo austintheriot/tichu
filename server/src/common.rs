@@ -53,7 +53,7 @@ pub struct Team {
 }
 
 #[derive(Debug)]
-pub enum CardValues {
+pub enum CardValue {
     _2,
     _3,
     _4,
@@ -63,18 +63,18 @@ pub enum CardValues {
     _8,
     _9,
     _10,
-    Jack,
-    Queen,
-    King,
-    Ace,
+    J,
+    Q,
+    K,
+    A,
 }
 
 #[derive(Debug)]
 pub enum Card {
-    Sword(CardValues),
-    Jade(CardValues),
-    Pagoda(CardValues),
-    Star(CardValues),
+    Sword(CardValue),
+    Jade(CardValue),
+    Pagoda(CardValue),
+    Star(CardValue),
     Dragon,
     Phoenix,
     MahJong,
