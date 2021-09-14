@@ -19,6 +19,7 @@ wee_alloc = { version = "0.4.4", optional = true }
 yew = "0.17"
 common = { path = "../common" }
 js-sys = "0.3.54"
+anyhow = "1.0.44"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

@@ -1,166 +1,109 @@
-use std::collections::HashMap;
-use std::hash::Hash;
-
-use log::*;
-use serde_derive::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
-use strum_macros::{EnumIter, ToString};
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::{JsCast, JsValue};
-use web_sys::MessageEvent;
-use yew::format::Json;
+use anyhow::Error;
 use yew::prelude::*;
-use yew::services::storage::{Area, StorageService};
+use yew::format::Json;
+use yew::services::ConsoleService;
+use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 
-pub struct App {
+pub struct Model {
+    ws: Option<WebSocketTask>,
     link: ComponentLink<Self>,
-    state: State,
-}
-
-pub struct State {
-    input_value: String,
-    connection_status: String,
-    ws: web_sys::WebSocket,
-    callbacks: Vec<Callbacks>,
+    text: String,
+    server_data: String,
 }
 
 pub enum Msg {
-    UpdateInput(String),
-    UpdateConnectionStatus(String),
-    Nope,
+    Connect,
+    Disconnected,
+    Ignore,
+    TextInput(String),
+    SendText,
+    Received(Result<String, Error>),
 }
 
-impl Component for App {
+impl Component for Model {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-      let (ws, callbacks) = instantiate_ws();
-        let state = State {
-            input_value: "".into(),
-            connection_status: "Connecting...".into(),
-            ws,
-            callbacks,
-        };
-        App { link, state }
-    }
-
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-        false
+    fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        Self {
+            ws: None,
+            link: link,
+            text: String::new(),
+            server_data: String::new(),
+        }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::UpdateInput(val) => {
-                info!("New input value: {}", val);
-                self.state.input_value = val;
+            Msg::Connect => {
+                ConsoleService::log("Connecting");
+                let ws_out = self.link.callback(|Json(data)| Msg::Received(data));
+                let ws_notification = self.link.callback(|input| {
+                    ConsoleService::log(&format!("Notification: {:?}", input));
+                    match input {
+                        WebSocketStatus::Closed | WebSocketStatus::Error => {
+                            Msg::Disconnected
+                        }
+                        _ => Msg::Ignore,
+                    }
+                });
+                if self.ws.is_none() {
+                    let task = WebSocketService::connect_text("ws://localhost:8001?user_id=1234", ws_out, ws_notification);
+                    self.ws = Some(task.unwrap());
+                }
+                true
             }
-            Msg::UpdateConnectionStatus(val) => {
-                info!("New connection status: {}", val);
-                self.state.connection_status = val;
+            Msg::Disconnected => {
+                self.ws = None;
+                true
             }
-            Msg::Nope => {}
+            Msg::Ignore => {
+                false
+            }
+            Msg::TextInput(e) => {
+                self.text = e;
+                true
+            }
+            Msg::SendText => {
+                match self.ws {
+                    Some(ref mut task) => {
+                        task.send(Json(&self.text));
+                        true
+                    }
+                    None => {
+                        false
+                    }
+                }
+            }
+            Msg::Received(Ok(s)) => {
+                self.server_data.push_str(&format!("{}\n", &s));
+                true
+            }
+            Msg::Received(Err(s)) => {
+                self.server_data.push_str(&format!("Error when reading from server: {}\n", &s.to_string()));
+                true
+            }
         }
-        true
+    }
+
+    fn change(&mut self, _prop: Self::Properties) -> ShouldRender {
+        false
     }
 
     fn view(&self) -> Html {
-        info!("rendered!");
         html! {
-          <>
-          <h1>{ "Test websocket" }</h1>
-          <div id="chat">
-              <p>{ &self.state.connection_status }</p>
-          </div>
-          <input class="edit"
-            type="text"
-            value=&self.state.input_value
-            oninput=self.link.callback(move |e: InputData| Msg::UpdateInput(e.value))
-            />
-
-          <button type="button" id="send">{ "Send" }</button>
-          </>
+            <div>
+                // connect button
+                <p><button onclick=self.link.callback(|_| Msg::Connect)>{ "Connect" }</button></p><br/>
+                // text showing whether we're connected or not
+                <p>{ "Connected: "}{ !self.ws.is_none() } </p><br/>
+                // input box for sending text
+                <p><input type="text" value=self.text.clone() oninput=self.link.callback(|e: InputData| Msg::TextInput(e.value))/></p><br/>
+                // button for sending text
+                <p><button onclick=self.link.callback(|_| Msg::SendText)>{ "Send" }</button></p><br/>
+                // text area for showing data from the server
+                <p><textarea value=self.server_data.clone()></textarea></p><br/>
+            </div>
         }
     }
-
-    fn destroy(&mut self) {
-      // clean up callbacks that were assigned to the WebSocket
-      for cb in self.state.callbacks.iter() {
-        std::mem::drop(cb);
-      }
-    }
-}
-
-#[derive(EnumIter, ToString, Clone, PartialEq, Serialize, Deserialize)]
-pub enum Filter {
-    All,
-    Active,
-    Completed,
-}
-
-impl<'a> Into<Href> for &'a Filter {
-    fn into(self) -> Href {
-        match *self {
-            Filter::All => "#/".into(),
-            Filter::Active => "#/active".into(),
-            Filter::Completed => "#/completed".into(),
-        }
-    }
-}
-
-enum Callbacks {
-  OnMessage(Closure<dyn FnMut(MessageEvent)>),
-  OnError(Closure<dyn FnMut(ErrorEvent)>),
-  OnOpen(Closure<dyn FnMut(JsValue)>)
-}
-
-fn instantiate_ws() -> (web_sys::WebSocket, Vec<Callbacks>) {
-    // let host: String = web_sys::window()
-    // .expect("Couldn't get window")
-    // .location()
-    // .host()
-    // .expect("Couldn't get location.host");
-
-    let mut callbacks = Vec::new();
-    let host = "localhost:8001";
-    let ws_uri = format!("ws://{}/ws?user_id=1234", &host);
-    let ws = web_sys::WebSocket::new(&ws_uri).expect("Could not instantiate websocket");
-    ws.set_binary_type(web_sys::BinaryType::Arraybuffer);
-    let cloned_ws = ws.clone();
-
-
-    
-    let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
-      if let Ok(txt) = e.data().dyn_into::<js_sys::JsString>() {
-        info!("message event, received Text: {:?}", txt);
-      } else {
-        info!("message event, received Unknown: {:?}", e.data());
-      }
-    }) as Box<dyn FnMut(MessageEvent)>);
-    // set message event handler on WebSocket
-    ws.set_onmessage(Some(onmessage_callback.as_ref().unchecked_ref()));
-    callbacks.push(Callbacks::OnMessage(onmessage_callback));
-
-    let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
-      error!("Websocket error occurred: {:?}", e);
-    }) as Box<dyn FnMut(ErrorEvent)>);
-    ws.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
-    callbacks.push(Callbacks::OnError(onerror_callback));
-
-    let onopen_callback = Closure::wrap(Box::new(move |_| {
-        info!("socket opened");
-        match cloned_ws.send_with_str("ping") {
-            Ok(_) => info!("message successfully sent"),
-            Err(err) => info!("error sending message: {:?}", err),
-        }
-        // send off binary message
-        match cloned_ws.send_with_u8_array(&vec![0, 1, 2, 3]) {
-            Ok(_) => info!("binary message successfully sent"),
-            Err(err) => info!("error sending message: {:?}", err),
-        }
-    }) as Box<dyn FnMut(JsValue)>);
-    ws.set_onopen(Some(onopen_callback.as_ref().unchecked_ref()));
-    callbacks.push(Callbacks::OnOpen(onopen_callback));
-
-    (ws, callbacks)
 }
