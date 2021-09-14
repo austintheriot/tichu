@@ -18,6 +18,7 @@ wasm-logger = "0.2"
 wee_alloc = { version = "0.4.4", optional = true }
 yew = "0.17"
 common = { path = "../common" }
+js-sys = "0.3.54"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
@@ -26,4 +27,7 @@ wasm-bindgen-test = "0.3"
 version = "0.3.4"
 features = [
   'KeyboardEvent',
+  'WebSocket',
+  'Location',
+  'Window',
 ]
