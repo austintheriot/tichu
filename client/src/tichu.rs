@@ -1,10 +1,11 @@
+use log::*;
 use anyhow::Error;
 use yew::prelude::*;
 use yew::format::Json;
 use yew::services::ConsoleService;
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 
-pub struct Model {
+pub struct App {
     ws: Option<WebSocketTask>,
     link: ComponentLink<Self>,
     text: String,
@@ -20,7 +21,7 @@ pub enum Msg {
     Received(Result<String, Error>),
 }
 
-impl Component for Model {
+impl Component for App {
     type Message = Msg;
     type Properties = ();
 
@@ -36,10 +37,10 @@ impl Component for Model {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Connect => {
-                ConsoleService::log("Connecting");
-                let ws_out = self.link.callback(|Json(data)| Msg::Received(data));
-                let ws_notification = self.link.callback(|input| {
-                    ConsoleService::log(&format!("Notification: {:?}", input));
+                info!("Connecting to websocket...");
+                let handle_ws_receive_data = self.link.callback(|Json(data)| Msg::Received(data));
+                let handle_ws_update_status = self.link.callback(|input| {
+                    info!("Notification: {:?}", input);
                     match input {
                         WebSocketStatus::Closed | WebSocketStatus::Error => {
                             Msg::Disconnected
@@ -48,8 +49,8 @@ impl Component for Model {
                     }
                 });
                 if self.ws.is_none() {
-                    let task = WebSocketService::connect_text("ws://localhost:8001?user_id=1234", ws_out, ws_notification);
-                    self.ws = Some(task.unwrap());
+                    let ws_task = WebSocketService::connect_text("ws://localhost:8001/ws?user_id=1234", handle_ws_receive_data, handle_ws_update_status);
+                    self.ws = Some(ws_task.unwrap());
                 }
                 true
             }
@@ -66,11 +67,13 @@ impl Component for Model {
             }
             Msg::SendText => {
                 match self.ws {
-                    Some(ref mut task) => {
-                        task.send(Json(&self.text));
+                    Some(ref mut ws_task) => {
+                        info!("Sending websocket message: {}", &self.text);
+                        ws_task.send(Json(&self.text));
                         true
                     }
                     None => {
+                        info!("Can't send message. Server is not connected.");
                         false
                     }
                 }
@@ -93,16 +96,12 @@ impl Component for Model {
     fn view(&self) -> Html {
         html! {
             <div>
-                // connect button
-                <p><button onclick=self.link.callback(|_| Msg::Connect)>{ "Connect" }</button></p><br/>
-                // text showing whether we're connected or not
-                <p>{ "Connected: "}{ !self.ws.is_none() } </p><br/>
-                // input box for sending text
-                <p><input type="text" value=self.text.clone() oninput=self.link.callback(|e: InputData| Msg::TextInput(e.value))/></p><br/>
-                // button for sending text
-                <p><button onclick=self.link.callback(|_| Msg::SendText)>{ "Send" }</button></p><br/>
-                // text area for showing data from the server
-                <p><textarea value=self.server_data.clone()></textarea></p><br/>
+                <button onclick=self.link.callback(|_| Msg::Connect)>{ "Connect to websocket" }</button>
+                <p>{ "Connected: "}{ !self.ws.is_none() } </p>
+                <input type="text" value=self.text.clone() oninput=self.link.callback(|e: InputData| Msg::TextInput(e.value))/>
+                <button onclick=self.link.callback(|_| Msg::SendText)>{ "Send message to server" }</button>
+                <p>{ "Message received from server:" }</p>
+                <textarea value=self.server_data.clone()></textarea>
             </div>
         }
     }
