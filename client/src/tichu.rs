@@ -34,18 +34,28 @@ impl Component for App {
         }
     }
 
+    fn rendered(&mut self, first_render: bool) {
+        // connect to websocket on first render
+        if self.ws.is_none() && first_render {
+            info!("Sending automatic message to connect");
+            self.link.send_message(Msg::Connect);
+        }
+    }
+
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Connect => {
                 info!("Connecting to websocket...");
                 let handle_ws_receive_data = self.link.callback(|Json(data)| Msg::Received(data));
-                let handle_ws_update_status = self.link.callback(|input| {
-                    info!("Notification: {:?}", input);
-                    match input {
+                let handle_ws_update_status = self.link.callback(|ws_status| {
+                    info!("Websocket status: {:?}", ws_status);
+                    match ws_status {
                         WebSocketStatus::Closed | WebSocketStatus::Error => {
                             Msg::Disconnected
                         }
-                        _ => Msg::Ignore,
+                        WebSocketStatus::Opened => {
+                            Msg::Ignore
+                        },
                     }
                 });
                 if self.ws.is_none() {
@@ -96,8 +106,7 @@ impl Component for App {
     fn view(&self) -> Html {
         html! {
             <div>
-                <button onclick=self.link.callback(|_| Msg::Connect)>{ "Connect to websocket" }</button>
-                <p>{ "Connected: "}{ !self.ws.is_none() } </p>
+                <p>{ "Websocket status: "}{ if self.ws.is_none() {"Connecting..."} else { "Connected" }} </p>
                 <input type="text" value=self.text.clone() oninput=self.link.callback(|e: InputData| Msg::TextInput(e.value))/>
                 <button onclick=self.link.callback(|_| Msg::SendText)>{ "Send message to server" }</button>
                 <p>{ "Message received from server:" }</p>
