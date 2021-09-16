@@ -1,9 +1,13 @@
-use log::*;
 use anyhow::Error;
+use bincode;
+use common::CTSMsg;
+use log::*;
+use yew::binary_format;
+use yew::format::Bincode;
+use yew::format::{Binary, Json};
 use yew::prelude::*;
-use yew::format::Json;
-use yew::services::ConsoleService;
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
+use yew::services::ConsoleService;
 
 pub struct App {
     ws: Option<WebSocketTask>,
@@ -17,8 +21,8 @@ pub enum Msg {
     Disconnected,
     Ignore,
     TextInput(String),
-    SendText,
-    Received(Result<String, Error>),
+    Received(Result<Vec<u8>, Error>),
+    SendMsg(CTSMsg),
 }
 
 impl Component for App {
@@ -46,20 +50,22 @@ impl Component for App {
         match msg {
             Msg::Connect => {
                 info!("Connecting to websocket...");
-                let handle_ws_receive_data = self.link.callback(|Json(data)| Msg::Received(data));
+                let handle_ws_receive_data = self
+                    .link
+                    .callback(|data: Result<Vec<u8>, Error>| Msg::Received(data));
                 let handle_ws_update_status = self.link.callback(|ws_status| {
                     info!("Websocket status: {:?}", ws_status);
                     match ws_status {
-                        WebSocketStatus::Closed | WebSocketStatus::Error => {
-                            Msg::Disconnected
-                        }
-                        WebSocketStatus::Opened => {
-                            Msg::Ignore
-                        },
+                        WebSocketStatus::Closed | WebSocketStatus::Error => Msg::Disconnected,
+                        WebSocketStatus::Opened => Msg::Ignore,
                     }
                 });
                 if self.ws.is_none() {
-                    let ws_task = WebSocketService::connect_text("ws://localhost:8001/ws?user_id=1234", handle_ws_receive_data, handle_ws_update_status);
+                    let ws_task = WebSocketService::connect_binary(
+                        "ws://localhost:8001/ws?user_id=1234",
+                        handle_ws_receive_data,
+                        handle_ws_update_status,
+                    );
                     self.ws = Some(ws_task.unwrap());
                 }
                 true
@@ -68,32 +74,43 @@ impl Component for App {
                 self.ws = None;
                 true
             }
-            Msg::Ignore => {
-                false
-            }
+            Msg::Ignore => false,
             Msg::TextInput(e) => {
                 self.text = e;
                 true
             }
-            Msg::SendText => {
+            Msg::SendMsg(msg_type) => {
                 match self.ws {
-                    Some(ref mut ws_task) => {
-                        info!("Sending websocket message: {}", &self.text);
-                        ws_task.send(Json(&self.text));
-                        true
-                    }
                     None => {
-                        info!("Can't send message. Server is not connected.");
-                        false
+                        info!("Can't send message. Websocket is not connected.");
                     }
+                    Some(ref mut ws_task) => match msg_type {
+                        CTSMsg::Test(s) => {
+                            info!("Sending websocket message: {:?}", &s);
+                            let s = bincode::serialize(&CTSMsg::Test(s))
+                                .expect("Could not serialize message");
+                            ws_task.send_binary(Binary::Ok(s));
+                        }
+                        _ => {
+                            info!("Unexpected message type received {:?}", &msg_type);
+                        }
+                    },
                 }
+                false
             }
-            Msg::Received(Ok(s)) => {
-                self.server_data.push_str(&format!("{}\n", &s));
-                true
-            }
-            Msg::Received(Err(s)) => {
-                self.server_data.push_str(&format!("Error when reading from server: {}\n", &s.to_string()));
+            Msg::Received(data) => {
+                if data.is_err() {
+                    info!("Data received from server was an error {:?}", &data);
+                    return false;
+                }
+                let data: CTSMsg = bincode::deserialize(&data.unwrap())
+                    .expect("Could not deserialize message from server");
+                match data {
+                    CTSMsg::Test(string) => {
+                        info!("Test message received! Message: {}", string);
+                    }
+                    _ => info!("Some other message received!"),
+                }
                 true
             }
         }
@@ -107,8 +124,8 @@ impl Component for App {
         html! {
             <div>
                 <p>{ "Websocket status: "}{ if self.ws.is_none() {"Connecting..."} else { "Connected" }} </p>
-                <input type="text" value=self.text.clone() oninput=self.link.callback(|e: InputData| Msg::TextInput(e.value))/>
-                <button onclick=self.link.callback(|_| Msg::SendText)>{ "Send message to server" }</button>
+                <button onclick=self.link.callback(|_| Msg::SendMsg(CTSMsg::Test(String::from("Hello server!"))))>{ "Send message to server" }</button>
+                // <input type="text" value=self.text.clone() oninput=self.link.callback(|e: InputData| Msg::TextInput(e.value))/>
                 <p>{ "Message received from server:" }</p>
                 <textarea value=self.server_data.clone()></textarea>
             </div>
