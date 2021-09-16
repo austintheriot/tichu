@@ -1,3 +1,5 @@
+use bincode;
+use common::CTSMsg;
 use futures::{SinkExt, StreamExt, TryFutureExt};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -71,34 +73,56 @@ pub async fn handle_message_received(
         return;
     };
 
-    if let "create_game" = msg {
-        eprint!("Create game message received!");
+    match msg {
+        "create_game" => eprint!("Create game message received!"),
+        "\"ping\"" => {
+            eprint!("Ping received!\n");
+            let test_message = CTSMsg::Test("Hello world!".into());
+            let serialized_message =
+                bincode::serialize(&test_message).expect("Could not serialize message");
+            send_message(
+                user_id,
+                &Message::binary(serialized_message),
+                &users,
+                &games,
+            )
+            .await;
+            // send_message(user_id, &Message::text("pong"), &users, &games).await;
+        }
+        _ => eprint!("Unrecognized message received\n"),
     }
 }
 
 pub async fn update_game_state(user_id: Uuid, msg: Message, users: &Websockets, games: &Games) {}
 
-pub async fn send_message(user_id: Uuid, msg: Message, users: &Websockets, games: &Games) {
-    // Skip any non-Text messages...
-    let msg = if let Ok(s) = msg.to_str() {
-        s
-    } else {
-        return;
-    };
+pub async fn send_message(user_id: Uuid, msg: &Message, users: &Websockets, games: &Games) {
+    // // Skip any non-Text messages...
+    // let msg = if let Ok(s) = msg.to_str() {
+    //     s
+    // } else {
+    //     return;
+    // };
 
-    eprint!("Games: {:#?}", &games.read().await);
-    let new_msg = format!("<User#{}>: {}", user_id, msg);
+    let users = users.read().await;
+    let tx = users
+        .get(&user_id)
+        .expect("Couldn't retrieve userId from users HashMap");
+    if let Err(_disconnected) = tx.send(msg.clone()) {
+        eprint!("User is disconnected. Couldn't send message {:?}", &msg);
+    } else {
+        eprint!("Response successfully sent");
+    }
 
     // New message from this user, send it to everyone else (except same uid)...
-    for (&uid, tx) in users.read().await.iter() {
-        if user_id != uid {
-            if let Err(_disconnected) = tx.send(Message::text(new_msg.clone())) {
-                // The tx is disconnected, our `user_disconnected` code
-                // should be happening in another task, nothing more to
-                // do here.
-            }
-        }
-    }
+    // for (&uid, tx) in users.read().await.iter() {
+    //     if user_id != uid {
+    //         if let Err(_disconnected) = tx.send(Message::text(new_msg.clone())) {
+    //             // The tx is disconnected, our `user_disconnected` code
+    //             // should be happening in another task, nothing more to
+    //             // do here.
+    //         }
+    //     }
+    // }
 }
 
 pub async fn user_disconnected(user_id: Uuid, users: &Websockets) {

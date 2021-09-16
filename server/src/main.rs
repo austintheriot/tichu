@@ -1,10 +1,11 @@
 // #![deny(warnings)]
 
-mod common;
 mod index;
+mod state;
 mod ws;
 
-use common::{Games, Websockets};
+extern crate common;
+use state::{Games, Websockets};
 use warp::Filter;
 
 #[derive(Debug)]
