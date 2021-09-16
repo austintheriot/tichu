@@ -1,24 +1,24 @@
 // #![deny(warnings)]
-
-mod index;
-mod state;
-mod ws;
-
 extern crate common;
-use state::{Games, Websockets};
-use warp::Filter;
+mod handlers;
 
-#[derive(Debug)]
-struct Test {
-    user_id: String,
-}
+use handlers::{index, ws};
+use warp::Filter;
+use common::Game;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::{mpsc, RwLock};
+use uuid::Uuid;
+use warp::ws::Message;
+
+pub type Websockets = Arc<RwLock<HashMap<String, mpsc::UnboundedSender<Message>>>>;
+pub type Games = Arc<RwLock<HashMap<String, Game>>>;
 
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
 
-    // Keep track of all connected users, key is usize, value
-    // is a websocket sender.
+    // universal app state
     let users = Websockets::default();
     let games = Games::default();
 
@@ -26,17 +26,20 @@ async fn main() {
     let ws_route = warp::path("ws")
         // The `ws()` filter will prepare Websocket handshake...
         .and(warp::ws())
-        // get user_id query parameter
+        // get `user_id` query parameter
         .and(warp::filters::query::raw().map(|e: String| {
             let result = e.split_once('=').expect("Couldn't split string at '='");
             String::from(result.1)
         }))
+        // get users hashmap
         .and(warp::any().map(move || users.clone()))
+        // get games hashmap
         .and(warp::any().map(move || games.clone()))
-        .map(|ws: warp::ws::Ws, query_parameters: String, users, games| {
-            eprint!("Query parameter: user_id = {:#?}\n", &query_parameters);
+        // combine filters into a handler function
+        .map(|ws: warp::ws::Ws, user_id: String, users, games| {
+            eprint!("Query parameter: user_id = {:#?}\n", &user_id);
             // This will call our function if the handshake succeeds.
-            ws.on_upgrade(move |socket| ws::handle_ws_upgrade(socket, users, games))
+            ws.on_upgrade(move |socket| ws::handle_ws_upgrade(socket, user_id, users, games))
         });
 
     // GET / -> index html
