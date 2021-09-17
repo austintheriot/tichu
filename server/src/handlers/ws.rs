@@ -2,17 +2,12 @@ use crate::{Games, Websockets};
 use bincode;
 use common::STCMsg;
 use futures::{SinkExt, StreamExt, TryFutureExt};
-use tokio::sync::{RwLock, mpsc};
+use tokio::sync::{mpsc, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use uuid::Uuid;
 use warp::ws::{Message, WebSocket};
 
-pub async fn handle_ws_upgrade(
-    ws: WebSocket,
-    user_id: String,
-    users: Websockets,
-    games: Games,
-) {
+pub async fn handle_ws_upgrade(ws: WebSocket, user_id: String, users: Websockets, games: Games) {
     eprintln!("User connected: {}", user_id);
 
     let (mut user_ws_tx, mut user_ws_rx) = ws.split();
@@ -34,12 +29,6 @@ pub async fn handle_ws_upgrade(
     let user_id = if user_id == "no_id" {
         new_user_id_assigned = true;
         Uuid::new_v4().to_string()
-
-
-        // NOTE: make sure to tell client that a new username has been assigned!
-        // ****************************************************************
-        // ****************************************************************
-        // ****************************************************************
     } else {
         user_id
     };
@@ -49,15 +38,19 @@ pub async fn handle_ws_upgrade(
 
     // must be saved under new user_id before sending message
     if (new_user_id_assigned) {
-        send_message(user_id.clone(), STCMsg::UserIdAssigned(user_id.clone()), &users, &games).await;
+        send_message(
+            user_id.clone(),
+            STCMsg::UserIdAssigned(user_id.clone()),
+            &users,
+            &games,
+        )
+        .await;
     }
 
     // Listen for incoming messages
     while let Some(result) = user_ws_rx.next().await {
         let msg = match result {
-            Ok(msg) => {
-                msg
-            }
+            Ok(msg) => msg,
             Err(_) => {
                 break;
             }
