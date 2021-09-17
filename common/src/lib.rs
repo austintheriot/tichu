@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+pub const NO_ID: &str = "no_id";
+
 #[derive(Debug, Serialize, Deserialize)]
 enum TichuCallStatus {
     Called,
@@ -161,6 +163,7 @@ pub enum CTSMsg {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum STCMsg {
     State(Game),
+    UserIdAssigned(String),
     GameCreated,
     GameStateChanged,
     TeamRenamed,

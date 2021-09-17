@@ -1,8 +1,8 @@
 use crate::{Games, Websockets};
 use bincode;
-use common::CTSMsg;
+use common::STCMsg;
 use futures::{SinkExt, StreamExt, TryFutureExt};
-use tokio::sync::{mpsc};
+use tokio::sync::{RwLock, mpsc};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use uuid::Uuid;
 use warp::ws::{Message, WebSocket};
@@ -10,7 +10,7 @@ use warp::ws::{Message, WebSocket};
 pub async fn handle_ws_upgrade(
     ws: WebSocket,
     user_id: String,
-    websockets: Websockets,
+    users: Websockets,
     games: Games,
 ) {
     eprintln!("User connected: {}", user_id);
@@ -30,8 +30,11 @@ pub async fn handle_ws_upgrade(
         }
     });
 
+    let mut new_user_id_assigned = false;
     let user_id = if user_id == "no_id" {
+        new_user_id_assigned = true;
         Uuid::new_v4().to_string()
+
 
         // NOTE: make sure to tell client that a new username has been assigned!
         // ****************************************************************
@@ -42,7 +45,12 @@ pub async fn handle_ws_upgrade(
     };
 
     // Save the sender in our list of connected users.
-    websockets.write().await.insert(user_id.clone(), tx);
+    users.write().await.insert(user_id.clone(), tx);
+
+    // must be saved under new user_id before sending message
+    if (new_user_id_assigned) {
+        send_message(user_id.clone(), STCMsg::UserIdAssigned(user_id.clone()), &users, &games).await;
+    }
 
     // Listen for incoming messages
     while let Some(result) = user_ws_rx.next().await {
@@ -54,11 +62,11 @@ pub async fn handle_ws_upgrade(
                 break;
             }
         };
-        handle_message_received(user_id.clone(), msg, &websockets, &games).await;
+        handle_message_received(user_id.clone(), msg, &users, &games).await;
     }
 
     // handle if user disconnects
-    user_disconnected(user_id, &websockets).await;
+    user_disconnected(user_id, &users).await;
 }
 
 pub async fn handle_message_received(
@@ -72,26 +80,26 @@ pub async fn handle_message_received(
         return;
     }
 
-    let msg: CTSMsg = bincode::deserialize(&msg.as_bytes()).expect("Could not serialize message");
+    let msg: STCMsg = bincode::deserialize(&msg.as_bytes()).expect("Could not serialize message");
 
     match msg {
-        CTSMsg::Test(_) => {
+        STCMsg::Test(_) => {
             send_message(
                 user_id,
-                CTSMsg::Test("Hello client!".into()),
+                STCMsg::Test("Hello client!".into()),
                 &users,
                 &games,
             )
             .await;
         }
-        CTSMsg::Ping => {
-            send_message(user_id, CTSMsg::Pong, &users, &games).await;
+        STCMsg::Ping => {
+            send_message(user_id, STCMsg::Pong, &users, &games).await;
         }
         _ => eprint!("Unexpected message received\n"),
     }
 }
 
-pub async fn send_message(user_id: String, msg: CTSMsg, users: &Websockets, games: &Games) {
+pub async fn send_message(user_id: String, msg: STCMsg, users: &Websockets, games: &Games) {
     let msg = bincode::serialize(&msg).expect("Could not serialize message");
     let msg = Message::binary(msg);
     let users = users.read().await;

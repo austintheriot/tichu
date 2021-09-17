@@ -1,17 +1,21 @@
 use anyhow::Error;
 use bincode;
-use common::CTSMsg;
+use common::{CTSMsg, STCMsg};
 use log::*;
 use uuid::Uuid;
 use yew::format::{Binary, Json};
 use yew::prelude::*;
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
+use yew::services::storage::{Area, StorageService};
 
 pub struct App {
-    user_id: String,
     ws: Option<WebSocketTask>,
+    storage: StorageService,
+    user_id: String,
     link: ComponentLink<Self>,
 }
+
+const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
 
 pub enum AppMsg {
     ConnectToWS,
@@ -19,6 +23,7 @@ pub enum AppMsg {
     Noop,
     WSMsgReceived(Result<Vec<u8>, Error>),
     SendWSMsg(CTSMsg),
+    SetUserId(String),
 }
 
 impl Component for App {
@@ -26,10 +31,19 @@ impl Component for App {
     type Properties = ();
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        // let uuid = Uuid::new_v4();
+        let mut storage = StorageService::new(Area::Local).expect("Could not get retrieve StorageService");
+        let user_id = {
+            if let Json(Ok(restored_user_id)) = storage.restore(USER_ID_STORAGE_KEY) {
+                restored_user_id
+            } else {
+                storage.store(USER_ID_STORAGE_KEY, Json(&common::NO_ID));
+                String::from(common::NO_ID)
+            }
+        };
         Self {
-            user_id: String::from("no_id"),
             ws: None,
+            storage,
+            user_id,
             link: link,
         }
     }
@@ -77,6 +91,11 @@ impl Component for App {
             AppMsg::WSMsgReceived(data) => {
                 handle_ws_message_received(self, data)
             }
+            AppMsg::SetUserId(s) => {
+                self.storage.store(USER_ID_STORAGE_KEY, Json(&s));
+                self.user_id = s;
+                false
+            }
         }
     }
 
@@ -103,18 +122,22 @@ fn handle_ws_message_received(app: &mut App, data: Result<Vec<u8>, Error>) -> bo
         info!("Data received from websocket was an error {:?}", &data);
         return false;
     }
-    let data: CTSMsg = bincode::deserialize(&data.unwrap())
+    let data: STCMsg = bincode::deserialize(&data.unwrap())
         .expect("Could not deserialize message from websocket");
     info!("Received websocket message: {:?}", &data);
     match data {
-        CTSMsg::Ping => {
+        STCMsg::Ping => {
             app.link.send_message(AppMsg::SendWSMsg(CTSMsg::Pong));
         }
-        CTSMsg::Pong => {
+        STCMsg::Pong => {
             info!("Pong received from websocket!")
         }
-        CTSMsg::Test(string) => {
+        STCMsg::Test(string) => {
             info!("Test message received! Message: {}", string);
+        }
+        STCMsg::UserIdAssigned(s) => {
+            info!("New user_id received from websocket!");
+            app.link.send_message(AppMsg::SetUserId(s));
         }
         _ => info!("Some other message received!"),
     }
