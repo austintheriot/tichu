@@ -5,8 +5,8 @@ use log::*;
 use uuid::Uuid;
 use yew::format::{Binary, Json};
 use yew::prelude::*;
-use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 use yew::services::storage::{Area, StorageService};
+use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 
 pub struct App {
     ws: Option<WebSocketTask>,
@@ -31,13 +31,14 @@ impl Component for App {
     type Properties = ();
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let mut storage = StorageService::new(Area::Local).expect("Could not get retrieve StorageService");
+        let mut storage =
+            StorageService::new(Area::Local).expect("Could not get retrieve StorageService");
         let user_id = {
             if let Json(Ok(restored_user_id)) = storage.restore(USER_ID_STORAGE_KEY) {
                 restored_user_id
             } else {
-                storage.store(USER_ID_STORAGE_KEY, Json(&common::NO_ID));
-                String::from(common::NO_ID)
+                storage.store(USER_ID_STORAGE_KEY, Json(&common::NO_USER_ID));
+                String::from(common::NO_USER_ID)
             }
         };
         Self {
@@ -85,12 +86,8 @@ impl Component for App {
                 }
                 true
             }
-            AppMsg::SendWSMsg(msg_type) => {
-                send_ws_message(self, msg_type)
-            }
-            AppMsg::WSMsgReceived(data) => {
-                handle_ws_message_received(self, data)
-            }
+            AppMsg::SendWSMsg(msg_type) => handle_ws_message_send(self, msg_type),
+            AppMsg::WSMsgReceived(data) => handle_ws_message_received(self, data),
             AppMsg::SetUserId(s) => {
                 self.storage.store(USER_ID_STORAGE_KEY, Json(&s));
                 self.user_id = s;
@@ -122,19 +119,15 @@ fn handle_ws_message_received(app: &mut App, data: Result<Vec<u8>, Error>) -> bo
         info!("Data received from websocket was an error {:?}", &data);
         return false;
     }
-    let data: STCMsg = bincode::deserialize(&data.unwrap())
-        .expect("Could not deserialize message from websocket");
+    let data: STCMsg =
+        bincode::deserialize(&data.unwrap()).expect("Could not deserialize message from websocket");
     info!("Received websocket message: {:?}", &data);
     match data {
         STCMsg::Ping => {
             app.link.send_message(AppMsg::SendWSMsg(CTSMsg::Pong));
         }
-        STCMsg::Pong => {
-            info!("Pong received from websocket!")
-        }
-        STCMsg::Test(string) => {
-            info!("Test message received! Message: {}", string);
-        }
+        STCMsg::Pong => {}
+        STCMsg::Test(string) => {}
         STCMsg::UserIdAssigned(s) => {
             info!("New user_id received from websocket!");
             app.link.send_message(AppMsg::SetUserId(s));
@@ -146,7 +139,7 @@ fn handle_ws_message_received(app: &mut App, data: Result<Vec<u8>, Error>) -> bo
 
 /// Sends a message to the server via websocket
 /// Returns whether the component should rerender
-fn send_ws_message(app: &mut App, msg_type: CTSMsg) -> bool {
+fn handle_ws_message_send(app: &mut App, msg_type: CTSMsg) -> bool {
     let should_rerender = false;
     match app.ws {
         None => {
@@ -156,20 +149,24 @@ fn send_ws_message(app: &mut App, msg_type: CTSMsg) -> bool {
             info!("Sending websocket message: {:?}", &msg_type);
             match msg_type {
                 CTSMsg::Test(s) => {
-                    let s = bincode::serialize(&CTSMsg::Test(s))
-                        .expect("Could not serialize message");
-                    ws_task.send_binary(Binary::Ok(s));
+                    send_ws_message(ws_task, &CTSMsg::Test(s));
                 }
                 CTSMsg::Ping => {
-                    let s = bincode::serialize(&CTSMsg::Ping)
-                        .expect("Could not serialize message");
-                    ws_task.send_binary(Binary::Ok(s));
+                    send_ws_message(ws_task, &CTSMsg::Ping);
+                }
+                CTSMsg::Pong => {
+                    send_ws_message(ws_task, &CTSMsg::Pong);
                 }
                 _ => {
-                    info!("Unexpected message type received {:?}", &msg_type);
+                    info!("Tried to send unexpected message type {:?}", &msg_type);
                 }
             }
         }
     }
     should_rerender
+}
+
+pub fn send_ws_message(ws_task: &mut WebSocketTask, msg: &CTSMsg) {
+    let msg = bincode::serialize(&msg).expect("Could not serialize message");
+    ws_task.send_binary(Binary::Ok(msg));
 }

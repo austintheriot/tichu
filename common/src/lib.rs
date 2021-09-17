@@ -13,7 +13,7 @@ enum TichuCallStatus {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum GameStage {
     Join,
-    Pregame,
+    Lobby,
     GrandTichu,
     Trade,
     Game,
@@ -80,7 +80,7 @@ pub struct Trade {
 
 #[derive(Debug, Serialize, Deserialize)]
 enum Stage {
-    Pregame,
+    Lobby,
     Teams,
     Trade,
     Game,
