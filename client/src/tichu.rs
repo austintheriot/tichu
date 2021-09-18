@@ -1,7 +1,7 @@
 use crate::types::CTSMsgInternal;
 use anyhow::Error;
 use bincode;
-use common::{CTSMsg, CreateGame, GameStage, GameState, STCMsg};
+use common::{CTSMsg, CreateGame, GameStage, GameState, JoinGameWithGameCode, STCMsg};
 use log::*;
 use serde_derive::{Deserialize, Serialize};
 use yew::format::{Binary, Json};
@@ -25,6 +25,8 @@ struct State {
 }
 
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
+
+const DISPLAY_NAME: &str = "Display Name";
 
 pub enum AppMsg {
     ConnectToWS,
@@ -159,14 +161,14 @@ impl Component for App {
 fn handle_ws_message_received(app: &mut App, data: Result<Vec<u8>, Error>) -> bool {
     let mut should_rerender = true;
     if data.is_err() {
-        info!("Data received from websocket was an error {:?}", &data);
+        error!("Data received from websocket was an error {:?}", &data);
         return false;
     }
     let data: Option<STCMsg> = bincode::deserialize(&data.unwrap()).ok();
     info!("Received websocket message: {:?}", &data);
     match data {
         None => {
-            info!("Deserialized data is None. This probably indicates there was an error deserializing the websocket message");
+            warn!("Deserialized data is None. This probably indicates there was an error deserializing the websocket message");
         }
         Some(data) => match data {
             STCMsg::Ping => {
@@ -183,7 +185,13 @@ fn handle_ws_message_received(app: &mut App, data: Result<Vec<u8>, Error>) -> bo
                 should_rerender = true;
             }
             STCMsg::GameCreated(_) => {}
-            _ => info!("Unexpected websocket message received."),
+            STCMsg::UnexpectedMessageReceived(s) => {
+                warn!(
+                    "Server received unexpected message from client. Message sent from client: {}",
+                    s
+                );
+            }
+            _ => warn!("Unexpected websocket message received."),
         },
     }
 
@@ -196,7 +204,7 @@ fn handle_ws_message_send(app: &mut App, msg_type: CTSMsgInternal) -> bool {
     let should_rerender = false;
     match app.ws {
         None => {
-            info!("Can't send message. Websocket is not connected.");
+            warn!("Can't send message. Websocket is not connected.");
         }
         Some(ref mut ws_task) => {
             info!("Sending websocket message: {:?}", &msg_type);
@@ -221,8 +229,17 @@ fn handle_ws_message_send(app: &mut App, msg_type: CTSMsgInternal) -> bool {
                     let msg = CTSMsg::CreateGame(create_game);
                     send_ws_message(ws_task, &msg);
                 }
+                CTSMsgInternal::JoinGameWithGameCode => {
+                    let join_game_with_game_code = JoinGameWithGameCode {
+                        game_code: app.state.game_code_input.clone(),
+                        display_name: DISPLAY_NAME.into(),
+                        user_id: app.state.user_id.clone(),
+                    };
+                    let msg = CTSMsg::JoinGameWithGameCode(join_game_with_game_code);
+                    send_ws_message(ws_task, &msg);
+                }
                 _ => {
-                    info!("Tried to send unexpected message type {:?}", &msg_type);
+                    warn!("Tried to send unexpected message type {:?}", &msg_type);
                 }
             }
         }

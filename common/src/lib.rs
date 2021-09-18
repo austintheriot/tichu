@@ -216,6 +216,7 @@ pub enum STCMsg {
     Ping,
     Pong,
     Test(String),
+    UnexpectedMessageReceived(String),
 }
 
 #[cfg(test)]

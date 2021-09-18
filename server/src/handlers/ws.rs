@@ -212,7 +212,19 @@ pub async fn handle_message_received(
             )
             .await;
         }
-        _ => eprint!("Unexpected message received: {:?}\n", msg),
+        any_other_message => {
+            eprint!("Unexpected message received: {:?}\n", any_other_message);
+
+            // let user know something weird was received
+            send_ws_message(
+                &user_id,
+                STCMsg::UnexpectedMessageReceived(format!("{:#?}", &any_other_message)),
+                &connections,
+                &games,
+                &game_codes,
+            )
+            .await;
+        }
     }
 }
 
