@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 /// since the data values are formulated in the send_ws_message message
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CTSMsgInternal {
-    JoinGameWithGameId,
+    JoinGameWithGameCode,
     JoinRandomGame,
     CreateGame,
     RenameTeam,

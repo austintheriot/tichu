@@ -1,9 +1,9 @@
 use crate::{
     errors::{GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
-    ConnectionData, Connections, Games,
+    ConnectionData, Connections, GameCodes, Games,
 };
 use bincode;
-use common::{CTSMsg, CreateGame, GameState, STCMsg};
+use common::{CTSMsg, CreateGame, GameCreated, GameState, STCMsg};
 use futures::{SinkExt, StreamExt, TryFutureExt};
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -18,6 +18,7 @@ pub async fn handle_ws_upgrade(
     user_id: String,
     connections: Connections,
     games: Games,
+    game_codes: GameCodes,
 ) {
     eprintln!("User connected! Original user_id = {}\n", user_id);
 
@@ -29,6 +30,7 @@ pub async fn handle_ws_upgrade(
     let user_id_clone = user_id.clone();
     let users_clone = Arc::clone(&connections);
     let games_clone = Arc::clone(&games);
+    let game_codes_clone = Arc::clone(&game_codes);
 
     // send any incoming stream messages to client
     tokio::task::spawn(async move {
@@ -39,7 +41,13 @@ pub async fn handle_ws_upgrade(
                     .close()
                     .await
                     .expect("Could not close websocket for idle connection");
-                cleanup_state_after_disconnect(&user_id_clone, &users_clone, &games_clone).await;
+                cleanup_state_after_disconnect(
+                    &user_id_clone,
+                    &users_clone,
+                    &games_clone,
+                    &game_codes_clone,
+                )
+                .await;
             }
             // take WS from queue and send to client
             else {
@@ -86,6 +94,7 @@ pub async fn handle_ws_upgrade(
             STCMsg::UserIdAssigned(user_id.clone()),
             &connections,
             &games,
+            &game_codes,
         )
         .await;
     }
@@ -98,11 +107,11 @@ pub async fn handle_ws_upgrade(
                 break;
             }
         };
-        handle_message_received(user_id.clone(), msg, &connections, &games).await;
+        handle_message_received(user_id.clone(), msg, &connections, &games, &game_codes).await;
     }
 
     // handle if user disconnects
-    cleanup_state_after_disconnect(&user_id, &connections, &games).await;
+    cleanup_state_after_disconnect(&user_id, &connections, &games, &game_codes).await;
 }
 
 pub async fn handle_message_received(
@@ -110,6 +119,7 @@ pub async fn handle_message_received(
     msg: Message,
     connections: &Connections,
     games: &Games,
+    game_codes: &GameCodes,
 ) {
     if !msg.is_binary() {
         eprint!("Unexpected text websocket message received: {:?}", &msg);
@@ -125,11 +135,12 @@ pub async fn handle_message_received(
                 STCMsg::Test("Hello client!".into()),
                 &connections,
                 &games,
+                &game_codes,
             )
             .await;
         }
         CTSMsg::Ping => {
-            send_ws_message(&user_id, STCMsg::Pong, &connections, &games).await;
+            send_ws_message(&user_id, STCMsg::Pong, &connections, &games, &game_codes).await;
         }
         CTSMsg::Pong => {
             let connections = connections.read().await;
@@ -159,25 +170,45 @@ pub async fn handle_message_received(
             }
 
             // user is NOT associated with a game: create game for user
-            let game_state = GameState::new(user_id.clone(), display_name);
+            let read_game_codes = game_codes.read().await;
+            let game_state = GameState::new(user_id.clone(), display_name, &read_game_codes);
+            drop(read_game_codes);
+
+            // save game to state
             let mut write_games = games.write().await;
             write_games.insert(game_state.game_id.clone(), game_state.clone());
             let _ = connection.game_id.insert(game_state.game_id.clone());
+            let mut write_game_codes = game_codes.write().await;
+            write_game_codes.insert(game_state.game_code.clone(), game_state.game_id.clone());
+
+            let game_created = GameCreated {
+                game_code: game_state.game_code.clone(),
+                game_id: game_state.game_id.clone(),
+            };
 
             // these must be dropped, or else deadlock occurs, because send_ws_message
             // waits for read access, which is never given while these variables have
             // write access--which only get dropped once message is sent, and so on
             drop(write_games);
             drop(write_connections);
+            drop(write_game_codes);
 
             // send updated new game state to owner
             eprint!("New game successfully created! {:#?}\n", &game_state);
-            send_ws_message(&user_id, STCMsg::GameCreated, &connections, &games).await;
+            send_ws_message(
+                &user_id,
+                STCMsg::GameCreated(game_created),
+                &connections,
+                &games,
+                &game_codes,
+            )
+            .await;
             send_ws_message(
                 &user_id,
                 STCMsg::GameState(game_state.clone()),
                 &connections,
                 &games,
+                &game_codes,
             )
             .await;
         }
@@ -185,7 +216,13 @@ pub async fn handle_message_received(
     }
 }
 
-pub async fn send_ws_message(user_id: &String, msg: STCMsg, connections: &Connections, _: &Games) {
+pub async fn send_ws_message(
+    user_id: &String,
+    msg: STCMsg,
+    connections: &Connections,
+    _: &Games,
+    _: &GameCodes,
+) {
     let msg = bincode::serialize(&msg).expect("Could not serialize message");
     let msg = Message::binary(msg);
     let read_connections = connections.read().await;
@@ -201,12 +238,14 @@ pub async fn cleanup_state_after_disconnect(
     user_id: &String,
     connections: &Connections,
     games: &Games,
+    game_codes: &GameCodes,
 ) {
     eprintln!("User disconnected: {}\n", user_id);
 
     // extract game_id
     let mut write_connections = connections.write().await;
     let mut write_games = games.write().await;
+    let mut write_game_codes = game_codes.write().await;
     let game_id_clone = &write_connections
         .get(user_id)
         .expect(USER_ID_NOT_IN_MAP)
@@ -218,9 +257,15 @@ pub async fn cleanup_state_after_disconnect(
         write_connections
     );
     eprint!("GAME STATE BEFORE CLEANUP: {:#?}\n", write_games);
+    eprint!("GAME_CODE STATE BEFORE CLEANUP: {:#?}\n", write_game_codes);
 
     match game_id_clone {
         Some(game_id) => {
+            let game_code_clone = write_games
+                .get(game_id)
+                .expect(GAME_ID_NOT_IN_MAP)
+                .game_code
+                .clone();
             // get all user_ids of participants in the game
             let mut any_user_is_still_in_game = false;
             let participants = &write_games
@@ -258,6 +303,7 @@ pub async fn cleanup_state_after_disconnect(
                     write_connections.remove(&participant.user_id);
                 }
                 write_games.remove(game_id);
+                write_game_codes.remove(&game_code_clone);
             }
         }
         None => {
@@ -271,4 +317,5 @@ pub async fn cleanup_state_after_disconnect(
         write_connections
     );
     eprint!("GAME STATE AFTER CLEANUP: {:#?}\n", write_games);
+    eprint!("GAME_CODE STATE AFTER CLEANUP: {:#?}\n", write_game_codes);
 }

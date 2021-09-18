@@ -1,5 +1,10 @@
+mod utils;
+
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use uuid::Uuid;
+
+use crate::utils::get_new_game_code;
 
 pub const NO_USER_ID: &str = "NO_USER_ID";
 pub const NO_GAME_UD: &str = "NO_GAME_UD";
@@ -24,6 +29,7 @@ pub enum GameStage {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct GameState {
     pub game_id: String,
+    pub game_code: String,
     pub owner_id: String,
     pub stage: GameStage,
     pub participants: Vec<User>,
@@ -39,7 +45,11 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn new(owner_id: String, owner_display_name: String) -> GameState {
+    pub fn new(
+        owner_id: String,
+        owner_display_name: String,
+        existing_game_codes: &HashMap<String, String>,
+    ) -> GameState {
         let owner_user = User {
             display_name: owner_display_name.clone(),
             user_id: owner_id.clone(),
@@ -49,6 +59,7 @@ impl GameState {
         };
         let game_state = GameState {
             game_id: Uuid::new_v4().to_string(),
+            game_code: get_new_game_code(existing_game_codes),
             stage: GameStage::Lobby,
             participants: vec![owner_user],
             owner_id: owner_id.clone(),
@@ -118,11 +129,12 @@ pub struct CreateGame {
     pub user_id: String,
     pub display_name: String,
 }
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct JoinGameWithGameId {
+pub struct JoinGameWithGameCode {
     pub user_id: String,
     pub display_name: String,
-    pub game_id: String,
+    pub game_code: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -157,7 +169,7 @@ pub struct GiveDragon {
 /// Client to Server Websocket Messages
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum CTSMsg {
-    JoinGameWithGameId(JoinGameWithGameId),
+    JoinGameWithGameCode(JoinGameWithGameCode),
     JoinRandomGame(JoinRandomGame),
     CreateGame(CreateGame),
     RenameTeam(RenameTeam),
@@ -171,11 +183,17 @@ pub enum CTSMsg {
     Test(String),
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct GameCreated {
+    pub game_id: String,
+    pub game_code: String,
+}
+
 /// Server to Client Websocket Messages
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum STCMsg {
     UserIdAssigned(String),
-    GameCreated,
+    GameCreated(GameCreated),
     GameState(GameState),
     GameStateChanged,
     TeamRenamed,

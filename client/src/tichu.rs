@@ -3,17 +3,25 @@ use anyhow::Error;
 use bincode;
 use common::{CTSMsg, CreateGame, GameStage, GameState, STCMsg};
 use log::*;
+use serde_derive::{Deserialize, Serialize};
 use yew::format::{Binary, Json};
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 
 pub struct App {
+    link: ComponentLink<Self>,
     ws: Option<WebSocketTask>,
     storage: StorageService,
+    state: State,
+}
+
+#[derive(Serialize, Deserialize)]
+struct State {
+    ws_connection_status: String,
     user_id: String,
-    link: ComponentLink<Self>,
     game_state: Option<GameState>,
+    game_code_input: String,
 }
 
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
@@ -25,6 +33,7 @@ pub enum AppMsg {
     WSMsgReceived(Result<Vec<u8>, Error>),
     SendWSMsg(CTSMsgInternal),
     SetUserId(String),
+    SetGameCodeInput(String),
 }
 
 impl Component for App {
@@ -42,12 +51,17 @@ impl Component for App {
                 String::from(common::NO_USER_ID)
             }
         };
+        let state = State {
+            ws_connection_status: "Not connected".into(),
+            user_id,
+            game_state: None,
+            game_code_input: "".into(),
+        };
         Self {
             ws: None,
             storage,
-            user_id,
             link: link,
-            game_state: None,
+            state,
         }
     }
 
@@ -63,7 +77,8 @@ impl Component for App {
             AppMsg::Noop => false,
             AppMsg::Disconnected => {
                 self.ws = None;
-                false
+                self.state.ws_connection_status = "Disconnected".into();
+                true
             }
             AppMsg::ConnectToWS => {
                 info!("Connecting to websocket...");
@@ -78,13 +93,14 @@ impl Component for App {
                     }
                 });
                 if self.ws.is_none() {
-                    let url = format!("ws://localhost:8001/ws?user_id={}", self.user_id);
+                    let url = format!("ws://localhost:8001/ws?user_id={}", self.state.user_id);
                     let ws_task = WebSocketService::connect_binary(
                         &url,
                         handle_ws_receive_data,
                         handle_ws_update_status,
                     );
                     self.ws = Some(ws_task.unwrap());
+                    self.state.ws_connection_status = "Connected".into();
                 }
                 true
             }
@@ -92,8 +108,12 @@ impl Component for App {
             AppMsg::WSMsgReceived(data) => handle_ws_message_received(self, data),
             AppMsg::SetUserId(s) => {
                 self.storage.store(USER_ID_STORAGE_KEY, Json(&s));
-                self.user_id = s;
+                self.state.user_id = s;
                 false
+            }
+            AppMsg::SetGameCodeInput(s) => {
+                self.state.game_code_input = s;
+                true
             }
         }
     }
@@ -105,9 +125,9 @@ impl Component for App {
     fn view(&self) -> Html {
         html! {
             <div>
-                <p>{ "Websocket status: "}{ if self.ws.is_none() {"Not connected"} else { "Connected" }} </p>
-                <p> {"Current game stage: " }
-                { if let Some(game_state) = &self.game_state {
+                <p>{ "Websocket Status: "}{ &self.state.ws_connection_status } </p>
+                <p> {"Stage: " }
+                { if let Some(game_state) = &self.state.game_state {
                         match game_state.stage {
                             GameStage::Lobby => {
                                 "Lobby"
@@ -122,9 +142,12 @@ impl Component for App {
                 <br />
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{ "Send ping to server" }</button>
                 <br />
-                <button onclick=self.link.callback(|_| {
-                    AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)
-                })>{ "Create game" }</button>
+                <button onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)})>{ "Create game" }</button>
+                <br />
+                <input type="text"
+                    value=self.state.game_code_input.clone()
+                    oninput=self.link.callback(|e: InputData| AppMsg::SetGameCodeInput(e.value))/>
+                <button onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)})>{ "Join game" }</button>
                 <br />
             </div>
         }
@@ -156,10 +179,10 @@ fn handle_ws_message_received(app: &mut App, data: Result<Vec<u8>, Error>) -> bo
                 app.link.send_message(AppMsg::SetUserId(s));
             }
             STCMsg::GameState(game_state) => {
-                app.game_state = Some(game_state);
+                app.state.game_state = Some(game_state);
                 should_rerender = true;
             }
-            STCMsg::GameCreated => {}
+            STCMsg::GameCreated(_) => {}
             _ => info!("Unexpected websocket message received."),
         },
     }
@@ -192,7 +215,7 @@ fn handle_ws_message_send(app: &mut App, msg_type: CTSMsgInternal) -> bool {
                 }
                 CTSMsgInternal::CreateGame => {
                     let create_game = CreateGame {
-                        user_id: app.user_id.clone(),
+                        user_id: app.state.user_id.clone(),
                         display_name: String::from("Example display name"),
                     };
                     let msg = CTSMsg::CreateGame(create_game);
