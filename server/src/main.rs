@@ -115,5 +115,5 @@ async fn main() {
 
     let routes = index_route.or(ws_route);
 
-    join!(warp::serve(routes).run(([127, 0, 0, 1], 8001)), ping_pong);
+    let (_, _) = join!(warp::serve(routes).run(([127, 0, 0, 1], 8001)), ping_pong);
 }
