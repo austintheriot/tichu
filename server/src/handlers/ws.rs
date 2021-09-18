@@ -2,11 +2,8 @@ use crate::{AppWebSocket, Games, Websockets};
 use bincode;
 use common::{CTSMsg, STCMsg};
 use futures::{SinkExt, StreamExt, TryFutureExt};
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::{mpsc, RwLock};
-use tokio::{task, time};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use uuid::Uuid;
 use warp::ws::{Message, WebSocket};
@@ -17,6 +14,7 @@ pub async fn handle_ws_upgrade(ws: WebSocket, user_id: String, users: Websockets
     eprintln!("User connected! user_id = {}", user_id);
 
     let (mut user_ws_tx, mut user_ws_rx) = ws.split();
+    // use a channel to send messages to our websocket sink (sender)
     let (tx, rx) = mpsc::unbounded_channel();
     let mut rx = UnboundedReceiverStream::new(rx);
 
@@ -27,7 +25,7 @@ pub async fn handle_ws_upgrade(ws: WebSocket, user_id: String, users: Websockets
         while let Some(message) = rx.next().await {
             // user didn't respond to ping: close connection
             if message == Message::text(CLOSE_WEBSOCKET) {
-                user_ws_tx.close();
+                user_ws_tx.close().await.expect("Could not close websocket for idle user");
                 user_disconnected(&user_id_clone, &users_clone).await;
             }
             // take WS from queue and send to client

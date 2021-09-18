@@ -4,7 +4,7 @@ extern crate common;
 mod handlers;
 
 use common::{Game, STCMsg};
-use futures::{join, stream::SplitSink};
+use futures::join;
 use handlers::{
     index,
     ws::{self, send_message},
@@ -13,8 +13,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, RwLock};
-use tokio::{task, time}; // 1.3.0
-use warp::ws::{Message, WebSocket};
+use tokio::{task, time}; 
+use warp::ws::Message;
 use warp::Filter;
 
 use crate::handlers::ws::CLOSE_WEBSOCKET;
@@ -48,6 +48,7 @@ async fn main() {
             for (user_id, ws) in clone_users.read().await.iter() {
                 if !*ws.is_alive.read().await {
                     // user didn't respond to ping, close their websocket
+                    eprint!("Closing websocket for idle user {}", &user_id);
                     ws.tx
                         .send(Message::text(CLOSE_WEBSOCKET))
                         .expect("Couldn't send internal CLOSE websocket message");
