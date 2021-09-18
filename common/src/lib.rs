@@ -57,14 +57,47 @@ impl GameState {
             tricks: vec![],
             hand: vec![],
         };
-        let game_state = GameState {
+        let first_game_state = GameState {
             game_id: Uuid::new_v4().to_string(),
             game_code: get_new_game_code(existing_game_codes),
             stage: GameStage::Lobby,
             participants: vec![owner_user],
             owner_id: owner_id.clone(),
         };
-        game_state
+        first_game_state
+    }
+
+    pub fn add_user(&mut self, user_id: String, display_name: String) -> GameState {
+        let current_participants = self.participants.len();
+
+        // don't add any more than 4 users at a time
+        if current_participants == 4 {
+            return self.clone();
+        };
+
+        // if 4 have joined, the new game stage should become Teams
+        let new_stage = if current_participants == 3 {
+            GameStage::Teams
+        } else {
+            GameStage::Lobby
+        };
+        let participant = User {
+            display_name,
+            user_id,
+            role: UserRole::Participant,
+            tricks: vec![],
+            hand: vec![],
+        };
+        let mut new_participants = self.participants.clone();
+        new_participants.push(participant);
+        let new_game_state = GameState {
+            game_id: self.game_id.clone(),
+            game_code: self.game_code.clone(),
+            stage: new_stage,
+            participants: new_participants,
+            owner_id: self.owner_id.clone(),
+        };
+        new_game_state
     }
 }
 
@@ -195,7 +228,7 @@ pub enum STCMsg {
     UserIdAssigned(String),
     GameCreated(GameCreated),
     GameState(GameState),
-    GameStateChanged,
+    GameStageChanged(GameStage),
     TeamRenamed,
     UserJoined(String),
     SmallTichuCalled,

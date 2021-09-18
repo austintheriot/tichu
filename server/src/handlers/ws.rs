@@ -1,9 +1,9 @@
 use crate::{
-    errors::{GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
+    errors::{GAME_CODE_NOT_IN_MAP, GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
     ConnectionData, Connections, GameCodes, Games,
 };
 use bincode;
-use common::{CTSMsg, CreateGame, GameCreated, GameState, STCMsg};
+use common::{CTSMsg, CreateGame, GameCreated, GameStage, GameState, JoinGameWithGameCode, STCMsg};
 use futures::{SinkExt, StreamExt, TryFutureExt};
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -79,10 +79,17 @@ pub async fn handle_ws_upgrade(
         tx,
     };
 
-    // Save the sender in our list of connected users.
+    // Associate user_id to websocket sender
     let mut write_connections = connections.write().await;
     if write_connections.contains_key(&user_id) {
         eprint!("Warning: user_id {} already exists in HashMap. This likely indicates that an error occurred, and the user was not erased from memory properly", user_id);
+        // TODO - Ensure that users who disconnect and reconnect get added back into the Game properly and receive a Game state update
+        //
+        //  Set the user.connected to true?
+        //  Find the game that the user is associated with and send them this game state's most recent state
+        //
+        //
+        //
     }
     write_connections.insert(user_id.clone(), ws);
     drop(write_connections);
@@ -206,6 +213,97 @@ pub async fn handle_message_received(
             send_ws_message(
                 &user_id,
                 STCMsg::GameState(game_state.clone()),
+                &connections,
+                &games,
+                &game_codes,
+            )
+            .await;
+        }
+        CTSMsg::JoinGameWithGameCode(join_game_with_game_code) => {
+            let JoinGameWithGameCode {
+                user_id,
+                display_name,
+                game_code,
+            } = join_game_with_game_code;
+
+            // Verify that user isn't already associated with another game first
+            let mut write_connections = connections.write().await;
+            let connection = write_connections
+                .get_mut(&user_id)
+                .expect(USER_ID_NOT_IN_MAP);
+
+            // user already associated with a game, no action needed
+            if let Some(game_id) = &connection.game_id {
+                eprint!(
+                    "Can't Join game with game code for user {}: user is already associated with a game: {}\n",
+                    user_id,
+                    game_id
+                );
+                return;
+            }
+
+            // get game_id from game_code
+            let read_game_codes = game_codes.read().await;
+            let game_id = read_game_codes.get(&game_code);
+            let cloned_gamed_id = match game_id {
+                None => {
+                    eprint!("User supplied in correct game_code, ignoring.");
+                    return;
+                }
+                Some(game_id) => game_id.clone(),
+            };
+            drop(read_game_codes);
+
+            let mut write_games = games.write().await;
+            let prev_game_state = write_games
+                .get_mut(&cloned_gamed_id)
+                .expect(GAME_ID_NOT_IN_MAP);
+            let new_game_state = prev_game_state.add_user(user_id.clone(), display_name);
+
+            // save new game state
+            write_games.insert(cloned_gamed_id.clone(), new_game_state.clone());
+
+            // associate game_id to new user
+            let connection = write_connections
+                .get_mut(&user_id)
+                .expect(USER_ID_NOT_IN_MAP);
+            let _ = connection.game_id.insert(new_game_state.game_id.clone());
+
+            // these must be dropped, or else deadlock occurs, because send_ws_message
+            // waits for read access, which is never given while these variables have
+            // write access--which only get dropped once message is sent, and so on
+            drop(write_games);
+            drop(write_connections);
+
+            eprint!("User successfully joined game! {:#?}\n", &new_game_state);
+
+            // Send updates to user
+            // User Joined
+            send_ws_message(
+                &user_id,
+                STCMsg::UserJoined(user_id.clone()),
+                &connections,
+                &games,
+                &game_codes,
+            )
+            .await;
+
+            // Game Stage Changed
+            if let GameStage::Teams = new_game_state.stage {
+                send_ws_message(
+                    &user_id,
+                    STCMsg::GameStageChanged(new_game_state.stage.clone()),
+                    &connections,
+                    &games,
+                    &game_codes,
+                )
+                .await;
+            }
+
+            // Game State
+            send_ws_message(
+                &user_id,
+                STCMsg::GameState(new_game_state.clone()),
                 &connections,
                 &games,
                 &game_codes,
