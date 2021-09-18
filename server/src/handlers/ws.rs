@@ -39,7 +39,7 @@ pub async fn handle_ws_upgrade(
                     .close()
                     .await
                     .expect("Could not close websocket for idle connection");
-                user_disconnected(&user_id_clone, &users_clone, &games_clone).await;
+                cleanup_state_after_disconnect(&user_id_clone, &users_clone, &games_clone).await;
             }
             // take WS from queue and send to client
             else {
@@ -81,7 +81,7 @@ pub async fn handle_ws_upgrade(
 
     // must be saved under new user_id before sending message
     if new_user_id_assigned {
-        send_message(
+        send_ws_message(
             &user_id,
             STCMsg::UserIdAssigned(user_id.clone()),
             &connections,
@@ -102,7 +102,7 @@ pub async fn handle_ws_upgrade(
     }
 
     // handle if user disconnects
-    user_disconnected(&user_id, &connections, &games).await;
+    cleanup_state_after_disconnect(&user_id, &connections, &games).await;
 }
 
 pub async fn handle_message_received(
@@ -120,7 +120,7 @@ pub async fn handle_message_received(
 
     match msg {
         CTSMsg::Test(_) => {
-            send_message(
+            send_ws_message(
                 &user_id,
                 STCMsg::Test("Hello client!".into()),
                 &connections,
@@ -129,7 +129,7 @@ pub async fn handle_message_received(
             .await;
         }
         CTSMsg::Ping => {
-            send_message(&user_id, STCMsg::Pong, &connections, &games).await;
+            send_ws_message(&user_id, STCMsg::Pong, &connections, &games).await;
         }
         CTSMsg::Pong => {
             let connections = connections.read().await;
@@ -164,7 +164,7 @@ pub async fn handle_message_received(
             write_games.insert(game_state.game_id.clone(), game_state.clone());
             let _ = connection.game_id.insert(game_state.game_id.clone());
 
-            // these must be dropped, or else deadlock occurs, because send_message
+            // these must be dropped, or else deadlock occurs, because send_ws_message
             // waits for read access, which is never given while these variables have
             // write access--which only get dropped once message is sent, and so on
             drop(write_games);
@@ -172,8 +172,8 @@ pub async fn handle_message_received(
 
             // send updated new game state to owner
             eprint!("New game successfully created! {:#?}\n", &game_state);
-            send_message(&user_id, STCMsg::GameCreated, &connections, &games).await;
-            send_message(
+            send_ws_message(&user_id, STCMsg::GameCreated, &connections, &games).await;
+            send_ws_message(
                 &user_id,
                 STCMsg::GameState(game_state.clone()),
                 &connections,
@@ -185,7 +185,7 @@ pub async fn handle_message_received(
     }
 }
 
-pub async fn send_message(user_id: &String, msg: STCMsg, connections: &Connections, _: &Games) {
+pub async fn send_ws_message(user_id: &String, msg: STCMsg, connections: &Connections, _: &Games) {
     let msg = bincode::serialize(&msg).expect("Could not serialize message");
     let msg = Message::binary(msg);
     let read_connections = connections.read().await;
@@ -197,7 +197,11 @@ pub async fn send_message(user_id: &String, msg: STCMsg, connections: &Connectio
     }
 }
 
-pub async fn user_disconnected(user_id: &String, connections: &Connections, games: &Games) {
+pub async fn cleanup_state_after_disconnect(
+    user_id: &String,
+    connections: &Connections,
+    games: &Games,
+) {
     eprintln!("User disconnected: {}\n", user_id);
 
     // extract game_id
@@ -208,6 +212,12 @@ pub async fn user_disconnected(user_id: &String, connections: &Connections, game
         .expect(USER_ID_NOT_IN_MAP)
         .game_id
         .clone();
+
+    eprint!(
+        "CONNECTIONS STATE BEFORE CLEANUP: {:#?}\n",
+        write_connections
+    );
+    eprint!("GAME STATE BEFORE CLEANUP: {:#?}\n", write_games);
 
     match game_id_clone {
         Some(game_id) => {
@@ -230,7 +240,7 @@ pub async fn user_disconnected(user_id: &String, connections: &Connections, game
                 }
             }
 
-            // only mark this user as disconnected
+            // other users still in game: only mark this user as disconnected
             if any_user_is_still_in_game {
                 eprint!("Marking {} as not connected\n", user_id);
                 write_connections
@@ -251,9 +261,14 @@ pub async fn user_disconnected(user_id: &String, connections: &Connections, game
             }
         }
         None => {
-            // user was not associated with a game (shouldn't happen), remove from Connections
-            let mut write_connections = connections.write().await;
+            // user was not associated with any game (shouldn't happen), remove from Connections
             write_connections.remove(user_id);
         }
     }
+
+    eprint!(
+        "CONNECTIONS STATE AFTER CLEANUP: {:#?}\n",
+        write_connections
+    );
+    eprint!("GAME STATE AFTER CLEANUP: {:#?}\n", write_games);
 }
