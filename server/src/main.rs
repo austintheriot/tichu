@@ -3,7 +3,7 @@
 extern crate common;
 mod handlers;
 
-use common::{Game, STCMsg};
+use common::{GameState, STCMsg};
 use futures::join;
 use handlers::{
     index,
@@ -13,42 +13,43 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, RwLock};
-use tokio::{task, time}; 
+use tokio::{task, time};
 use warp::ws::Message;
 use warp::Filter;
 
 use crate::handlers::ws::CLOSE_WEBSOCKET;
 #[derive(Debug)]
-pub struct AppWebSocket {
+pub struct UserData {
     is_alive: Arc<RwLock<bool>>,
     tx: mpsc::UnboundedSender<Message>,
+    game_id: Option<String>,
 }
 
-pub type Websockets = Arc<RwLock<HashMap<String, AppWebSocket>>>;
-pub type Games = Arc<RwLock<HashMap<String, Game>>>;
+pub type Users = Arc<RwLock<HashMap<String, UserData>>>;
+pub type Games = Arc<RwLock<HashMap<String, GameState>>>;
 
-static PING_INTERVAL_MS: u64 = 5000;
+static PING_INTERVAL_MS: u64 = 60_000;
 
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
 
     // universal app state
-    let users = Websockets::default();
+    let users = Users::default();
     let games = Games::default();
 
-    let clone_users = users.clone();
-    let clone_games = games.clone();
+    let users_clone = Arc::clone(&users);
+    let games_clone = Arc::clone(&games);
 
     // send ping messages every 5 messages to every websocket
     let ping_pong = task::spawn(async move {
         let mut interval = time::interval(Duration::from_millis(PING_INTERVAL_MS));
         loop {
             interval.tick().await;
-            for (user_id, ws) in clone_users.read().await.iter() {
+            for (user_id, ws) in users_clone.read().await.iter() {
                 if !*ws.is_alive.read().await {
                     // user didn't respond to ping, close their websocket
-                    eprint!("Closing websocket for idle user {}", &user_id);
+                    eprint!("Closing websocket connection for idle user {}", &user_id);
                     ws.tx
                         .send(Message::text(CLOSE_WEBSOCKET))
                         .expect("Couldn't send internal CLOSE websocket message");
@@ -59,8 +60,8 @@ async fn main() {
                     send_message(
                         user_id.into(),
                         STCMsg::Ping,
-                        &clone_users.clone(),
-                        &clone_games.clone(),
+                        &Arc::clone(&users_clone),
+                        &Arc::clone(&games_clone),
                     )
                     .await;
                 }
@@ -78,9 +79,9 @@ async fn main() {
             String::from(result.1)
         }))
         // get users hashmap
-        .and(warp::any().map(move || users.clone()))
+        .and(warp::any().map(move || Arc::clone(&users)))
         // get games hashmap
-        .and(warp::any().map(move || games.clone()))
+        .and(warp::any().map(move || Arc::clone(&games)))
         // combine filters into a handler function
         .map(|ws: warp::ws::Ws, user_id: String, users, games| {
             // This will call our function if the handshake succeeds.

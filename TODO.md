@@ -3,3 +3,5 @@
   - CSSinRust: https://crates.io/crates/css-in-rust
 - Yew resources: 
   - Awesome Yew: https://github.com/jetli/awesome-yew
+
+- Make ping/pong send interval shorter for production 

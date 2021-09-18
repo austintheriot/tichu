@@ -30,8 +30,8 @@ pub struct LobbyStage {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct GameState {
-    id: String,
-    stage: GameStage,
+    pub id: String,
+    pub stage: GameStage,
     // small_tichus: Vec<TichuCallStatus>,
     // grand_tichus: Vec<TichuCallStatus>,
     // teams: [Team; 2],
@@ -44,14 +44,6 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn id(&self) -> String {
-        self.id.clone()
-    }
-
-    pub fn stage(&self) -> GameStage {
-        self.stage.clone()
-    }
-
     pub fn new(owner_id: String, owner_display_name: String) -> GameState {
         let owner_user = User {
             display_name: owner_display_name.clone(),
@@ -207,7 +199,7 @@ pub enum STCMsg {
     CardsPlayed,
     DragonWasWon,
     PlayerReceivedDragon,
-    EndGame, // show scores, etc.
+    EndGame,  // show scores, etc.
     GameOver, // game state has been entirely cleaned up and no longer exists on the server
 
     Ping,

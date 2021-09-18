@@ -93,7 +93,7 @@ dependencies = [
  "bincode",
  "serde",
  "serde_json",
- "uuid 0.4.0",
+ "uuid",
 ]
 
 [[package]]
@@ -918,7 +918,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "url",
- "uuid 0.5.1",
+ "uuid",
  "warp",
 ]
 
@@ -1208,12 +1208,6 @@ name = "utf-8"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
-
-[[package]]
-name = "uuid"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cfec50b0842181ba6e713151b72f4ec84a6a7e2c9c8a8a3ffc37bb1cd16b231"
 
 [[package]]
 name = "uuid"

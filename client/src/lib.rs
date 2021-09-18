@@ -2,6 +2,7 @@
 #[macro_use]
 
 mod tichu;
+mod types;
 
 extern crate common;
 
