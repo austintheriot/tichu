@@ -109,7 +109,7 @@ impl Component for App {
                 <p> {"Current game stage: " }
                 { if let Some(game_state) = &self.game_state {
                         match game_state.stage {
-                            GameStage::Lobby(_) => {
+                            GameStage::Lobby => {
                                 "Lobby"
                             },
                             _ => "Other",
@@ -139,26 +139,31 @@ fn handle_ws_message_received(app: &mut App, data: Result<Vec<u8>, Error>) -> bo
         info!("Data received from websocket was an error {:?}", &data);
         return false;
     }
-    let data: STCMsg =
-        bincode::deserialize(&data.unwrap()).expect("Could not deserialize message from websocket");
+    let data: Option<STCMsg> = bincode::deserialize(&data.unwrap()).ok();
     info!("Received websocket message: {:?}", &data);
     match data {
-        STCMsg::Ping => {
-            app.link
-                .send_message(AppMsg::SendWSMsg(CTSMsgInternal::Pong));
+        None => {
+            info!("Deserialized data is None. This probably indicates there was an error deserializing the websocket message");
         }
-        STCMsg::Pong => {}
-        STCMsg::Test(_) => {}
-        STCMsg::UserIdAssigned(s) => {
-            app.link.send_message(AppMsg::SetUserId(s));
-        }
-        STCMsg::GameState(game_state) => {
-            app.game_state = Some(game_state);
-            should_rerender = true;
-        }
-        STCMsg::GameCreated => {}
-        _ => info!("Unexpected websocket message received."),
+        Some(data) => match data {
+            STCMsg::Ping => {
+                app.link
+                    .send_message(AppMsg::SendWSMsg(CTSMsgInternal::Pong));
+            }
+            STCMsg::Pong => {}
+            STCMsg::Test(_) => {}
+            STCMsg::UserIdAssigned(s) => {
+                app.link.send_message(AppMsg::SetUserId(s));
+            }
+            STCMsg::GameState(game_state) => {
+                app.game_state = Some(game_state);
+                should_rerender = true;
+            }
+            STCMsg::GameCreated => {}
+            _ => info!("Unexpected websocket message received."),
+        },
     }
+
     should_rerender
 }
 

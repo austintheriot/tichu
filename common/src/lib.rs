@@ -13,8 +13,7 @@ enum TichuCallStatus {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum GameStage {
-    Join,
-    Lobby(LobbyStage),
+    Lobby,
     Teams,
     GrandTichu,
     Trade,
@@ -23,15 +22,11 @@ pub enum GameStage {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct LobbyStage {
-    participants: Vec<User>,
-    owner_id: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct GameState {
-    pub id: String,
+    pub game_id: String,
+    pub owner_id: String,
     pub stage: GameStage,
+    pub participants: Vec<User>,
     // small_tichus: Vec<TichuCallStatus>,
     // grand_tichus: Vec<TichuCallStatus>,
     // teams: [Team; 2],
@@ -47,18 +42,16 @@ impl GameState {
     pub fn new(owner_id: String, owner_display_name: String) -> GameState {
         let owner_user = User {
             display_name: owner_display_name.clone(),
-            id: owner_id.clone(),
+            user_id: owner_id.clone(),
             role: UserRole::Owner,
             tricks: vec![],
             hand: vec![],
         };
-        let lobby_stage = LobbyStage {
-            owner_id: owner_id.clone(),
-            participants: vec![owner_user],
-        };
         let game_state = GameState {
-            id: Uuid::new_v4().to_string(),
-            stage: GameStage::Lobby(lobby_stage),
+            game_id: Uuid::new_v4().to_string(),
+            stage: GameStage::Lobby,
+            participants: vec![owner_user],
+            owner_id: owner_id.clone(),
         };
         game_state
     }
@@ -114,11 +107,11 @@ pub enum UserRole {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct User {
-    id: String,
-    role: UserRole,
-    display_name: String,
-    hand: Vec<Card>,
-    tricks: Vec<Vec<Card>>,
+    pub user_id: String,
+    pub role: UserRole,
+    pub display_name: String,
+    pub hand: Vec<Card>,
+    pub tricks: Vec<Vec<Card>>,
 }
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct CreateGame {

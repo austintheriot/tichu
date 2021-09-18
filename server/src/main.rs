@@ -1,6 +1,7 @@
 // #![deny(warnings)]
 #![feature(never_type)]
 extern crate common;
+mod errors;
 mod handlers;
 
 use common::{GameState, STCMsg};
@@ -19,13 +20,18 @@ use warp::Filter;
 
 use crate::handlers::ws::CLOSE_WEBSOCKET;
 #[derive(Debug)]
-pub struct UserData {
-    is_alive: Arc<RwLock<bool>>,
-    tx: mpsc::UnboundedSender<Message>,
+pub struct ConnectionData {
+    user_id: String,
     game_id: Option<String>,
+    /// Used for ping/pong diagnostics
+    is_alive: Arc<RwLock<bool>>,
+    /// Is the user's websocket currently connected?
+    connected: bool,
+    /// Channel for sending messages through the websocket
+    tx: mpsc::UnboundedSender<Message>,
 }
 
-pub type Users = Arc<RwLock<HashMap<String, UserData>>>;
+pub type Connections = Arc<RwLock<HashMap<String, ConnectionData>>>;
 pub type Games = Arc<RwLock<HashMap<String, GameState>>>;
 
 static PING_INTERVAL_MS: u64 = 60_000;
@@ -35,10 +41,10 @@ async fn main() {
     pretty_env_logger::init();
 
     // universal app state
-    let users = Users::default();
+    let connections = Connections::default();
     let games = Games::default();
 
-    let users_clone = Arc::clone(&users);
+    let connections_clone = Arc::clone(&connections);
     let games_clone = Arc::clone(&games);
 
     // send ping messages every 5 messages to every websocket
@@ -46,7 +52,7 @@ async fn main() {
         let mut interval = time::interval(Duration::from_millis(PING_INTERVAL_MS));
         loop {
             interval.tick().await;
-            for (user_id, ws) in users_clone.read().await.iter() {
+            for (user_id, ws) in connections_clone.read().await.iter() {
                 if !*ws.is_alive.read().await {
                     // user didn't respond to ping, close their websocket
                     eprint!("Closing websocket connection for idle user {}", &user_id);
@@ -60,7 +66,7 @@ async fn main() {
                     send_message(
                         user_id.into(),
                         STCMsg::Ping,
-                        &Arc::clone(&users_clone),
+                        &Arc::clone(&connections_clone),
                         &Arc::clone(&games_clone),
                     )
                     .await;
@@ -78,14 +84,14 @@ async fn main() {
             let result = e.split_once('=').expect("Couldn't split string at '='");
             String::from(result.1)
         }))
-        // get users hashmap
-        .and(warp::any().map(move || Arc::clone(&users)))
+        // get connections hashmap
+        .and(warp::any().map(move || Arc::clone(&connections)))
         // get games hashmap
         .and(warp::any().map(move || Arc::clone(&games)))
         // combine filters into a handler function
-        .map(|ws: warp::ws::Ws, user_id: String, users, games| {
+        .map(|ws: warp::ws::Ws, user_id: String, connections, games| {
             // This will call our function if the handshake succeeds.
-            ws.on_upgrade(move |socket| ws::handle_ws_upgrade(socket, user_id, users, games))
+            ws.on_upgrade(move |socket| ws::handle_ws_upgrade(socket, user_id, connections, games))
         });
 
     // GET / -> index html
