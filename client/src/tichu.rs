@@ -198,8 +198,6 @@ impl App {
                     self.link
                         .send_message(AppMsg::SendWSMsg(CTSMsgInternal::Pong));
                 }
-                STCMsg::Pong => {}
-                STCMsg::Test(_) => {}
                 STCMsg::UserIdAssigned(s) => {
                     self.link.send_message(AppMsg::SetUserId(s));
                 }
@@ -207,14 +205,16 @@ impl App {
                     self.state.game_state = Some(game_state);
                     should_rerender = true;
                 }
-                STCMsg::GameCreated(_) => {}
-                STCMsg::UserJoined(_) => {}
                 STCMsg::UnexpectedMessageReceived(s) => {
                     warn!(
-                    "Server received unexpected message from client. Message sent from client: {}",
-                    s
-                );
+                        "Server received unexpected message from client. Message sent from client: {}",
+                        s
+                    );
                 }
+                STCMsg::Pong => {}
+                STCMsg::Test(_) => {}
+                STCMsg::GameCreated(_) => {}
+                STCMsg::UserJoined(_) => {}
                 STCMsg::UserDisconnected(_) => {}
                 STCMsg::UserReconnected(_) => {}
                 _ => warn!("Unexpected websocket message received."),
