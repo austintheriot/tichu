@@ -106,8 +106,8 @@ impl Component for App {
                 }
                 true
             }
-            AppMsg::SendWSMsg(msg_type) => handle_ws_message_send(self, msg_type),
-            AppMsg::WSMsgReceived(data) => handle_ws_message_received(self, data),
+            AppMsg::SendWSMsg(msg_type) => self.send_ws_message(msg_type),
+            AppMsg::WSMsgReceived(data) => self.handle_ws_message_received(data),
             AppMsg::SetUserId(s) => {
                 self.storage.store(USER_ID_STORAGE_KEY, Json(&s));
                 self.state.user_id = s;
@@ -145,11 +145,7 @@ impl Component for App {
                 } else {
                     ""
                 } } </p>
-                <p> { "Participants: " } {if let Some(game_state) = &self.state.game_state {
-                    &game_state.participants
-                } else {
-                    &vec![]
-                } } </p>
+                <p> { "Participants: " } { self.view_participants() } </p>
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
                 <br />
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{ "Send ping to server" }</button>
@@ -166,99 +162,119 @@ impl Component for App {
     }
 }
 
-/// Handles when a websocket message is received from the server
-/// Returns whether the component should re-render or not
-fn handle_ws_message_received(app: &mut App, data: Result<Vec<u8>, Error>) -> bool {
-    let mut should_rerender = true;
-    if data.is_err() {
-        error!("Data received from websocket was an error {:?}", &data);
-        return false;
-    }
-    let data: Option<STCMsg> = bincode::deserialize(&data.unwrap()).ok();
-    info!("Received websocket message: {:?}", &data);
-    match data {
-        None => {
-            warn!("Deserialized data is None. This probably indicates there was an error deserializing the websocket message");
+impl App {
+    fn view_participants(&self) -> Html {
+        if let Some(game_state) = &self.state.game_state {
+            html! {
+                <ul>
+                { for game_state.participants.iter().map(|user| {
+                    html! {
+                        <li> { &user.display_name } </li>
+                    }
+                })}
+                </ul>
+            }
+        } else {
+            html! { <></> }
         }
-        Some(data) => match data {
-            STCMsg::Ping => {
-                app.link
-                    .send_message(AppMsg::SendWSMsg(CTSMsgInternal::Pong));
+    }
+
+    /// Handles when a websocket message is received from the server
+    /// Returns whether the component should re-render or not
+    fn handle_ws_message_received(&mut self, data: Result<Vec<u8>, Error>) -> bool {
+        let mut should_rerender = true;
+        if data.is_err() {
+            error!("Data received from websocket was an error {:?}", &data);
+            return false;
+        }
+        let data: Option<STCMsg> = bincode::deserialize(&data.unwrap()).ok();
+        info!("Received websocket message: {:?}", &data);
+        match data {
+            None => {
+                warn!("Deserialized data is None. This probably indicates there was an error deserializing the websocket message");
             }
-            STCMsg::Pong => {}
-            STCMsg::Test(_) => {}
-            STCMsg::UserIdAssigned(s) => {
-                app.link.send_message(AppMsg::SetUserId(s));
-            }
-            STCMsg::GameState(game_state) => {
-                app.state.game_state = Some(game_state);
-                should_rerender = true;
-            }
-            STCMsg::GameCreated(_) => {}
-            STCMsg::UserJoined(_) => {}
-            STCMsg::UnexpectedMessageReceived(s) => {
-                warn!(
+            Some(data) => match data {
+                STCMsg::Ping => {
+                    self.link
+                        .send_message(AppMsg::SendWSMsg(CTSMsgInternal::Pong));
+                }
+                STCMsg::Pong => {}
+                STCMsg::Test(_) => {}
+                STCMsg::UserIdAssigned(s) => {
+                    self.link.send_message(AppMsg::SetUserId(s));
+                }
+                STCMsg::GameState(game_state) => {
+                    self.state.game_state = Some(game_state);
+                    should_rerender = true;
+                }
+                STCMsg::GameCreated(_) => {}
+                STCMsg::UserJoined(_) => {}
+                STCMsg::UnexpectedMessageReceived(s) => {
+                    warn!(
                     "Server received unexpected message from client. Message sent from client: {}",
                     s
                 );
-            }
-            _ => warn!("Unexpected websocket message received."),
-        },
+                }
+                STCMsg::UserDisconnected(_) => {}
+                STCMsg::UserReconnected(_) => {}
+                _ => warn!("Unexpected websocket message received."),
+            },
+        }
+
+        should_rerender
     }
 
-    should_rerender
-}
-
-/// Sends a message to the server via websocket
-/// Returns whether the component should rerender
-fn handle_ws_message_send(app: &mut App, msg_type: CTSMsgInternal) -> bool {
-    let should_rerender = false;
-    match app.ws {
-        None => {
-            warn!("Can't send message. Websocket is not connected.");
+    /// Sends a message to the server via websocket
+    /// Returns whether the component should rerender
+    fn send_ws_message(&mut self, msg_type: CTSMsgInternal) -> bool {
+        let should_rerender = false;
+        match msg_type {
+            CTSMsgInternal::Test => {
+                let msg = CTSMsg::Test(String::from("Hello, server!"));
+                self._send_ws_message(&msg);
+            }
+            CTSMsgInternal::Ping => {
+                let msg = CTSMsg::Ping;
+                self._send_ws_message(&msg);
+            }
+            CTSMsgInternal::Pong => {
+                let msg = CTSMsg::Pong;
+                self._send_ws_message(&msg);
+            }
+            CTSMsgInternal::CreateGame => {
+                let create_game = CreateGame {
+                    user_id: self.state.user_id.clone(),
+                    display_name: String::from("Example display name"),
+                };
+                let msg = CTSMsg::CreateGame(create_game);
+                self._send_ws_message(&msg);
+            }
+            CTSMsgInternal::JoinGameWithGameCode => {
+                let join_game_with_game_code = JoinGameWithGameCode {
+                    game_code: self.state.game_code_input.clone(),
+                    display_name: DISPLAY_NAME.into(),
+                    user_id: self.state.user_id.clone(),
+                };
+                let msg = CTSMsg::JoinGameWithGameCode(join_game_with_game_code);
+                self._send_ws_message(&msg);
+            }
+            _ => {
+                warn!("Tried to send unexpected message type {:?}", &msg_type);
+            }
         }
-        Some(ref mut ws_task) => {
-            info!("Sending websocket message: {:?}", &msg_type);
-            match msg_type {
-                CTSMsgInternal::Test => {
-                    let msg = CTSMsg::Test(String::from("Hello, server!"));
-                    send_ws_message(ws_task, &msg);
-                }
-                CTSMsgInternal::Ping => {
-                    let msg = CTSMsg::Ping;
-                    send_ws_message(ws_task, &msg);
-                }
-                CTSMsgInternal::Pong => {
-                    let msg = CTSMsg::Pong;
-                    send_ws_message(ws_task, &msg);
-                }
-                CTSMsgInternal::CreateGame => {
-                    let create_game = CreateGame {
-                        user_id: app.state.user_id.clone(),
-                        display_name: String::from("Example display name"),
-                    };
-                    let msg = CTSMsg::CreateGame(create_game);
-                    send_ws_message(ws_task, &msg);
-                }
-                CTSMsgInternal::JoinGameWithGameCode => {
-                    let join_game_with_game_code = JoinGameWithGameCode {
-                        game_code: app.state.game_code_input.clone(),
-                        display_name: DISPLAY_NAME.into(),
-                        user_id: app.state.user_id.clone(),
-                    };
-                    let msg = CTSMsg::JoinGameWithGameCode(join_game_with_game_code);
-                    send_ws_message(ws_task, &msg);
-                }
-                _ => {
-                    warn!("Tried to send unexpected message type {:?}", &msg_type);
-                }
+        should_rerender
+    }
+
+    /// Helper function to actually send the websocket message
+    fn _send_ws_message(&mut self, msg: &CTSMsg) {
+        match self.ws {
+            None => {
+                warn!("Can't send message. Websocket is not connected.");
+            }
+            Some(ref mut ws_task) => {
+                let msg = bincode::serialize(&msg).expect("Could not serialize message");
+                ws_task.send_binary(Binary::Ok(msg));
             }
         }
     }
-    should_rerender
-}
-
-pub fn send_ws_message(ws_task: &mut WebSocketTask, msg: &CTSMsg) {
-    let msg = bincode::serialize(&msg).expect("Could not serialize message");
-    ws_task.send_binary(Binary::Ok(msg));
 }

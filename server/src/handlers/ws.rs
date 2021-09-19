@@ -71,26 +71,26 @@ pub async fn handle_ws_upgrade(
 
     eprintln!("New user_id = {}\n", user_id);
 
-    let ws = ConnectionData {
-        user_id: user_id.clone(),
-        game_id: None,
-        is_alive: Arc::new(RwLock::new(true)),
-        connected: true,
-        tx,
-    };
+    let mut user_reconnected = false;
+    let mut game_id = None;
 
-    // Associate user_id to websocket sender
     let mut write_connections = connections.write().await;
     if write_connections.contains_key(&user_id) {
-        eprint!("Warning: user_id {} already exists in HashMap. This likely indicates that an error occurred, and the user was not erased from memory properly", user_id);
-        // TODO - Ensure that users who disconnect and reconnect get added back into the Game properly and receive a Game state update
-        //
-        //  Set the user.connected to true?
-        //  Find the game that the user is associated with and send them this game state's most recent state
-        //
-        //
-        //
+        user_reconnected = true;
+        eprint!("User {} reconnected", user_id);
+        let existing_user = write_connections.get(&user_id).expect(USER_ID_NOT_IN_MAP);
+        game_id = existing_user.game_id.clone();
     }
+
+    let ws = ConnectionData {
+        user_id: user_id.clone(),
+        game_id: game_id.clone(),
+        tx,
+        is_alive: Arc::new(RwLock::new(true)),
+        connected: true,
+    };
+
+    // Associate user_id to game_id (if relevant) & websocket sender
     write_connections.insert(user_id.clone(), ws);
     drop(write_connections);
 
@@ -104,6 +104,36 @@ pub async fn handle_ws_upgrade(
             &game_codes,
         )
         .await;
+    }
+
+    if user_reconnected {
+        match game_id {
+            Some(game_id) => {
+                // notify other participants (if any) that the user reconnected
+                send_ws_message_to_all_participants(
+                    &game_id,
+                    STCMsg::UserReconnected(user_id.to_string()),
+                    &connections,
+                    &games,
+                    &game_codes,
+                )
+                .await;
+
+                // if user is associated with a game_id, send the new participant a state update
+                let read_games = games.read().await;
+                let game_state = read_games.get(&game_id).expect(GAME_ID_NOT_IN_MAP).clone();
+                drop(read_games);
+                send_ws_message_to_user(
+                    &user_id,
+                    STCMsg::GameState(game_state),
+                    &connections,
+                    &games,
+                    &game_codes,
+                )
+                .await;
+            }
+            _ => {}
+        }
     }
 
     // Listen for incoming messages
@@ -273,7 +303,7 @@ pub async fn handle_message_received(
                 .expect(USER_ID_NOT_IN_MAP);
             let _ = connection.game_id.insert(new_game_state.game_id.clone());
 
-            // these must be dropped, or else deadlock occurs, because send_ws_message_to_participants
+            // these must be dropped, or else deadlock occurs, because send_ws_message_to_all_participants
             // waits for read access, which is never given while these variables have
             // write access--which only get dropped once message is sent, and so on
             drop(write_games);
@@ -283,7 +313,7 @@ pub async fn handle_message_received(
 
             // Send updates to user
             // User Joined event
-            send_ws_message_to_participants(
+            send_ws_message_to_all_participants(
                 &cloned_gamed_id,
                 STCMsg::UserJoined(user_id.clone()),
                 &connections,
@@ -294,7 +324,7 @@ pub async fn handle_message_received(
 
             // Game Stage Changed event
             if let GameStage::Teams = new_game_state.stage {
-                send_ws_message_to_participants(
+                send_ws_message_to_all_participants(
                     &cloned_gamed_id,
                     STCMsg::GameStageChanged(new_game_state.stage.clone()),
                     &connections,
@@ -305,7 +335,7 @@ pub async fn handle_message_received(
             }
 
             // Game State
-            send_ws_message_to_participants(
+            send_ws_message_to_all_participants(
                 &cloned_gamed_id,
                 STCMsg::GameState(new_game_state.clone()),
                 &connections,
@@ -348,7 +378,7 @@ pub async fn send_ws_message_to_user(
     }
 }
 
-pub async fn send_ws_message_to_participants(
+pub async fn send_ws_message_to_all_participants(
     game_id: &String,
     msg: STCMsg,
     connections: &Connections,
@@ -390,13 +420,6 @@ pub async fn cleanup_state_after_disconnect(
         .game_id
         .clone();
 
-    eprint!(
-        "CONNECTIONS STATE BEFORE CLEANUP: {:#?}\n",
-        write_connections
-    );
-    eprint!("GAME STATE BEFORE CLEANUP: {:#?}\n", write_games);
-    eprint!("GAME_CODE STATE BEFORE CLEANUP: {:#?}\n", write_game_codes);
-
     match game_id_clone {
         Some(game_id) => {
             let game_code_clone = write_games
@@ -430,6 +453,19 @@ pub async fn cleanup_state_after_disconnect(
                     .get_mut(user_id)
                     .expect(USER_ID_NOT_IN_MAP)
                     .connected = false;
+
+                drop(write_connections);
+                drop(write_games);
+                drop(write_game_codes);
+                // notify remaining participants that user was disconnected
+                send_ws_message_to_all_participants(
+                    game_id,
+                    STCMsg::UserDisconnected(user_id.to_string()),
+                    connections,
+                    games,
+                    game_codes,
+                )
+                .await;
             }
             // no users left in game: remove all users from Connections and delete game from Games
             else {
@@ -449,11 +485,4 @@ pub async fn cleanup_state_after_disconnect(
             write_connections.remove(user_id);
         }
     }
-
-    eprint!(
-        "CONNECTIONS STATE AFTER CLEANUP: {:#?}\n",
-        write_connections
-    );
-    eprint!("GAME STATE AFTER CLEANUP: {:#?}\n", write_games);
-    eprint!("GAME_CODE STATE AFTER CLEANUP: {:#?}\n", write_game_codes);
 }
