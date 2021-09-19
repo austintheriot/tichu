@@ -256,6 +256,8 @@ pub enum STCMsg {
     Pong,
     Test(String),
     UnexpectedMessageReceived(String),
+    UserDisconnected(String),
+    UserReconnected(String),
 }
 
 #[cfg(test)]

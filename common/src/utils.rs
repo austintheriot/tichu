@@ -16,7 +16,7 @@ fn get_random_string_of_len(len: usize) -> String {
 /// Default length is 3, but increases length if runs into game_code
 /// name collisions more than 10 times at a given string length.
 pub fn get_new_game_code(game_codes: &HashMap<String, String>) -> String {
-    let mut string_len: usize = 3;
+    let mut string_len: usize = 1;
     let mut count: u128 = 0;
 
     let mut random_name = get_random_string_of_len(string_len);
