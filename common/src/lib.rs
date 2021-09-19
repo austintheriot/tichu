@@ -69,11 +69,16 @@ impl GameState {
 
     pub fn add_user(&mut self, user_id: String, display_name: String) -> GameState {
         let current_participants = self.participants.len();
+        let game_has_max_participants = current_participants == 4;
+        let is_lobby = match self.stage {
+            GameStage::Lobby => true,
+            _ => false,
+        };
 
         // don't add any more than 4 users at a time
-        if current_participants == 4 {
+        if !is_lobby || game_has_max_participants {
             return self.clone();
-        };
+        }
 
         // if 4 have joined, the new game stage should become Teams
         let new_stage = if current_participants == 3 {

@@ -96,7 +96,7 @@ pub async fn handle_ws_upgrade(
 
     // must be saved under new user_id before sending message
     if new_user_id_assigned {
-        send_ws_message(
+        send_ws_message_to_user(
             &user_id,
             STCMsg::UserIdAssigned(user_id.clone()),
             &connections,
@@ -137,7 +137,7 @@ pub async fn handle_message_received(
 
     match msg {
         CTSMsg::Test(_) => {
-            send_ws_message(
+            send_ws_message_to_user(
                 &user_id,
                 STCMsg::Test("Hello client!".into()),
                 &connections,
@@ -147,7 +147,8 @@ pub async fn handle_message_received(
             .await;
         }
         CTSMsg::Ping => {
-            send_ws_message(&user_id, STCMsg::Pong, &connections, &games, &game_codes).await;
+            send_ws_message_to_user(&user_id, STCMsg::Pong, &connections, &games, &game_codes)
+                .await;
         }
         CTSMsg::Pong => {
             let connections = connections.read().await;
@@ -193,16 +194,18 @@ pub async fn handle_message_received(
                 game_id: game_state.game_id.clone(),
             };
 
-            // these must be dropped, or else deadlock occurs, because send_ws_message
+            // these must be dropped, or else deadlock occurs, because send_ws_message_to_user
             // waits for read access, which is never given while these variables have
             // write access--which only get dropped once message is sent, and so on
             drop(write_games);
             drop(write_connections);
             drop(write_game_codes);
 
-            // send updated new game state to owner
+            // send updated new game state to owner only
+            // --no need to iterate through participants, since it's a new game
             eprint!("New game successfully created! {:#?}\n", &game_state);
-            send_ws_message(
+            // Game Created event
+            send_ws_message_to_user(
                 &user_id,
                 STCMsg::GameCreated(game_created),
                 &connections,
@@ -210,7 +213,8 @@ pub async fn handle_message_received(
                 &game_codes,
             )
             .await;
-            send_ws_message(
+            // Updated Game State
+            send_ws_message_to_user(
                 &user_id,
                 STCMsg::GameState(game_state.clone()),
                 &connections,
@@ -269,7 +273,7 @@ pub async fn handle_message_received(
                 .expect(USER_ID_NOT_IN_MAP);
             let _ = connection.game_id.insert(new_game_state.game_id.clone());
 
-            // these must be dropped, or else deadlock occurs, because send_ws_message
+            // these must be dropped, or else deadlock occurs, because send_ws_message_to_participants
             // waits for read access, which is never given while these variables have
             // write access--which only get dropped once message is sent, and so on
             drop(write_games);
@@ -278,9 +282,9 @@ pub async fn handle_message_received(
             eprint!("User successfully joined game! {:#?}\n", &new_game_state);
 
             // Send updates to user
-            // User Joined
-            send_ws_message(
-                &user_id,
+            // User Joined event
+            send_ws_message_to_participants(
+                &cloned_gamed_id,
                 STCMsg::UserJoined(user_id.clone()),
                 &connections,
                 &games,
@@ -288,10 +292,10 @@ pub async fn handle_message_received(
             )
             .await;
 
-            // Game Stage Changed
+            // Game Stage Changed event
             if let GameStage::Teams = new_game_state.stage {
-                send_ws_message(
-                    &user_id,
+                send_ws_message_to_participants(
+                    &cloned_gamed_id,
                     STCMsg::GameStageChanged(new_game_state.stage.clone()),
                     &connections,
                     &games,
@@ -301,8 +305,8 @@ pub async fn handle_message_received(
             }
 
             // Game State
-            send_ws_message(
-                &user_id,
+            send_ws_message_to_participants(
+                &cloned_gamed_id,
                 STCMsg::GameState(new_game_state.clone()),
                 &connections,
                 &games,
@@ -314,7 +318,7 @@ pub async fn handle_message_received(
             eprint!("Unexpected message received: {:?}\n", any_other_message);
 
             // let user know something weird was received
-            send_ws_message(
+            send_ws_message_to_user(
                 &user_id,
                 STCMsg::UnexpectedMessageReceived(format!("{:#?}", &any_other_message)),
                 &connections,
@@ -326,7 +330,7 @@ pub async fn handle_message_received(
     }
 }
 
-pub async fn send_ws_message(
+pub async fn send_ws_message_to_user(
     user_id: &String,
     msg: STCMsg,
     connections: &Connections,
@@ -341,6 +345,30 @@ pub async fn send_ws_message(
         eprint!("User is disconnected. Couldn't send message {:?}\n", &msg);
     } else {
         eprint!("Message successfully sent\n");
+    }
+}
+
+pub async fn send_ws_message_to_participants(
+    game_id: &String,
+    msg: STCMsg,
+    connections: &Connections,
+    games: &Games,
+    _: &GameCodes,
+) {
+    let msg = bincode::serialize(&msg).expect("Could not serialize message");
+    let msg = Message::binary(msg);
+    let games = games.read().await;
+    let game = games.get(game_id).expect(GAME_ID_NOT_IN_MAP);
+    for participant in game.participants.iter() {
+        let read_connections = connections.read().await;
+        let ws = read_connections
+            .get(&participant.user_id)
+            .expect(USER_ID_NOT_IN_MAP);
+        if let Err(_disconnected) = ws.tx.send(msg.clone()) {
+            eprint!("User is disconnected. Couldn't send message {:?}\n", &msg);
+        } else {
+            eprint!("Message successfully sent\n");
+        }
     }
 }
 
