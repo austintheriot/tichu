@@ -4,6 +4,7 @@
 - Yew resources: 
   - Awesome Yew: https://github.com/jetli/awesome-yew
 
+- Accept UN-capitalized game codes (do good input validation: trim, capitalize, etc.)
 - Call "Endgame" stage "Scoreboard" or something similar instead
 - Spawn ping/pong on ws upgrade for more randomized ping/pong distribution
 - Mark is_alive as true anytime any message is sent from client??

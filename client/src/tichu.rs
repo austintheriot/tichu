@@ -22,11 +22,10 @@ struct State {
     user_id: String,
     game_state: Option<GameState>,
     game_code_input: String,
+    display_name_input: String,
 }
 
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
-
-const DISPLAY_NAME: &str = "Display Name";
 
 pub enum AppMsg {
     ConnectToWS,
@@ -36,6 +35,7 @@ pub enum AppMsg {
     SendWSMsg(CTSMsgInternal),
     SetUserId(String),
     SetGameCodeInput(String),
+    SetDisplayNameInput(String),
 }
 
 impl Component for App {
@@ -58,6 +58,7 @@ impl Component for App {
             user_id,
             game_state: None,
             game_code_input: "".into(),
+            display_name_input: "".into(),
         };
         Self {
             ws: None,
@@ -117,6 +118,10 @@ impl Component for App {
                 self.state.game_code_input = s;
                 true
             }
+            AppMsg::SetDisplayNameInput(s) => {
+                self.state.display_name_input = s;
+                true
+            }
         }
     }
 
@@ -146,13 +151,22 @@ impl Component for App {
                     ""
                 } } </p>
                 <p> { "Participants: " } { self.view_participants() } </p>
+                <label for="display-name-input"> { "Display Name" } </label>
+                <input
+                    id="display-name-input"
+                    type="text"
+                    value=self.state.display_name_input.clone()
+                    oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
                 <br />
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{ "Send ping to server" }</button>
                 <br />
                 <button onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)})>{ "Create game" }</button>
                 <br />
-                <input type="text"
+                <label for="game-code-input"> { "Game Code" } </label>
+               <input
+                    id="game-code-input"
+                    type="text"
                     value=self.state.game_code_input.clone()
                     oninput=self.link.callback(|e: InputData| AppMsg::SetGameCodeInput(e.value))/>
                 <button onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)})>{ "Join game" }</button>
@@ -244,7 +258,7 @@ impl App {
             CTSMsgInternal::CreateGame => {
                 let create_game = CreateGame {
                     user_id: self.state.user_id.clone(),
-                    display_name: String::from("Example display name"),
+                    display_name: self.state.display_name_input.clone(),
                 };
                 let msg = CTSMsg::CreateGame(create_game);
                 self._send_ws_message(&msg);
@@ -252,7 +266,7 @@ impl App {
             CTSMsgInternal::JoinGameWithGameCode => {
                 let join_game_with_game_code = JoinGameWithGameCode {
                     game_code: self.state.game_code_input.clone(),
-                    display_name: DISPLAY_NAME.into(),
+                    display_name: self.state.display_name_input.clone(),
                     user_id: self.state.user_id.clone(),
                 };
                 let msg = CTSMsg::JoinGameWithGameCode(join_game_with_game_code);
