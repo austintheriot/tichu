@@ -2,6 +2,7 @@ mod utils;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
 use uuid::Uuid;
 
 use crate::utils::get_new_game_code;

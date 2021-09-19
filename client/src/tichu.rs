@@ -140,6 +140,16 @@ impl Component for App {
                         "No game state"
                 }}
                 </p>
+                <p> { "Game Code: " } {if let Some(game_state) = &self.state.game_state {
+                    &game_state.game_code
+                } else {
+                    ""
+                } } </p>
+                <p> { "Participants: " } {if let Some(game_state) = &self.state.game_state {
+                    &game_state.participants
+                } else {
+                    &vec![]
+                } } </p>
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
                 <br />
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{ "Send ping to server" }</button>
@@ -185,6 +195,7 @@ fn handle_ws_message_received(app: &mut App, data: Result<Vec<u8>, Error>) -> bo
                 should_rerender = true;
             }
             STCMsg::GameCreated(_) => {}
+            STCMsg::UserJoined(_) => {}
             STCMsg::UnexpectedMessageReceived(s) => {
                 warn!(
                     "Server received unexpected message from client. Message sent from client: {}",
