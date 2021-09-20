@@ -1,3 +1,6 @@
+use std::rc::Rc;
+use std::time::Duration;
+
 use crate::types::CTSMsgInternal;
 use anyhow::Error;
 use bincode;
@@ -6,11 +9,14 @@ use log::*;
 use serde_derive::{Deserialize, Serialize};
 use yew::format::{Binary, Json};
 use yew::prelude::*;
+use yew::services::interval::IntervalTask;
 use yew::services::storage::{Area, StorageService};
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
+use yew::services::IntervalService;
 
 pub struct App {
     link: ComponentLink<Self>,
+    interval_task: Option<IntervalTask>,
     ws: Option<WebSocketTask>,
     storage: StorageService,
     state: State,
@@ -38,6 +44,10 @@ pub enum AppMsg {
     SetDisplayNameInput(String),
 }
 
+/// HACK: store static reference to app to allow
+/// accessing the component methods from set_interval closures
+static mut APP_REFERENCE: Option<*mut App> = None;
+
 impl Component for App {
     type Message = AppMsg;
     type Properties = ();
@@ -61,6 +71,7 @@ impl Component for App {
             display_name_input: "".into(),
         };
         Self {
+            interval_task: None,
             ws: None,
             storage,
             link: link,
@@ -72,6 +83,30 @@ impl Component for App {
         // connect to websocket on first render
         if self.ws.is_none() && first_render {
             self.link.send_message(AppMsg::ConnectToWS);
+
+            // store a static reference to App to use in closure
+            // for sending websocket message from JS
+            unsafe {
+                let reference: *mut App = self;
+                APP_REFERENCE.replace(reference);
+            };
+
+            let interval_task = IntervalService::spawn(
+                Duration::from_millis(1000),
+                Callback::Callback(Rc::new(|_| {
+                    info!("Hello from interval!");
+                    unsafe {
+                        match APP_REFERENCE {
+                            Some(app) => {
+                                (*app).send_ws_message(CTSMsgInternal::Ping);
+                            }
+                            None => {}
+                        }
+                    }
+                })),
+            );
+
+            self.interval_task = Some(interval_task);
         }
     }
 
@@ -127,6 +162,13 @@ impl Component for App {
 
     fn change(&mut self, _prop: Self::Properties) -> ShouldRender {
         false
+    }
+
+    fn destroy(&mut self) {
+        // clean up static reference to app
+        unsafe {
+            APP_REFERENCE.take();
+        };
     }
 
     fn view(&self) -> Html {
