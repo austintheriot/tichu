@@ -421,20 +421,22 @@ pub async fn cleanup_state_after_disconnect(
         .clone();
 
     match game_id_clone {
+        // user is associated with a game_id (should always be the case)
         Some(game_id) => {
             let game_code_clone = write_games
                 .get(game_id)
                 .expect(GAME_ID_NOT_IN_MAP)
                 .game_code
                 .clone();
+
             // get all user_ids of participants in the game
-            let mut any_user_is_still_in_game = false;
             let participants = &write_games
                 .get(game_id)
                 .expect(GAME_ID_NOT_IN_MAP)
                 .participants;
 
             // check if any are still connected
+            let mut any_user_is_still_in_game = false;
             for participant in participants.iter() {
                 if &participant.user_id != user_id {
                     let participant_connection = write_connections
@@ -457,6 +459,7 @@ pub async fn cleanup_state_after_disconnect(
                 drop(write_connections);
                 drop(write_games);
                 drop(write_game_codes);
+
                 // notify remaining participants that user was disconnected
                 send_ws_message_to_all_participants(
                     game_id,

@@ -41,7 +41,7 @@ pub struct ConnectionData {
     pub tx: mpsc::UnboundedSender<Message>,
 }
 
-static PING_INTERVAL_MS: u64 = 60_000;
+static PING_INTERVAL_MS: u64 = 5_000;
 
 #[tokio::main]
 async fn main() {

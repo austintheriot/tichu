@@ -326,13 +326,12 @@ impl App {
                 } else if !self.state.is_alive {
                     info!("Server isn't responding to pings. Closing websocket connection and attempting to reconnect.");
                     should_reconnect = true;
-                    self.state.is_alive = false;
                     let ws = self.ws.take();
                     drop(ws);
                 }
 
                 if should_reconnect {
-                    // need to try reconnecting
+                    self.state.is_alive = false;
                     self.link.send_message(AppMsg::ConnectToWS);
                 } else {
                     self.state.is_alive = false;

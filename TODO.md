@@ -4,6 +4,7 @@
 - Yew resources: 
   - Awesome Yew: https://github.com/jetli/awesome-yew
 
+- close / clean up user's websocket connections when removing remaining users from game state?
 - input validation for display_name (client & server side) -- no empty strings, minimum length, etc.
 - Accept UN-capitalized game codes (do good input validation: trim, capitalize, etc.)
 - Call "Endgame" stage "Scoreboard" or something similar instead
