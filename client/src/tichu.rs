@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::types::CTSMsgInternal;
@@ -29,12 +30,14 @@ struct State {
     game_state: Option<GameState>,
     game_code_input: String,
     display_name_input: String,
+    is_alive: bool,
 }
 
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
 
 pub enum AppMsg {
     ConnectToWS,
+    BeginPing,
     Disconnected,
     Noop,
     WSMsgReceived(Result<Vec<u8>, Error>),
@@ -44,9 +47,24 @@ pub enum AppMsg {
     SetDisplayNameInput(String),
 }
 
-/// HACK: store static reference to app to allow
-/// accessing the component methods from set_interval closures
-static mut APP_REFERENCE: Option<*mut App> = None;
+const PING_INTERVAL_MS: u64 = 5000;
+static APP_REFERENCE_MUTEX_ERROR: &str = "Could not acquire Mutex lock for app";
+
+/// Wrapper around inherently non-Send/Sync-safe data.
+struct StaticMut<T> {
+    ptr: Arc<Mutex<Option<T>>>,
+}
+unsafe impl<T> Send for StaticMut<T> {}
+unsafe impl<T> Sync for StaticMut<T> {}
+
+lazy_static! {
+    /// HACK: store static reference to app to allow
+    /// accessing the component methods from set_interval closures.
+    /// Wrapped in an Arc<Mutex> to at least mitigate some data race possibilities.
+    static ref APP_REFERENCE: StaticMut<*mut App> = StaticMut {
+        ptr: Arc::new(Mutex::new(None)),
+    };
+}
 
 impl Component for App {
     type Message = AppMsg;
@@ -69,6 +87,7 @@ impl Component for App {
             game_state: None,
             game_code_input: "".into(),
             display_name_input: "".into(),
+            is_alive: false,
         };
         Self {
             interval_task: None,
@@ -83,30 +102,7 @@ impl Component for App {
         // connect to websocket on first render
         if self.ws.is_none() && first_render {
             self.link.send_message(AppMsg::ConnectToWS);
-
-            // store a static reference to App to use in closure
-            // for sending websocket message from JS
-            unsafe {
-                let reference: *mut App = self;
-                APP_REFERENCE.replace(reference);
-            };
-
-            let interval_task = IntervalService::spawn(
-                Duration::from_millis(1000),
-                Callback::Callback(Rc::new(|_| {
-                    info!("Hello from interval!");
-                    unsafe {
-                        match APP_REFERENCE {
-                            Some(app) => {
-                                (*app).send_ws_message(CTSMsgInternal::Ping);
-                            }
-                            None => {}
-                        }
-                    }
-                })),
-            );
-
-            self.interval_task = Some(interval_task);
+            self.link.send_message(AppMsg::BeginPing);
         }
     }
 
@@ -138,9 +134,40 @@ impl Component for App {
                         handle_ws_update_status,
                     );
                     self.ws = Some(ws_task.unwrap());
+                    self.state.is_alive = true;
                     self.state.ws_connection_status = "Connected".into();
                 }
                 true
+            }
+            AppMsg::BeginPing => {
+                // store a raw pointer to the App component to use in set_interval
+                // closure--to enable sending websocket message from the set_interval
+                let reference: *mut App = self;
+                let mut app_reference_guard =
+                    APP_REFERENCE.ptr.lock().expect(APP_REFERENCE_MUTEX_ERROR);
+                app_reference_guard.replace(reference);
+
+                let interval_task = IntervalService::spawn(
+                    Duration::from_millis(PING_INTERVAL_MS),
+                    Callback::Callback(Rc::new(|_| {
+                        let app_reference_guard =
+                            APP_REFERENCE.ptr.lock().expect(APP_REFERENCE_MUTEX_ERROR);
+                        match *app_reference_guard {
+                            // It is unsafe to dereference raw pointer, but the pointer
+                            // should be valid as long as the App component is mounted.
+                            // The biggest risk here is trying to send a message while the
+                            // app is being mutated by some other message.
+                            Some(app) => unsafe {
+                                (*app)
+                                    .link
+                                    .send_message(AppMsg::SendWSMsg(CTSMsgInternal::Ping));
+                            },
+                            None => {}
+                        }
+                    })),
+                );
+                self.interval_task = Some(interval_task);
+                false
             }
             AppMsg::SendWSMsg(msg_type) => self.send_ws_message(msg_type),
             AppMsg::WSMsgReceived(data) => self.handle_ws_message_received(data),
@@ -166,9 +193,9 @@ impl Component for App {
 
     fn destroy(&mut self) {
         // clean up static reference to app
-        unsafe {
-            APP_REFERENCE.take();
-        };
+        let mut app_reference_guard = APP_REFERENCE.ptr.lock().expect(APP_REFERENCE_MUTEX_ERROR);
+        let app_reference = app_reference_guard.take();
+        drop(app_reference);
     }
 
     fn view(&self) -> Html {
@@ -247,7 +274,7 @@ impl App {
         info!("Received websocket message: {:?}", &data);
         match data {
             None => {
-                warn!("Deserialized data is None. This probably indicates there was an error deserializing the websocket message");
+                warn!("Deserialized data is None. This probably indicates there was an error deserializing the websocket message binary");
             }
             Some(data) => match data {
                 STCMsg::Ping => {
@@ -267,7 +294,9 @@ impl App {
                         s
                     );
                 }
-                STCMsg::Pong => {}
+                STCMsg::Pong => {
+                    self.state.is_alive = true;
+                }
                 STCMsg::Test(_) => {}
                 STCMsg::GameCreated(_) => {}
                 STCMsg::UserJoined(_) => {}
@@ -284,19 +313,33 @@ impl App {
     /// Returns whether the component should rerender
     fn send_ws_message(&mut self, msg_type: CTSMsgInternal) -> bool {
         let should_rerender = false;
+        info!("Sending websocket message: {:#?}", msg_type);
         match msg_type {
             CTSMsgInternal::Test => {
-                let msg = CTSMsg::Test(String::from("Hello, server!"));
-                self._send_ws_message(&msg);
+                self._send_ws_message(&CTSMsg::Test(String::from("Hello, server!")))
             }
             CTSMsgInternal::Ping => {
-                let msg = CTSMsg::Ping;
-                self._send_ws_message(&msg);
+                let mut should_reconnect = false;
+                if self.ws.is_none() {
+                    info!("Trying to ping, but there is no websocket connection. Attempting to reconnect");
+                    should_reconnect = true;
+                } else if !self.state.is_alive {
+                    info!("Server isn't responding to pings. Closing websocket connection and attempting to reconnect.");
+                    should_reconnect = true;
+                    self.state.is_alive = false;
+                    let ws = self.ws.take();
+                    drop(ws);
+                }
+
+                if should_reconnect {
+                    // need to try reconnecting
+                    self.link.send_message(AppMsg::ConnectToWS);
+                } else {
+                    self.state.is_alive = false;
+                    self._send_ws_message(&CTSMsg::Ping);
+                }
             }
-            CTSMsgInternal::Pong => {
-                let msg = CTSMsg::Pong;
-                self._send_ws_message(&msg);
-            }
+            CTSMsgInternal::Pong => self._send_ws_message(&CTSMsg::Pong),
             CTSMsgInternal::CreateGame => {
                 let create_game = CreateGame {
                     user_id: self.state.user_id.clone(),
