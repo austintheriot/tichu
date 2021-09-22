@@ -132,8 +132,9 @@ impl Component for App {
                         &url,
                         handle_ws_receive_data,
                         handle_ws_update_status,
-                    );
-                    self.ws = Some(ws_task.unwrap());
+                    )
+                    .expect("Couldn't initialize websocket connection");
+                    self.ws = Some(ws_task);
                     self.state.is_alive = true;
                     self.state.ws_connection_status = "Connected".into();
                 }
@@ -285,7 +286,7 @@ impl App {
                     self.link.send_message(AppMsg::SetUserId(s));
                 }
                 STCMsg::GameState(game_state) => {
-                    self.state.game_state = Some(game_state);
+                    self.state.game_state = game_state;
                     should_rerender = true;
                 }
                 STCMsg::UnexpectedMessageReceived(s) => {
@@ -302,6 +303,7 @@ impl App {
                 STCMsg::UserJoined(_) => {}
                 STCMsg::UserDisconnected(_) => {}
                 STCMsg::UserReconnected(_) => {}
+                STCMsg::UserLeft(_) => {}
                 _ => warn!("Unexpected websocket message received."),
             },
         }

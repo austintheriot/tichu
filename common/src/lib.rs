@@ -96,13 +96,24 @@ impl GameState {
         };
         let mut new_participants = self.participants.clone();
         new_participants.push(participant);
-        let new_game_state = GameState {
-            game_id: self.game_id.clone(),
-            game_code: self.game_code.clone(),
-            stage: new_stage,
-            participants: new_participants,
-            owner_id: self.owner_id.clone(),
-        };
+
+        // clone old game state and update only what's necessary
+        let mut new_game_state = self.clone();
+        new_game_state.participants = new_participants;
+        new_game_state.stage = new_stage;
+
+        new_game_state
+    }
+
+    pub fn remove_user(&self, user_id: &str) -> GameState {
+        let mut new_participants = self.participants.clone();
+
+        // filter out removed user
+        new_participants.retain(|user| user.user_id != user_id);
+
+        // clone old game state and update only what's necessary
+        let mut new_game_state = self.clone();
+        new_game_state.participants = new_participants;
         new_game_state
     }
 }
@@ -233,30 +244,48 @@ pub struct GameCreated {
 pub enum STCMsg {
     UserIdAssigned(String),
     GameCreated(GameCreated),
-    GameState(GameState),
+
+    /// Game state update
+    /// Should only be None if the game completely ends and all users are removed
+    GameState(Option<GameState>),
     GameStageChanged(GameStage),
     TeamRenamed,
     UserJoined(String),
+
+    /// completely left game--not coming back.
+    /// For now, this can only occur in the lobby.
+    UserLeft(String),
     SmallTichuCalled,
     GrandTichuCalled,
     StartGame,
-    // deal first 9 cards
+
+    /// deal first 9 cards
     DealFinalCards,
-    // deal last 5 cards
-    // Player with the Mah Jon leads
+
+    /// Deal last 5 cards.
+    /// Player with the Mah Jong leads.
     CardsTraded,
-    // after all submitted
+
+    /// after all submitted
     CardsPlayed,
     DragonWasWon,
     PlayerReceivedDragon,
-    EndGame,  // show scores, etc.
-    GameOver, // game state has been entirely cleaned up and no longer exists on the server
+
+    /// show scores, etc.
+    EndGame,
+
+    /// game state has been entirely cleaned up and no longer exists on the server
+    GameOver,
 
     Ping,
     Pong,
     Test(String),
     UnexpectedMessageReceived(String),
+
+    /// Temporarily disconnected, but still in game.
     UserDisconnected(String),
+
+    /// User previously disconnected, but now reconnected.
     UserReconnected(String),
 }
 

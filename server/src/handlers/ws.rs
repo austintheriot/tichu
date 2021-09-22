@@ -125,7 +125,7 @@ pub async fn handle_ws_upgrade(
                 drop(read_games);
                 send_ws_message_to_user(
                     &user_id,
-                    STCMsg::GameState(game_state),
+                    STCMsg::GameState(Some(game_state)),
                     &connections,
                     &games,
                     &game_codes,
@@ -246,7 +246,7 @@ pub async fn handle_message_received(
             // Updated Game State
             send_ws_message_to_user(
                 &user_id,
-                STCMsg::GameState(game_state.clone()),
+                STCMsg::GameState(Some(game_state.clone())),
                 &connections,
                 &games,
                 &game_codes,
@@ -289,10 +289,10 @@ pub async fn handle_message_received(
             drop(read_game_codes);
 
             let mut write_games = games.write().await;
-            let prev_game_state = write_games
+            let game_state_clone = write_games
                 .get_mut(&cloned_gamed_id)
                 .expect(GAME_ID_NOT_IN_MAP);
-            let new_game_state = prev_game_state.add_user(user_id.clone(), display_name);
+            let new_game_state = game_state_clone.add_user(user_id.clone(), display_name);
 
             // save new game state
             write_games.insert(cloned_gamed_id.clone(), new_game_state.clone());
@@ -337,7 +337,7 @@ pub async fn handle_message_received(
             // Game State
             send_ws_message_to_all_participants(
                 &cloned_gamed_id,
-                STCMsg::GameState(new_game_state.clone()),
+                STCMsg::GameState(Some(new_game_state.clone())),
                 &connections,
                 &games,
                 &game_codes,
@@ -423,60 +423,95 @@ pub async fn cleanup_state_after_disconnect(
     match game_id_clone {
         // user is associated with a game_id (should always be the case)
         Some(game_id) => {
-            let game_code_clone = write_games
-                .get(game_id)
-                .expect(GAME_ID_NOT_IN_MAP)
-                .game_code
-                .clone();
+            // extract all needed game state
+            let game_state_clone = write_games.get(game_id).expect(GAME_ID_NOT_IN_MAP).clone();
+            let game_code_clone = game_state_clone.game_code.clone();
+            let participants_clone = game_state_clone.participants.clone();
 
-            // get all user_ids of participants in the game
-            let participants = &write_games
-                .get(game_id)
-                .expect(GAME_ID_NOT_IN_MAP)
-                .participants;
-
-            // check if any are still connected
-            let mut any_user_is_still_in_game = false;
-            for participant in participants.iter() {
+            // check if any other participants are still connected
+            let mut any_other_user_is_still_in_game = false;
+            for participant in participants_clone.iter() {
                 if &participant.user_id != user_id {
                     let participant_connection = write_connections
                         .get(&participant.user_id)
                         .expect(USER_ID_NOT_IN_MAP);
                     if participant_connection.connected {
-                        any_user_is_still_in_game = true;
+                        any_other_user_is_still_in_game = true;
                     }
                 }
             }
 
-            // other users still in game: only mark this user as disconnected
-            if any_user_is_still_in_game {
-                eprint!("Marking {} as not connected\n", user_id);
-                write_connections
-                    .get_mut(user_id)
-                    .expect(USER_ID_NOT_IN_MAP)
-                    .connected = false;
+            // other users still in game:
+            if any_other_user_is_still_in_game {
+                if let GameStage::Lobby = game_state_clone.stage {
+                    // if this is the lobby, remove from state
+                    eprint!("Removing user {} from lobby on disconnect\n", user_id);
+                    write_connections.remove(user_id);
+                    let new_game_state = game_state_clone.remove_user(user_id);
+                    *write_games.get_mut(game_id).expect(GAME_ID_NOT_IN_MAP) =
+                        new_game_state.clone();
 
-                drop(write_connections);
-                drop(write_games);
-                drop(write_game_codes);
+                    drop(write_connections);
+                    drop(write_games);
+                    drop(write_game_codes);
 
-                // notify remaining participants that user was disconnected
-                send_ws_message_to_all_participants(
-                    game_id,
-                    STCMsg::UserDisconnected(user_id.to_string()),
-                    connections,
-                    games,
-                    game_codes,
-                )
-                .await;
-            }
-            // no users left in game: remove all users from Connections and delete game from Games
-            else {
+                    // notify remaining participants that user left
+                    send_ws_message_to_all_participants(
+                        game_id,
+                        STCMsg::UserLeft(user_id.to_string()),
+                        connections,
+                        games,
+                        game_codes,
+                    )
+                    .await;
+                    // send game state
+                    send_ws_message_to_all_participants(
+                        game_id,
+                        STCMsg::GameState(Some(new_game_state)),
+                        connections,
+                        games,
+                        game_codes,
+                    )
+                    .await;
+                } else {
+                    // else only mark this user as disconnected
+                    eprint!("Marking user {} as not connected\n", user_id);
+                    write_connections
+                        .get_mut(user_id)
+                        .expect(USER_ID_NOT_IN_MAP)
+                        .connected = false;
+
+                    drop(write_connections);
+                    drop(write_games);
+                    drop(write_game_codes);
+
+                    // notify remaining participants that user was disconnected
+                    send_ws_message_to_all_participants(
+                        game_id,
+                        STCMsg::UserDisconnected(user_id.to_string()),
+                        connections,
+                        games,
+                        game_codes,
+                    )
+                    .await;
+
+                    // send game state
+                    send_ws_message_to_all_participants(
+                        game_id,
+                        STCMsg::GameState(Some(game_state_clone)),
+                        connections,
+                        games,
+                        game_codes,
+                    )
+                    .await;
+                }
+            } else {
+                // no users left in game: remove all users from Connections and delete game from Games
                 eprint!(
                     "Removing all users and game from state for game {}\n",
                     game_id
                 );
-                for participant in participants.iter() {
+                for participant in participants_clone.iter() {
                     write_connections.remove(&participant.user_id);
                 }
                 write_games.remove(game_id);
