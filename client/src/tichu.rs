@@ -178,7 +178,7 @@ impl Component for App {
                 false
             }
             AppMsg::SetGameCodeInput(s) => {
-                self.state.game_code_input = s;
+                self.state.game_code_input = s.to_uppercase();
                 true
             }
             AppMsg::SetDisplayNameInput(s) => {
@@ -221,25 +221,39 @@ impl Component for App {
                     ""
                 } } </p>
                 <p> { "Participants: " } { self.view_participants() } </p>
+                <p> { "Owner: " } { self.view_owner() } </p>
+                <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
+                <br />
+                <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{ "Send ping to server" }</button>
+                <br />
+                <br />
                 <label for="display-name-input"> { "Display Name" } </label>
+                <br />
                 <input
                     id="display-name-input"
                     type="text"
                     value=self.state.display_name_input.clone()
                     oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
-                <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
-                <br />
-                <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{ "Send ping to server" }</button>
-                <br />
-                <button onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)})>{ "Create game" }</button>
+
                 <br />
                 <label for="game-code-input"> { "Game Code" } </label>
-               <input
+                <br />
+                <input
                     id="game-code-input"
                     type="text"
                     value=self.state.game_code_input.clone()
                     oninput=self.link.callback(|e: InputData| AppMsg::SetGameCodeInput(e.value))/>
-                <button onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)})>{ "Join game" }</button>
+                <br />
+                <br />
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)})
+                    disabled=!self.can_create_game()
+                    >{ "Create game" }</button>
+                <br />
+                <button
+                onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)})
+                disabled=!self.can_join_game()
+                >{ "Join game" }</button>
                 <br />
             </div>
         }
@@ -247,6 +261,16 @@ impl Component for App {
 }
 
 impl App {
+    fn can_create_game(&self) -> bool {
+        self.state.display_name_input.len() > 0 && self.ws.is_some()
+    }
+
+    fn can_join_game(&self) -> bool {
+        self.state.display_name_input.len() > 0
+            && self.state.game_code_input.len() > 0
+            && self.ws.is_some()
+    }
+
     fn view_participants(&self) -> Html {
         if let Some(game_state) = &self.state.game_state {
             html! {
@@ -257,6 +281,32 @@ impl App {
                     }
                 })}
                 </ul>
+            }
+        } else {
+            html! { <></> }
+        }
+    }
+
+    fn view_owner(&self) -> Html {
+        if let Some(game_state) = &self.state.game_state {
+            let owner = game_state
+                .participants
+                .iter()
+                .find(|user| user.user_id == game_state.owner_id);
+
+            match owner {
+                Some(owner) => {
+                    html! {
+                        <ul>
+                            <li> { &owner.display_name } </li>
+                        </ul>
+                    }
+                }
+                None => {
+                    html! {
+                        <> </>
+                    }
+                }
             }
         } else {
             html! { <></> }
@@ -352,7 +402,7 @@ impl App {
             }
             CTSMsgInternal::JoinGameWithGameCode => {
                 let join_game_with_game_code = JoinGameWithGameCode {
-                    game_code: self.state.game_code_input.clone(),
+                    game_code: self.state.game_code_input.clone().to_uppercase(),
                     display_name: self.state.display_name_input.clone(),
                     user_id: self.state.user_id.clone(),
                 };

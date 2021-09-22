@@ -4,12 +4,8 @@
 - Yew resources: 
   - Awesome Yew: https://github.com/jetli/awesome-yew
 
-- If owner leaves in lobby:
-  - End game for all users
-  - OR game can't start without owner coming back
-  - OR ---> ownership moves to next available user
-- Testing turning on/off network
-- close / clean up user's websocket connections when removing remaining users from game state?
+
+- Enable users to leave from lobby
 - input validation for display_name (client & server side) -- no empty strings, minimum length, etc.
 - Accept UN-capitalized game codes (do good input validation: trim, capitalize, etc.)
 - Call "Endgame" stage "Scoreboard" or something similar instead

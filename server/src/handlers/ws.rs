@@ -278,7 +278,7 @@ pub async fn handle_message_received(
 
             // get game_id from game_code
             let read_game_codes = game_codes.read().await;
-            let game_id = read_game_codes.get(&game_code);
+            let game_id = read_game_codes.get(&game_code.to_uppercase());
             let cloned_gamed_id = match game_id {
                 None => {
                     eprint!("User supplied incorrect game_code: ignoring request to join\n");
