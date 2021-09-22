@@ -21,7 +21,7 @@ pub enum GameStage {
     GrandTichu,
     Trade,
     Game,
-    Endgame,
+    Scoreboard,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
