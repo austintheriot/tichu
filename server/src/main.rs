@@ -4,7 +4,7 @@ extern crate common;
 mod errors;
 mod handlers;
 
-use common::{GameState, STCMsg};
+use common::{PrivateGameState, STCMsg};
 use futures::join;
 use handlers::{
     index,
@@ -24,7 +24,7 @@ use crate::handlers::ws::CLOSE_WEBSOCKET;
 pub type Connections = Arc<RwLock<HashMap<String, ConnectionData>>>;
 
 /// Maps `game_id`s to game states
-pub type Games = Arc<RwLock<HashMap<String, GameState>>>;
+pub type Games = Arc<RwLock<HashMap<String, PrivateGameState>>>;
 
 /// Maps 4-character `game_code`s -> `game_id`s
 pub type GameCodes = Arc<RwLock<HashMap<String, String>>>;

@@ -4,7 +4,8 @@ use crate::{
 };
 use bincode;
 use common::{
-    CTSMsg, CreateGame, GameCreated, GameStage, GameState, JoinGameWithGameCode, STCMsg, NO_USER_ID,
+    validate_display_name, validate_game_code, CTSMsg, CreateGame, GameCreated, GameStage,
+    JoinGameWithGameCode, PrivateGameState, STCMsg, NO_USER_ID,
 };
 use futures::{SinkExt, StreamExt, TryFutureExt};
 use std::sync::Arc;
@@ -129,7 +130,7 @@ pub async fn handle_ws_upgrade(
                 drop(read_games);
                 send_ws_message_to_user(
                     &user_id,
-                    STCMsg::GameState(Some(game_state)),
+                    STCMsg::GameState(Some(game_state.to_public_game_state(&user_id))),
                     &connections,
                     &games,
                     &game_codes,
@@ -206,6 +207,11 @@ pub async fn handle_message_received(
                 display_name,
             } = create_game;
 
+            // bad inputs from client, ignore request
+            if validate_display_name(&display_name).is_some() {
+                return;
+            }
+
             // verify that user_id is not already associated with a game before creating a new one
             let mut write_connections = connections.write().await;
             let connection = write_connections
@@ -223,7 +229,7 @@ pub async fn handle_message_received(
 
             // user is NOT associated with a game: create game for user
             let read_game_codes = game_codes.read().await;
-            let game_state = GameState::new(user_id.clone(), display_name, &read_game_codes);
+            let game_state = PrivateGameState::new(user_id.clone(), display_name, &read_game_codes);
             drop(read_game_codes);
 
             // save game to state
@@ -260,7 +266,7 @@ pub async fn handle_message_received(
             // Updated Game State
             send_ws_message_to_user(
                 &user_id,
-                STCMsg::GameState(Some(game_state.clone())),
+                STCMsg::GameState(Some(game_state.to_public_game_state(&user_id))),
                 &connections,
                 &games,
                 &game_codes,
@@ -273,6 +279,13 @@ pub async fn handle_message_received(
                 display_name,
                 game_code,
             } = join_game_with_game_code;
+
+            // bad inputs from client, ignore request
+            if validate_display_name(&display_name).is_some()
+                || validate_game_code(&game_code).is_some()
+            {
+                return;
+            }
 
             // Verify that user isn't already associated with another game first
             let mut write_connections = connections.write().await;
@@ -349,9 +362,9 @@ pub async fn handle_message_received(
             }
 
             // Game State
-            send_ws_message_to_all_participants(
+            send_game_state_to_all_participants(
                 &cloned_gamed_id,
-                STCMsg::GameState(Some(new_game_state.clone())),
+                &new_game_state,
                 &connections,
                 &games,
                 &game_codes,
@@ -452,9 +465,9 @@ pub async fn handle_message_received(
                     }
 
                     // send updated game state to other participants
-                    send_ws_message_to_all_participants(
+                    send_game_state_to_all_participants(
                         &game_id_clone,
-                        STCMsg::GameState(Some(new_game_state)),
+                        &new_game_state,
                         connections,
                         games,
                         game_codes,
@@ -525,6 +538,7 @@ pub async fn handle_message_received(
     }
 }
 
+/// Sends a single server-to-client websocket message to a single participant.
 pub async fn send_ws_message_to_user(
     user_id: &String,
     msg: STCMsg,
@@ -543,6 +557,7 @@ pub async fn send_ws_message_to_user(
     }
 }
 
+/// Sends any server-to-client websocket message to all participants in the game represented by the given game_id.
 pub async fn send_ws_message_to_all_participants(
     game_id: &String,
     msg: STCMsg,
@@ -552,8 +567,8 @@ pub async fn send_ws_message_to_all_participants(
 ) {
     let msg = bincode::serialize(&msg).expect("Could not serialize message");
     let msg = Message::binary(msg);
-    let games = games.read().await;
-    let game = games.get(game_id).expect(GAME_ID_NOT_IN_MAP);
+    let read_games = games.read().await;
+    let game = read_games.get(game_id).expect(GAME_ID_NOT_IN_MAP);
     for participant in game.participants.iter() {
         let read_connections = connections.read().await;
         let ws = read_connections
@@ -567,6 +582,37 @@ pub async fn send_ws_message_to_all_participants(
     }
 }
 
+/// Ensures that each user receives a version of the state that only THEY are allowed to see.
+/// I.e. each user can see everything in the state except for the other user's cards, etc.
+pub async fn send_game_state_to_all_participants(
+    game_id: &String,
+    private_game_state: &PrivateGameState,
+    connections: &Connections,
+    games: &Games,
+    _: &GameCodes,
+) {
+    let read_games = games.read().await;
+    let game = read_games.get(game_id).expect(GAME_ID_NOT_IN_MAP);
+    for participant in game.participants.iter() {
+        // format state for this user
+        let public_game_state = private_game_state.to_public_game_state(&participant.user_id);
+        let msg = bincode::serialize(&STCMsg::GameState(Some(public_game_state)))
+            .expect("Could not serialize message");
+        let msg = Message::binary(msg);
+
+        let read_connections = connections.read().await;
+        let ws = read_connections
+            .get(&participant.user_id)
+            .expect(USER_ID_NOT_IN_MAP);
+        if let Err(_disconnected) = ws.tx.send(msg.clone()) {
+            eprint!("User is disconnected. Couldn't send message {:?}\n", &msg);
+        } else {
+            eprint!("Message successfully sent\n");
+        }
+    }
+}
+
+/// When a user disconnects, clean up their connection state and any game state their associated with.
 pub async fn cleanup_state_after_disconnect(
     user_id: &String,
     connections: &Connections,
@@ -653,9 +699,9 @@ pub async fn cleanup_state_after_disconnect(
                     }
 
                     // send updated game state
-                    send_ws_message_to_all_participants(
+                    send_game_state_to_all_participants(
                         game_id,
-                        STCMsg::GameState(Some(new_game_state)),
+                        &new_game_state,
                         connections,
                         games,
                         game_codes,
@@ -684,9 +730,9 @@ pub async fn cleanup_state_after_disconnect(
                     .await;
 
                     // send old game state (no change occurred)
-                    send_ws_message_to_all_participants(
+                    send_game_state_to_all_participants(
                         game_id,
-                        STCMsg::GameState(Some(game_state_clone)),
+                        &game_state_clone,
                         connections,
                         games,
                         game_codes,

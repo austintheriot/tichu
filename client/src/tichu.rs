@@ -6,7 +6,10 @@ use std::time::Duration;
 use crate::types::CTSMsgInternal;
 use anyhow::Error;
 use bincode;
-use common::{CTSMsg, CreateGame, GameStage, GameState, JoinGameWithGameCode, STCMsg, NO_USER_ID};
+use common::{
+    clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code, CTSMsg,
+    CreateGame, GameStage, JoinGameWithGameCode, PublicGameState, STCMsg, NO_USER_ID,
+};
 use log::*;
 use serde_derive::{Deserialize, Serialize};
 use yew::format::{Binary, Json};
@@ -29,7 +32,7 @@ struct State {
     ws_connection_status: String,
     user_id: String,
     display_name: String,
-    game_state: Option<GameState>,
+    game_state: Option<PublicGameState>,
     game_code_input: String,
     display_name_input: String,
     is_alive: bool,
@@ -191,12 +194,15 @@ impl Component for App {
                 false
             }
             AppMsg::SetDisplayName(s) => {
+                let s = clean_up_display_name(&s);
                 self.storage.store(DISPLAY_NAME_STORAGE_KEY, Json(&s));
-                self.state.display_name = s;
+                self.state.display_name = s.clone();
+                self.state.display_name_input = s;
                 true
             }
             AppMsg::SetGameCodeInput(s) => {
-                self.state.game_code_input = s.to_uppercase();
+                let s = clean_up_game_code(&s);
+                self.state.game_code_input = s;
                 true
             }
             AppMsg::SetDisplayNameInput(s) => {
@@ -285,13 +291,13 @@ impl Component for App {
 
 impl App {
     fn can_create_game(&self) -> bool {
-        self.state.display_name_input.len() > 0 && self.ws.is_some()
+        self.ws.is_some() && validate_display_name(&self.state.display_name_input).is_none()
     }
 
     fn can_join_game(&self) -> bool {
-        self.state.display_name_input.len() > 0
-            && self.state.game_code_input.len() > 0
-            && self.ws.is_some()
+        self.ws.is_some()
+            && validate_display_name(&self.state.display_name_input).is_none()
+            && validate_game_code(&self.state.game_code_input).is_none()
     }
 
     fn can_leave_game(&self) -> bool {

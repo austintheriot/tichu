@@ -1,27 +1,28 @@
 # Todos / Ideas:
+
+CSS SOLUTIONS:
 - CSS for Yew:
   - CSSinRust: https://crates.io/crates/css-in-rust
 - Yew resources: 
   - Awesome Yew: https://github.com/jetli/awesome-yew
 
-
-- Enable users to leave from lobby
-- input validation for display_name (client & server side) -- no empty strings, minimum length, etc.
-- Accept UN-capitalized game codes (do good input validation: trim, capitalize, etc.)
-- Call "Endgame" stage "Scoreboard" or something similar instead
-- Spawn ping/pong on ws upgrade for more randomized ping/pong distribution
-- Mark is_alive as true anytime any message is sent from client??
-- Make ping/pong send interval shorter for production 
-- Add display name inputs
-- Ensure that users who disconnect and reconnect get added back into the Game properly and receive a Game state update
-- Send state updates to ALL participants
-- Don't send users' cards in the Game state to other users
-- Use parking_lot Mutexes and RwLocks?
-- Send WS messages concurrently? Especially when sending to group?
-
-
-Unique features:
+UNIQUE FEATURES:
 - Add new special cards?
 
-Ideas:
+IDEAS:
 - Ngrok for local hosting
+
+
+--------------------------------------------------------------------------------------------
+
+MUST HAVES:
+- Deck should not be sent in game state to other participants. This will require distinguishing between public and private states for various Game Stages.
+
+NICE TO HAVES:
+- Send WS messages concurrently? Especially when sending to group?
+- Spawn ping/pong on ws upgrade for more randomized ping/pong distribution
+
+OPTIONAL:
+- Mark is_alive as true anytime any message is sent from client??
+- Rethink use of Mutexes and RwLocks -- are interactions with state actually read-heavy or not?
+- Use parking_lot Mutexes and RwLocks?
