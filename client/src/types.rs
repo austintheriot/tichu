@@ -9,6 +9,7 @@ pub enum CTSMsgInternal {
     JoinGameWithGameCode,
     JoinRandomGame,
     CreateGame,
+    LeaveGame,
     RenameTeam,
     StartGame,
     SubmitTrade,

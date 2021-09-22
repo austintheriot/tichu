@@ -240,6 +240,7 @@ pub enum CTSMsg {
     JoinGameWithGameCode(JoinGameWithGameCode),
     JoinRandomGame(JoinRandomGame),
     CreateGame(CreateGame),
+    LeaveGame,
     RenameTeam(RenameTeam),
     StartGame,
     SubmitTrade(SubmitTrade),

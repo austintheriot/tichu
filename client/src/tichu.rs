@@ -1,3 +1,4 @@
+use std::mem::discriminant;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -251,9 +252,14 @@ impl Component for App {
                     >{ "Create game" }</button>
                 <br />
                 <button
-                onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)})
-                disabled=!self.can_join_game()
-                >{ "Join game" }</button>
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)})
+                    disabled=!self.can_join_game()
+                    >{ "Join game" }</button>
+                <br />
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::LeaveGame)})
+                    disabled=!self.can_leave_game()
+                    >{ "Leave game" }</button>
                 <br />
             </div>
         }
@@ -269,6 +275,15 @@ impl App {
         self.state.display_name_input.len() > 0
             && self.state.game_code_input.len() > 0
             && self.ws.is_some()
+    }
+
+    fn can_leave_game(&self) -> bool {
+        self.ws.is_some()
+            && self.state.game_state.is_some()
+            && match self.state.game_state.as_ref().unwrap().stage {
+                GameStage::Lobby => true,
+                _ => false,
+            }
     }
 
     fn view_participants(&self) -> Html {
@@ -408,6 +423,9 @@ impl App {
                 };
                 let msg = CTSMsg::JoinGameWithGameCode(join_game_with_game_code);
                 self._send_ws_message(&msg);
+            }
+            CTSMsgInternal::LeaveGame => {
+                self._send_ws_message(&CTSMsg::LeaveGame);
             }
             _ => {
                 warn!("Tried to send unexpected message type {:?}", &msg_type);

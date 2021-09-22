@@ -17,6 +17,7 @@
 - Send state updates to ALL participants
 - Don't send users' cards in the Game state to other users
 - Use parking_lot Mutexes and RwLocks?
+- Send WS messages concurrently? Especially when sending to group?
 
 
 Unique features:
