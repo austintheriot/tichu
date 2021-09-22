@@ -237,9 +237,14 @@ pub struct GiveDragon {
 /// Client to Server Websocket Messages
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum CTSMsg {
+    /// Join a pre-existing game as the participant
     JoinGameWithGameCode(JoinGameWithGameCode),
     JoinRandomGame(JoinRandomGame),
+
+    /// Create game as the owner
     CreateGame(CreateGame),
+
+    /// User can only explicitly leave game when in the lobby
     LeaveGame,
     RenameTeam(RenameTeam),
     StartGame,

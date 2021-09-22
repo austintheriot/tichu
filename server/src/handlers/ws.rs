@@ -372,7 +372,8 @@ pub async fn handle_message_received(
             let mut any_other_user_is_still_in_game = false;
             for participant in participants_clone.iter() {
                 if participant.user_id != user_id {
-                    // should always connected in lobby (since users are just removed when they disconnect)
+                    // should always connected in lobby (since users
+                    // are just removed from the lobby when they disconnect)
                     // but it doesn't hurt to check
                     let participant_connection = write_connections
                         .get(&participant.user_id)
@@ -390,12 +391,6 @@ pub async fn handle_message_received(
                     eprint!("Removing user {} from lobby on leave game event, but keeping connection open\n", user_id);
                     let mut owner_reassigned = false;
 
-                    // disassociate user_id with game
-                    write_connections
-                        .get_mut(&user_id)
-                        .expect(USER_ID_NOT_IN_MAP)
-                        .game_id = None;
-
                     // update game state by removing user and reassigning owner if needed
                     let new_game_state = if game_state_clone.owner_id == *user_id {
                         // if owner leaves in lobby, assign ownership to next participant
@@ -407,8 +402,14 @@ pub async fn handle_message_received(
                         game_state_clone.remove_user(&user_id)
                     };
                     *write_games
-                        .get_mut(&game_code_clone)
+                        .get_mut(&game_id_clone)
                         .expect(GAME_ID_NOT_IN_MAP) = new_game_state.clone();
+
+                    // disassociate user_id with game
+                    write_connections
+                        .get_mut(&user_id)
+                        .expect(USER_ID_NOT_IN_MAP)
+                        .game_id = None;
 
                     drop(write_connections);
                     drop(write_games);
@@ -470,15 +471,14 @@ pub async fn handle_message_received(
                     user_id, game_id_clone
                 );
 
+                write_games.remove(&game_id_clone);
+                write_game_codes.remove(&game_code_clone);
+
                 // disassociate user with game_id
                 write_connections
                     .get_mut(&user_id)
                     .expect(USER_ID_NOT_IN_MAP)
                     .game_id = None;
-
-                // remove game from memory
-                write_games.remove(&game_id_clone);
-                write_game_codes.remove(&game_code_clone);
 
                 drop(write_connections);
                 drop(write_games);
