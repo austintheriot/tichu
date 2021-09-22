@@ -159,7 +159,7 @@ pub async fn handle_message_received(
     game_codes: &GameCodes,
 ) {
     if !msg.is_binary() {
-        eprint!("Unexpected text websocket message received: {:?}", &msg);
+        eprint!("Text websocket message received: {:?}\n", &msg);
         return;
     }
 
@@ -281,7 +281,7 @@ pub async fn handle_message_received(
             let game_id = read_game_codes.get(&game_code);
             let cloned_gamed_id = match game_id {
                 None => {
-                    eprint!("User supplied in correct game_code, ignoring.");
+                    eprint!("User supplied incorrect game_code: ignoring request to join\n");
                     return;
                 }
                 Some(game_id) => game_id.clone(),
@@ -446,8 +446,18 @@ pub async fn cleanup_state_after_disconnect(
                 if let GameStage::Lobby = game_state_clone.stage {
                     // if this is the lobby, remove from state
                     eprint!("Removing user {} from lobby on disconnect\n", user_id);
+                    let mut owner_reassigned = false;
                     write_connections.remove(user_id);
-                    let new_game_state = game_state_clone.remove_user(user_id);
+                    let new_game_state = if game_state_clone.owner_id == *user_id {
+                        // if owner leaves in lobby, assign ownership to next participant
+                        eprintln!("Reassigning owner role to a different user");
+                        owner_reassigned = true;
+                        game_state_clone.remove_user(user_id).reassign_owner()
+                    } else {
+                        // if not the owner, just remove from state
+                        game_state_clone.remove_user(user_id)
+                    };
+
                     *write_games.get_mut(game_id).expect(GAME_ID_NOT_IN_MAP) =
                         new_game_state.clone();
 
@@ -464,7 +474,20 @@ pub async fn cleanup_state_after_disconnect(
                         game_codes,
                     )
                     .await;
-                    // send game state
+
+                    // notify remaining participants that new owner was chosen
+                    if owner_reassigned {
+                        send_ws_message_to_all_participants(
+                            game_id,
+                            STCMsg::OwnerReassigned(new_game_state.owner_id.clone()),
+                            connections,
+                            games,
+                            game_codes,
+                        )
+                        .await;
+                    }
+
+                    // send updated game state
                     send_ws_message_to_all_participants(
                         game_id,
                         STCMsg::GameState(Some(new_game_state)),
@@ -495,7 +518,7 @@ pub async fn cleanup_state_after_disconnect(
                     )
                     .await;
 
-                    // send game state
+                    // send old game state (no change occurred)
                     send_ws_message_to_all_participants(
                         game_id,
                         STCMsg::GameState(Some(game_state_clone)),

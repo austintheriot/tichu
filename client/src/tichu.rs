@@ -304,6 +304,7 @@ impl App {
                 STCMsg::UserDisconnected(_) => {}
                 STCMsg::UserReconnected(_) => {}
                 STCMsg::UserLeft(_) => {}
+                STCMsg::OwnerReassigned(_) => {}
                 _ => warn!("Unexpected websocket message received."),
             },
         }

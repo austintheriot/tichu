@@ -68,7 +68,7 @@ impl GameState {
         first_game_state
     }
 
-    pub fn add_user(&mut self, user_id: String, display_name: String) -> GameState {
+    pub fn add_user(&self, user_id: String, display_name: String) -> GameState {
         let current_participants = self.participants.len();
         let game_has_max_participants = current_participants == 4;
         let is_lobby = match self.stage {
@@ -115,6 +115,24 @@ impl GameState {
         let mut new_game_state = self.clone();
         new_game_state.participants = new_participants;
         new_game_state
+    }
+
+    pub fn reassign_owner(&self) -> GameState {
+        // clone old game state and update only what's necessary
+        let mut new_game_state = self.clone();
+        let mut new_owner = new_game_state
+            .participants
+            .iter_mut()
+            .find(|user| user.user_id != new_game_state.owner_id);
+        let new_owner = new_owner.as_deref_mut();
+        match new_owner {
+            Some(new_owner) => {
+                new_owner.role = UserRole::Owner;
+                new_game_state.owner_id = new_owner.user_id.clone();
+                new_game_state
+            }
+            None => new_game_state,
+        }
     }
 }
 
@@ -248,6 +266,10 @@ pub enum STCMsg {
     /// Game state update
     /// Should only be None if the game completely ends and all users are removed
     GameState(Option<GameState>),
+
+    /// The game owner has changed to be a different user.
+    /// This can occur if the owner of the room leaves while still waiting in the lobby.
+    OwnerReassigned(String),
     GameStageChanged(GameStage),
     TeamRenamed,
     UserJoined(String),
