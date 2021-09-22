@@ -659,7 +659,7 @@ pub async fn cleanup_state_after_disconnect(
                     )
                     .await;
                 } else {
-                    // else only mark this user as disconnected
+                    // no other users left in game and user is not in lobby: only mark this user as disconnected
                     eprint!("Marking user {} as not connected\n", user_id);
                     write_connections
                         .get_mut(user_id)

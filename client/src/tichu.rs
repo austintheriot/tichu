@@ -28,6 +28,7 @@ pub struct App {
 struct State {
     ws_connection_status: String,
     user_id: String,
+    display_name: String,
     game_state: Option<GameState>,
     game_code_input: String,
     display_name_input: String,
@@ -35,6 +36,7 @@ struct State {
 }
 
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
+const DISPLAY_NAME_STORAGE_KEY: &str = "yew.tichu.display_name";
 
 pub enum AppMsg {
     ConnectToWS,
@@ -44,6 +46,7 @@ pub enum AppMsg {
     WSMsgReceived(Result<Vec<u8>, Error>),
     SendWSMsg(CTSMsgInternal),
     SetUserId(String),
+    SetDisplayName(String),
     SetGameCodeInput(String),
     SetDisplayNameInput(String),
 }
@@ -74,20 +77,29 @@ impl Component for App {
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let mut storage =
             StorageService::new(Area::Local).expect("Could not get retrieve StorageService");
-        let user_id = {
-            if let Json(Ok(restored_user_id)) = storage.restore(USER_ID_STORAGE_KEY) {
-                restored_user_id
-            } else {
-                storage.store(USER_ID_STORAGE_KEY, Json(&common::NO_USER_ID));
-                String::from(common::NO_USER_ID)
-            }
+        let user_id = if let Json(Ok(restored_user_id)) = storage.restore(USER_ID_STORAGE_KEY) {
+            restored_user_id
+        } else {
+            storage.store(USER_ID_STORAGE_KEY, Json(&common::NO_USER_ID));
+            String::from(common::NO_USER_ID)
         };
+
+        let display_name =
+            if let Json(Ok(restored_display_name)) = storage.restore(DISPLAY_NAME_STORAGE_KEY) {
+                restored_display_name
+            } else {
+                let new_display_name = String::from("");
+                storage.store(USER_ID_STORAGE_KEY, Json(&new_display_name));
+                new_display_name
+            };
+
         let state = State {
             ws_connection_status: "Not connected".into(),
             user_id,
+            display_name: display_name.clone(),
+            display_name_input: display_name,
             game_state: None,
             game_code_input: "".into(),
-            display_name_input: "".into(),
             is_alive: false,
         };
         Self {
@@ -177,6 +189,11 @@ impl Component for App {
                 self.storage.store(USER_ID_STORAGE_KEY, Json(&s));
                 self.state.user_id = s;
                 false
+            }
+            AppMsg::SetDisplayName(s) => {
+                self.storage.store(DISPLAY_NAME_STORAGE_KEY, Json(&s));
+                self.state.display_name = s;
+                true
             }
             AppMsg::SetGameCodeInput(s) => {
                 self.state.game_code_input = s.to_uppercase();
@@ -408,6 +425,15 @@ impl App {
             }
             CTSMsgInternal::Pong => self._send_ws_message(&CTSMsg::Pong),
             CTSMsgInternal::CreateGame => {
+                if !self.can_create_game() {
+                    return false;
+                }
+
+                // save display name input to state/localStorage
+                self.link.send_message(AppMsg::SetDisplayName(
+                    self.state.display_name_input.clone(),
+                ));
+
                 let create_game = CreateGame {
                     user_id: self.state.user_id.clone(),
                     display_name: self.state.display_name_input.clone(),
@@ -416,6 +442,15 @@ impl App {
                 self._send_ws_message(&msg);
             }
             CTSMsgInternal::JoinGameWithGameCode => {
+                if !self.can_join_game() {
+                    return false;
+                }
+
+                // save display name input to state/localStorage
+                self.link.send_message(AppMsg::SetDisplayName(
+                    self.state.display_name_input.clone(),
+                ));
+
                 let join_game_with_game_code = JoinGameWithGameCode {
                     game_code: self.state.game_code_input.clone().to_uppercase(),
                     display_name: self.state.display_name_input.clone(),
@@ -425,6 +460,10 @@ impl App {
                 self._send_ws_message(&msg);
             }
             CTSMsgInternal::LeaveGame => {
+                if !self.can_leave_game() {
+                    return false;
+                }
+
                 self._send_ws_message(&CTSMsg::LeaveGame);
             }
             _ => {
