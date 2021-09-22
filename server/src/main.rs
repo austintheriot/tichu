@@ -61,16 +61,17 @@ async fn main() {
         let mut interval = time::interval(Duration::from_millis(PING_INTERVAL_MS));
         loop {
             interval.tick().await;
-            for (user_id, ws) in connections_clone.read().await.iter() {
-                if !*ws.is_alive.read().await {
-                    // user didn't respond to ping, close their websocket
+            for (user_id, connection_data) in connections_clone.read().await.iter() {
+                if connection_data.connected && !*connection_data.is_alive.read().await {
+                    // user is still connected but didn't respond to ping: close their websocket
                     eprint!("Closing websocket connection for idle user {}", &user_id);
-                    ws.tx
+                    connection_data
+                        .tx
                         .send(Message::text(CLOSE_WEBSOCKET))
                         .expect("Couldn't send internal CLOSE websocket message");
                 } else {
                     // send ping to user
-                    let mut is_alive = ws.is_alive.write().await;
+                    let mut is_alive = connection_data.is_alive.write().await;
                     *is_alive = false;
                     send_ws_message_to_user(
                         user_id.into(),

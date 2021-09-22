@@ -4,6 +4,9 @@
 - Yew resources: 
   - Awesome Yew: https://github.com/jetli/awesome-yew
 
+- Ensure that errors aren't hurting anything on frontend when websocket can't connect to server
+- Testing turning on/off network
+- Errors encountered when trying to close a user's websocket connection -- when a user's socket closes from THEIR end, set is_alive / connected to false and DON'T try to manually close the websocket afterward
 - close / clean up user's websocket connections when removing remaining users from game state?
 - input validation for display_name (client & server side) -- no empty strings, minimum length, etc.
 - Accept UN-capitalized game codes (do good input validation: trim, capitalize, etc.)
@@ -15,6 +18,7 @@
 - Ensure that users who disconnect and reconnect get added back into the Game properly and receive a Game state update
 - Send state updates to ALL participants
 - Don't send users' cards in the Game state to other users
+- Use parking_lot Mutexes and RwLocks?
 
 
 Unique features:
