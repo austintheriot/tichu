@@ -106,6 +106,7 @@ pub async fn handle_ws_upgrade(
         .await;
     }
 
+    // this is a returning user
     if user_reconnected {
         match game_id {
             Some(game_id) => {
@@ -134,6 +135,16 @@ pub async fn handle_ws_upgrade(
             }
             _ => {}
         }
+    } else {
+        // send them a None state update to clear any linger local state
+        send_ws_message_to_user(
+            &user_id,
+            STCMsg::GameState(None),
+            &connections,
+            &games,
+            &game_codes,
+        )
+        .await;
     }
 
     // Listen for incoming messages
