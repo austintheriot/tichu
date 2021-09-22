@@ -3,7 +3,9 @@ use crate::{
     ConnectionData, Connections, GameCodes, Games,
 };
 use bincode;
-use common::{CTSMsg, CreateGame, GameCreated, GameStage, GameState, JoinGameWithGameCode, STCMsg};
+use common::{
+    CTSMsg, CreateGame, GameCreated, GameStage, GameState, JoinGameWithGameCode, STCMsg, NO_USER_ID,
+};
 use futures::{SinkExt, StreamExt, TryFutureExt};
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -61,8 +63,13 @@ pub async fn handle_ws_upgrade(
         }
     });
 
+    let mut write_connections = connections.write().await;
+    let is_a_returning_user = write_connections.contains_key(&user_id);
     let mut new_user_id_assigned = false;
-    let user_id = if user_id == "NO_USER_ID" {
+    let mut game_id = None;
+
+    // user either has no user_id, or does not have user_id that is currently saved in memory
+    let user_id = if user_id == NO_USER_ID || !is_a_returning_user {
         new_user_id_assigned = true;
         Uuid::new_v4().to_string()
     } else {
@@ -71,12 +78,8 @@ pub async fn handle_ws_upgrade(
 
     eprintln!("New user_id = {}\n", user_id);
 
-    let mut user_reconnected = false;
-    let mut game_id = None;
-
-    let mut write_connections = connections.write().await;
-    if write_connections.contains_key(&user_id) {
-        user_reconnected = true;
+    // get associated game_id from returning users
+    if is_a_returning_user {
         eprint!("User {} reconnected", user_id);
         let existing_user = write_connections.get(&user_id).expect(USER_ID_NOT_IN_MAP);
         game_id = existing_user.game_id.clone();
@@ -90,7 +93,7 @@ pub async fn handle_ws_upgrade(
         connected: true,
     };
 
-    // Associate user_id to game_id (if relevant) & websocket sender
+    // associate user_id to websocket
     write_connections.insert(user_id.clone(), ws);
     drop(write_connections);
 
@@ -107,7 +110,7 @@ pub async fn handle_ws_upgrade(
     }
 
     // this is a returning user
-    if user_reconnected {
+    if is_a_returning_user {
         match game_id {
             Some(game_id) => {
                 // notify other participants (if any) that the user reconnected

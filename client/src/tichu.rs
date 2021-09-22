@@ -6,7 +6,7 @@ use std::time::Duration;
 use crate::types::CTSMsgInternal;
 use anyhow::Error;
 use bincode;
-use common::{CTSMsg, CreateGame, GameStage, GameState, JoinGameWithGameCode, STCMsg};
+use common::{CTSMsg, CreateGame, GameStage, GameState, JoinGameWithGameCode, STCMsg, NO_USER_ID};
 use log::*;
 use serde_derive::{Deserialize, Serialize};
 use yew::format::{Binary, Json};
@@ -80,8 +80,8 @@ impl Component for App {
         let user_id = if let Json(Ok(restored_user_id)) = storage.restore(USER_ID_STORAGE_KEY) {
             restored_user_id
         } else {
-            storage.store(USER_ID_STORAGE_KEY, Json(&common::NO_USER_ID));
-            String::from(common::NO_USER_ID)
+            storage.store(USER_ID_STORAGE_KEY, Json(&NO_USER_ID));
+            String::from(NO_USER_ID)
         };
 
         let display_name =
