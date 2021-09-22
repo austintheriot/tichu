@@ -1,12 +1,9 @@
-mod utils;
-
+mod string_utils;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+pub use string_utils::*;
 use uuid::Uuid;
-
-use crate::utils::get_new_game_code;
-
 pub const NO_USER_ID: &str = "NO_USER_ID";
 pub const NO_GAME_UD: &str = "NO_GAME_UD";
 

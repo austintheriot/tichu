@@ -29,3 +29,41 @@ pub fn get_new_game_code(game_codes: &HashMap<String, String>) -> String {
     }
     random_name
 }
+
+pub fn clean_up_display_name(display_name: &str) -> String {
+    display_name.trim().to_string()
+}
+
+pub fn clean_up_game_code(game_code: &str) -> String {
+    game_code.trim().to_uppercase().to_string()
+}
+
+/// Returns Some(Errors) or None if no errors.
+pub fn validate_display_name(display_name: &str) -> Option<String> {
+    let mut error = String::from("");
+
+    if clean_up_display_name(display_name).len() == 0 {
+        error = String::from("Display name is not long enough");
+    }
+
+    if error.len() != 0 {
+        Some(error)
+    } else {
+        None
+    }
+}
+
+/// Returns Some(Errors) or None if no errors.
+pub fn validate_game_code(game_code: &str) -> Option<String> {
+    let mut error = String::from("");
+
+    if clean_up_display_name(game_code).len() == 0 {
+        error = String::from("Game code is not long enough");
+    }
+
+    if error.len() != 0 {
+        Some(error)
+    } else {
+        None
+    }
+}
