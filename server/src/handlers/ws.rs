@@ -77,7 +77,7 @@ pub async fn handle_ws_upgrade(
         user_id
     };
 
-    eprintln!("New user_id = {}\n", user_id);
+    eprintln!("Final user_id = {}\n", user_id);
 
     // get associated game_id from returning users
     if is_a_returning_user {
@@ -110,7 +110,7 @@ pub async fn handle_ws_upgrade(
         .await;
     }
 
-    // this is a returning user
+    // this user is already saved in Connections
     if is_a_returning_user {
         match game_id {
             Some(game_id) => {
@@ -140,7 +140,7 @@ pub async fn handle_ws_upgrade(
             _ => {}
         }
     } else {
-        // send them a None state update to clear any linger local state
+        // send them a None state update to clear any lingering local state
         send_ws_message_to_user(
             &user_id,
             STCMsg::GameState(None),
@@ -155,7 +155,8 @@ pub async fn handle_ws_upgrade(
     while let Some(result) = user_ws_rx.next().await {
         let msg = match result {
             Ok(msg) => msg,
-            Err(_) => {
+            Err(e) => {
+                eprintln!("Received error message: {:#?}", e);
                 break;
             }
         };
@@ -350,7 +351,7 @@ pub async fn handle_message_received(
             .await;
 
             // Game Stage Changed event
-            if let GameStage::Teams = new_game_state.stage {
+            if let GameStage::Teams(_) = new_game_state.stage {
                 send_ws_message_to_all_participants(
                     &cloned_gamed_id,
                     STCMsg::GameStageChanged(new_game_state.stage.clone()),

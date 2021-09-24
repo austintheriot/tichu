@@ -19,6 +19,7 @@ MUST HAVES:
 - Deck should not be sent in game state to other participants. This will require distinguishing between public and private states for various Game Stages.
 
 NICE TO HAVES:
+- Implement info routes: get current state of server: Connections, GameState, GameCodes
 - Send WS messages concurrently? Especially when sending to group?
 - Spawn ping/pong on ws upgrade for more randomized ping/pong distribution
 

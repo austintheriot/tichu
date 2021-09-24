@@ -38,6 +38,10 @@ pub fn clean_up_game_code(game_code: &str) -> String {
     game_code.trim().to_uppercase().to_string()
 }
 
+pub fn clean_up_team_name(team_name: &str) -> String {
+    team_name.trim().to_string()
+}
+
 /// Returns Some(Errors) or None if no errors.
 pub fn validate_display_name(display_name: &str) -> Option<String> {
     let mut error = String::from("");
@@ -59,6 +63,20 @@ pub fn validate_game_code(game_code: &str) -> Option<String> {
 
     if clean_up_display_name(game_code).len() == 0 {
         error = String::from("Game code is not long enough");
+    }
+
+    if error.len() != 0 {
+        Some(error)
+    } else {
+        None
+    }
+}
+
+pub fn validate_team_name(team_name: &str) -> Option<String> {
+    let mut error = String::from("");
+
+    if clean_up_team_name(team_name).len() == 0 {
+        error = String::from("Team name must not be an empty string");
     }
 
     if error.len() != 0 {

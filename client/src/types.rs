@@ -8,6 +8,10 @@ use serde::{Deserialize, Serialize};
 pub enum CTSMsgInternal {
     JoinGameWithGameCode,
     JoinRandomGame,
+    MoveToTeamA,
+    MoveToTeamB,
+    RenameTeamA,
+    RenameTeamB,
     CreateGame,
     LeaveGame,
     RenameTeam,

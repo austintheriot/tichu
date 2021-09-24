@@ -15,9 +15,20 @@ enum TichuCallStatus {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct Team {
+    pub id: String,
+    pub team_name: String,
+    pub user_ids: Vec<String>,
+    pub score: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct TeamsState(pub Team, pub Team);
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum GameStage {
     Lobby,
-    Teams,
+    Teams(TeamsState),
     GrandTichu,
     Trade,
     Game,
@@ -46,7 +57,6 @@ pub struct PrivateGameState {
     // small_tichus: Vec<TichuCallStatus>,
     // grand_tichus: Vec<TichuCallStatus>,
     // teams: [Team; 2],
-    // owner_id: String,
     // active_player: String,
     // card_wished_for: Card,
     // deck: Vec<Card>,
@@ -90,21 +100,39 @@ impl PrivateGameState {
             return self.clone();
         }
 
-        // if 4 have joined, the new game stage should become Teams
-        let new_stage = if current_participants == 3 {
-            GameStage::Teams
-        } else {
-            GameStage::Lobby
-        };
         let participant = PrivateUser {
             display_name,
-            user_id,
+            user_id: user_id.clone(),
             role: UserRole::Participant,
             tricks: vec![],
             hand: vec![],
         };
         let mut new_participants = self.participants.clone();
         new_participants.push(participant);
+
+        // if 4 have joined, the new game stage should become Teams
+        let new_stage = if current_participants == 3 {
+            let team_a = Team {
+                id: Uuid::new_v4().to_string(),
+                score: 0,
+                team_name: "Team A".into(),
+                user_ids: vec![user_id, self.participants.get(0).unwrap().user_id.clone()],
+            };
+
+            let team_b = Team {
+                id: Uuid::new_v4().to_string(),
+                score: 0,
+                team_name: "Team B".into(),
+                user_ids: vec![
+                    self.participants.get(1).unwrap().user_id.clone(),
+                    self.participants.get(2).unwrap().user_id.clone(),
+                ],
+            };
+
+            GameStage::Teams(TeamsState(team_a, team_b))
+        } else {
+            GameStage::Lobby
+        };
 
         // clone old game state and update only what's necessary
         let mut new_game_state = self.clone();
@@ -173,13 +201,6 @@ impl PrivateGameState {
 
         public_game_state
     }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct Team {
-    id: String,
-    users: Vec<String>,
-    score: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -273,10 +294,7 @@ pub struct JoinRandomGame {
 pub struct ChooseTeamMessage {
     pub team_id: String,
 }
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct RenameTeam {
-    pub team_name: String,
-}
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct SubmitTrade {
     pub trade_to: String,
@@ -305,7 +323,10 @@ pub enum CTSMsg {
 
     /// User can only explicitly leave game when in the lobby
     LeaveGame,
-    RenameTeam(RenameTeam),
+    MoveToTeamA,
+    MoveToTeamB,
+    RenameTeamA(String),
+    RenameTeamB(String),
     StartGame,
     SubmitTrade(SubmitTrade),
     PlayCards(PlayCard),

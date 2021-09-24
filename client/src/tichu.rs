@@ -7,8 +7,9 @@ use crate::types::CTSMsgInternal;
 use anyhow::Error;
 use bincode;
 use common::{
-    clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code, CTSMsg,
-    CreateGame, GameStage, JoinGameWithGameCode, PublicGameState, STCMsg, NO_USER_ID,
+    clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
+    validate_team_name, CTSMsg, CreateGame, GameStage, JoinGameWithGameCode, PublicGameState,
+    STCMsg, Team, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -33,9 +34,12 @@ struct State {
     user_id: String,
     display_name: String,
     game_state: Option<PublicGameState>,
+    is_alive: bool,
+
     game_code_input: String,
     display_name_input: String,
-    is_alive: bool,
+    team_a_name_input: String,
+    team_b_name_input: String,
 }
 
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
@@ -50,8 +54,10 @@ pub enum AppMsg {
     SendWSMsg(CTSMsgInternal),
     SetUserId(String),
     SetDisplayName(String),
-    SetGameCodeInput(String),
     SetDisplayNameInput(String),
+    SetGameCodeInput(String),
+    SetTeamANameInput(String),
+    SetTeamBNameInput(String),
 }
 
 const PING_INTERVAL_MS: u64 = 5000;
@@ -104,6 +110,8 @@ impl Component for App {
             game_state: None,
             game_code_input: "".into(),
             is_alive: false,
+            team_a_name_input: "".into(),
+            team_b_name_input: "".into(),
         };
         Self {
             interval_task: None,
@@ -209,6 +217,14 @@ impl Component for App {
                 self.state.display_name_input = s;
                 true
             }
+            AppMsg::SetTeamANameInput(s) => {
+                self.state.team_a_name_input = s;
+                true
+            }
+            AppMsg::SetTeamBNameInput(s) => {
+                self.state.team_b_name_input = s;
+                true
+            }
         }
     }
 
@@ -226,6 +242,8 @@ impl Component for App {
     fn view(&self) -> Html {
         html! {
             <div>
+                // Info -----------------------------------------------------------------------------------
+                <h1> { "Info" } </h1>
                 <p>{ "Websocket Status: "}{ &self.state.ws_connection_status } </p>
                 <p> {"Stage: " }
                 { if let Some(game_state) = &self.state.game_state {
@@ -246,11 +264,14 @@ impl Component for App {
                 } } </p>
                 <p> { "Participants: " } { self.view_participants() } </p>
                 <p> { "Owner: " } { self.view_owner() } </p>
+                <p> { "Teams: " } { self.view_teams() } </p>
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
                 <br />
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{ "Send ping to server" }</button>
                 <br />
                 <br />
+                 // Lobby -----------------------------------------------------------------------------------
+                 <h1> { "Lobby" } </h1>
                 <label for="display-name-input"> { "Display Name" } </label>
                 <br />
                 <input
@@ -258,9 +279,9 @@ impl Component for App {
                     type="text"
                     value=self.state.display_name_input.clone()
                     oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
-
                 <br />
                 <label for="game-code-input"> { "Game Code" } </label>
+                <br />
                 <br />
                 <input
                     id="game-code-input"
@@ -284,6 +305,39 @@ impl Component for App {
                     disabled=!self.can_leave_game()
                     >{ "Leave game" }</button>
                 <br />
+                <br />
+                <hr />
+                <br />
+                <br />
+                // Teams -----------------------------------------------------------------------------------
+                <h1> { "Teams" } </h1>
+                <label for="team-a-name-input"> { "Team A Name" } </label>
+                <br />
+                <input
+                    id="team-a-name-input"
+                    disabled=self.is_on_team_b()
+                    type="text"
+                    value=self.state.team_a_name_input.clone()
+                    onblur=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamA))
+                    oninput=self.link.callback(|e: InputData| AppMsg::SetTeamANameInput(e.value))/>
+                <br />
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeamA)})
+                    disabled=self.is_on_team_a()
+                    >{ "Move to Team A" }</button>
+                <br />
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeamB)})
+                    disabled=self.is_on_team_b()
+                    >{ "Move to Team B" }</button>
+                <br />
+                <input
+                    id="team-b-name-input"
+                    disabled=self.is_on_team_a()
+                    type="text"
+                    value=self.state.team_b_name_input.clone()
+                    onblur=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamB))
+                    oninput=self.link.callback(|e: InputData| AppMsg::SetTeamBNameInput(e.value))/>
             </div>
         }
     }
@@ -309,6 +363,36 @@ impl App {
             }
     }
 
+    fn is_on_team_a(&self) -> bool {
+        match &self.state.game_state {
+            None => false,
+            Some(game_state) => match &game_state.stage {
+                GameStage::Teams(teams) => teams
+                    .1
+                    .user_ids
+                    .iter()
+                    .find(|participant_id| **participant_id == self.state.user_id)
+                    .is_some(),
+                _ => false,
+            },
+        }
+    }
+
+    fn is_on_team_b(&self) -> bool {
+        match &self.state.game_state {
+            None => false,
+            Some(game_state) => match &game_state.stage {
+                GameStage::Teams(teams) => teams
+                    .0
+                    .user_ids
+                    .iter()
+                    .find(|participant_id| **participant_id == self.state.user_id)
+                    .is_some(),
+                _ => false,
+            },
+        }
+    }
+
     fn view_participants(&self) -> Html {
         if let Some(game_state) = &self.state.game_state {
             html! {
@@ -319,6 +403,38 @@ impl App {
                     }
                 })}
                 </ul>
+            }
+        } else {
+            html! { <></> }
+        }
+    }
+
+    fn view_team(&self, team: &Team) -> Html {
+        html! {
+            <ul>
+                <li> { "Team Name: "} {{&team.team_name}} </li>
+                <li> { "Score: "} {{&team.score}} </li>
+                <li> { "Users: "} { for team.user_ids.iter().map(|id| {
+                    html!{
+                        <p> {&id} </p>
+                    }
+                })} </li>
+            </ul>
+        }
+    }
+
+    fn view_teams(&self) -> Html {
+        if let Some(game_state) = &self.state.game_state {
+            match &game_state.stage {
+                GameStage::Teams(team_state) => {
+                    html! {
+                        <ul>
+                            <li> {self.view_team(&team_state.0)} </li>
+                            <li> {self.view_team(&team_state.1)} </li>
+                        </ul>
+                    }
+                }
+                _ => html! { <></> },
             }
         } else {
             html! { <></> }
@@ -471,6 +587,24 @@ impl App {
                 }
 
                 self._send_ws_message(&CTSMsg::LeaveGame);
+            }
+            CTSMsgInternal::MoveToTeamA => {
+                self._send_ws_message(&CTSMsg::MoveToTeamA);
+            }
+            CTSMsgInternal::MoveToTeamB => {
+                self._send_ws_message(&CTSMsg::MoveToTeamB);
+            }
+            CTSMsgInternal::RenameTeamA => {
+                if validate_team_name(&self.state.team_a_name_input).is_some() {
+                    return false;
+                }
+                self._send_ws_message(&CTSMsg::RenameTeamA(self.state.team_a_name_input.clone()));
+            }
+            CTSMsgInternal::RenameTeamB => {
+                if validate_team_name(&self.state.team_b_name_input).is_some() {
+                    return false;
+                }
+                self._send_ws_message(&CTSMsg::RenameTeamB(self.state.team_b_name_input.clone()));
             }
             _ => {
                 warn!("Tried to send unexpected message type {:?}", &msg_type);
