@@ -1,5 +1,5 @@
 use crate::{
-    errors::{GAME_CODE_NOT_IN_MAP, GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
+    errors::{GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
     ConnectionData, Connections, GameCodes, Games,
 };
 use bincode;
