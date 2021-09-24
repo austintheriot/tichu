@@ -201,6 +201,25 @@ impl PrivateGameState {
 
         public_game_state
     }
+
+    pub fn move_to_team_a(&self, current_user_id: &str) -> PrivateGameState {
+        match &self.stage {
+            GameStage::Teams(teams) => {
+                //if user is on team a already, return
+                if teams
+                    .0
+                    .user_ids
+                    .iter()
+                    .find(|user_id| **user_id == current_user_id)
+                    .is_some()
+                {
+                    return self.clone();
+                } else {
+                }
+            }
+            _ => self.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]

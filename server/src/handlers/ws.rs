@@ -523,6 +523,22 @@ pub async fn handle_message_received(
                 .await;
             }
         }
+        CTSMsg::MoveToTeamA => {
+            // if user on team_a, return
+
+            // update game state
+
+            // send moved teams event
+            // send updated game state
+        }
+        CTSMsg::MoveToTeamB => {
+            // if user on team_b, return
+
+            // update game state
+
+            // send moved teams event
+            // send updated game state
+        }
         any_other_message => {
             eprint!("Unexpected message received: {:?}\n", any_other_message);
 
