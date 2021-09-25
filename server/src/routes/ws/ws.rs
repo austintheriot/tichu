@@ -23,7 +23,7 @@ pub async fn handle_ws_upgrade(
     games: Games,
     game_codes: GameCodes,
 ) {
-    eprintln!("User connected! Original user_id = {}\n", user_id);
+    eprintln!("User connected! Original user_id = {}", user_id);
 
     let (mut user_ws_tx, mut user_ws_rx) = ws.split();
     // use a channel to send messages to our websocket sink (sender)
@@ -57,7 +57,7 @@ pub async fn handle_ws_upgrade(
                 user_ws_tx
                     .send(message)
                     .unwrap_or_else(|e| {
-                        eprintln!("Websocket send error: {}\n", e);
+                        eprintln!("Websocket send error: {}", e);
                     })
                     .await;
             }
@@ -77,11 +77,11 @@ pub async fn handle_ws_upgrade(
         user_id
     };
 
-    eprintln!("Final user_id = {}\n", user_id);
+    eprintln!("Final user_id = {}", user_id);
 
     // get associated game_id from returning users
     if is_a_returning_user {
-        eprint!("User {} reconnected", user_id);
+        eprintln!("User {} reconnected", user_id);
         let existing_user = write_connections.get(&user_id).expect(USER_ID_NOT_IN_MAP);
         game_id = existing_user.game_id.clone();
     }
@@ -175,7 +175,7 @@ pub async fn handle_message_received(
     game_codes: &GameCodes,
 ) {
     if !msg.is_binary() {
-        eprint!("Text websocket message received: {:?}\n", &msg);
+        eprintln!("Text websocket message received: {:?}", &msg);
         return;
     }
 
@@ -221,8 +221,8 @@ pub async fn handle_message_received(
 
             // user already associated with a game, no action needed
             if let Some(game_id) = &connection.game_id {
-                eprint!(
-                    "Can't create game for user: user is already associated with a game: {}\n",
+                eprintln!(
+                    "Can't create game for user: user is already associated with a game: {}",
                     game_id
                 );
                 return;
@@ -254,7 +254,7 @@ pub async fn handle_message_received(
 
             // send updated new game state to owner only
             // --no need to iterate through participants, since it's a new game
-            eprint!("New game successfully created! {:#?}\n", &game_state);
+            eprintln!("New game successfully created! {:#?}", &game_state);
             // Game Created event
             send_ws_message_to_user(
                 &user_id,
@@ -296,8 +296,8 @@ pub async fn handle_message_received(
 
             // user already associated with a game, no action needed
             if let Some(game_id) = &connection.game_id {
-                eprint!(
-                    "Can't Join game with game code for user {}: user is already associated with a game: {}\n",
+                eprintln!(
+                    "Can't Join game with game code for user {}: user is already associated with a game: {}",
                     user_id,
                     game_id
                 );
@@ -309,7 +309,7 @@ pub async fn handle_message_received(
             let game_id = read_game_codes.get(&game_code.to_uppercase());
             let cloned_gamed_id = match game_id {
                 None => {
-                    eprint!("User supplied incorrect game_code: ignoring request to join\n");
+                    eprintln!("User supplied incorrect game_code: ignoring request to join");
                     return;
                 }
                 Some(game_id) => game_id.clone(),
@@ -337,7 +337,7 @@ pub async fn handle_message_received(
             drop(write_games);
             drop(write_connections);
 
-            eprint!("User successfully joined game! {:#?}\n", &new_game_state);
+            eprintln!("User successfully joined game! {:#?}", &new_game_state);
 
             // Send updates to user
             // User Joined event
@@ -416,7 +416,7 @@ pub async fn handle_message_received(
             if any_other_user_is_still_in_game {
                 if let GameStage::Lobby = game_state_clone.stage {
                     // if this is the lobby, remove user from the lobby, but keep connection open
-                    eprint!("Removing user {} from lobby on leave game event, but keeping connection open\n", user_id);
+                    eprintln!("Removing user {} from lobby on leave game event, but keeping connection open", user_id);
                     let mut owner_reassigned = false;
 
                     // update game state by removing user and reassigning owner if needed
@@ -486,16 +486,16 @@ pub async fn handle_message_received(
                     .await;
                 } else {
                     // user not in lobby: can't leave
-                    eprint!(
-                        "User {} can't leave game since user is not in lobby\n",
+                    eprintln!(
+                        "User {} can't leave game since user is not in lobby",
                         user_id
                     );
                     return;
                 }
             } else {
                 // no other users left in game: delete game but keep user connection
-                eprint!(
-                    "Removing user {} from game state and deleting game {}\n",
+                eprintln!(
+                    "Removing user {} from game state and deleting game {}",
                     user_id, game_id_clone
                 );
 
@@ -684,7 +684,7 @@ pub async fn handle_message_received(
                 // user is not associated with a game, do nothing
                 None => {
                     eprintln!(
-                        "User {} is not associated with a game. Ignoring request to rename A\n",
+                        "User {} is not associated with a game. Ignoring request to rename A",
                         &user_id
                     );
                     return;
@@ -703,7 +703,7 @@ pub async fn handle_message_received(
                         .is_some()
                     {
                         eprintln!(
-                            "User {} is not on team A. Ignoring request to rename team A\n",
+                            "User {} is not on team A. Ignoring request to rename team A",
                             &user_id
                         );
                         return;
@@ -712,7 +712,7 @@ pub async fn handle_message_received(
                 // current stage is not Teams, do nothing
                 _ => {
                     eprintln!(
-                        "Current stage is not Teams. Ignoring request from user {} to rename team A\n",
+                        "Current stage is not Teams. Ignoring request from user {} to rename team A",
                         &user_id
                     );
                     return;
@@ -720,7 +720,7 @@ pub async fn handle_message_received(
             }
 
             eprintln!(
-                "User {} is renaming team A to {}\n",
+                "User {} is renaming team A to {}",
                 &user_id, &new_team_a_name
             );
 
@@ -764,7 +764,7 @@ pub async fn handle_message_received(
                 // user is not associated with a game, do nothing
                 None => {
                     eprintln!(
-                        "User {} is not associated with a game. Ignoring request to rename B\n",
+                        "User {} is not associated with a game. Ignoring request to rename B",
                         &user_id
                     );
                     return;
@@ -783,7 +783,7 @@ pub async fn handle_message_received(
                         .is_some()
                     {
                         eprintln!(
-                            "User {} is not on team B. Ignoring request to rename team B\n",
+                            "User {} is not on team B. Ignoring request to rename team B",
                             &user_id
                         );
                         return;
@@ -792,7 +792,7 @@ pub async fn handle_message_received(
                 // current stage is not Teams, do nothing
                 _ => {
                     eprintln!(
-                        "Current stage is not Teams. Ignoring request from user {} to rename team B\n",
+                        "Current stage is not Teams. Ignoring request from user {} to rename team B",
                         &user_id
                     );
                     return;
@@ -800,7 +800,7 @@ pub async fn handle_message_received(
             }
 
             eprintln!(
-                "User {} is renaming team B to {}\n",
+                "User {} is renaming team B to {}",
                 &user_id, &new_team_b_name
             );
 
@@ -832,7 +832,7 @@ pub async fn handle_message_received(
             .await;
         }
         any_other_message => {
-            eprint!("Unexpected message received: {:?}\n", any_other_message);
+            eprintln!("Unexpected message received: {:?}", any_other_message);
 
             // let user know something weird was received
             send_ws_message_to_user(
@@ -860,9 +860,9 @@ pub async fn send_ws_message_to_user(
     let read_connections = connections.read().await;
     let ws = read_connections.get(user_id).expect(USER_ID_NOT_IN_MAP);
     if let Err(_disconnected) = ws.tx.send(msg.clone()) {
-        eprint!("User is disconnected. Couldn't send message {:?}\n", &msg);
+        eprintln!("User is disconnected. Couldn't send message {:?}", &msg);
     } else {
-        eprint!("Message successfully sent\n");
+        eprintln!("Message successfully sent");
     }
 }
 
@@ -884,9 +884,9 @@ pub async fn send_ws_message_to_all_participants(
             .get(&participant.user_id)
             .expect(USER_ID_NOT_IN_MAP);
         if let Err(_disconnected) = ws.tx.send(msg.clone()) {
-            eprint!("User is disconnected. Couldn't send message {:?}\n", &msg);
+            eprintln!("User is disconnected. Couldn't send message {:?}", &msg);
         } else {
-            eprint!("Message successfully sent\n");
+            eprintln!("Message successfully sent");
         }
     }
 }
@@ -914,9 +914,9 @@ pub async fn send_game_state_to_all_participants(
             .get(&participant.user_id)
             .expect(USER_ID_NOT_IN_MAP);
         if let Err(_disconnected) = ws.tx.send(msg.clone()) {
-            eprint!("User is disconnected. Couldn't send message {:?}\n", &msg);
+            eprintln!("User is disconnected. Couldn't send message {:?}", &msg);
         } else {
-            eprint!("Message successfully sent\n");
+            eprintln!("Message successfully sent");
         }
     }
 }
@@ -928,7 +928,7 @@ pub async fn cleanup_state_after_disconnect(
     games: &Games,
     game_codes: &GameCodes,
 ) {
-    eprintln!("User disconnected: {}\n", user_id);
+    eprintln!("User disconnected: {}", user_id);
 
     // extract game_id
     let mut write_connections = connections.write().await;
@@ -965,7 +965,7 @@ pub async fn cleanup_state_after_disconnect(
             if any_other_user_is_still_in_game {
                 if let GameStage::Lobby = game_state_clone.stage {
                     // if this is the lobby, remove from state
-                    eprint!("Removing user {} from lobby on disconnect\n", user_id);
+                    eprintln!("Removing user {} from lobby on disconnect", user_id);
                     let mut owner_reassigned = false;
                     write_connections.remove(user_id);
                     let new_game_state = if game_state_clone.owner_id == *user_id {
@@ -1018,7 +1018,7 @@ pub async fn cleanup_state_after_disconnect(
                     .await;
                 } else {
                     // no other users left in game and user is not in lobby: only mark this user as disconnected
-                    eprint!("Marking user {} as not connected\n", user_id);
+                    eprintln!("Marking user {} as not connected", user_id);
                     write_connections
                         .get_mut(user_id)
                         .expect(USER_ID_NOT_IN_MAP)
@@ -1050,8 +1050,8 @@ pub async fn cleanup_state_after_disconnect(
                 }
             } else {
                 // no users left in game: remove all users from Connections and delete game from Games
-                eprint!(
-                    "Removing all users and game from state for game {}\n",
+                eprintln!(
+                    "Removing all users and game from state for game {}",
                     game_id
                 );
                 for participant in participants_clone.iter() {

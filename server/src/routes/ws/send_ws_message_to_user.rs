@@ -10,8 +10,8 @@ pub async fn send_ws_message_to_user(user_id: &str, msg: STCMsg, connections: &C
     let read_connections = connections.read().await;
     let ws = read_connections.get(user_id).expect(USER_ID_NOT_IN_MAP);
     if let Err(_disconnected) = ws.tx.send(msg.clone()) {
-        eprint!("User is disconnected. Couldn't send message {:?}\n", &msg);
+        eprintln!("User is disconnected. Couldn't send message {:?}", &msg);
     } else {
-        eprint!("Message successfully sent\n");
+        eprintln!("Message successfully sent");
     }
 }

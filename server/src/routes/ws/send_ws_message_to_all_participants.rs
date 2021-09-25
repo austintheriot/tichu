@@ -24,9 +24,9 @@ pub async fn send_ws_message_to_all_participants(
             .get(&participant.user_id)
             .expect(USER_ID_NOT_IN_MAP);
         if let Err(_disconnected) = ws.tx.send(msg.clone()) {
-            eprint!("User is disconnected. Couldn't send message {:?}\n", &msg);
+            eprintln!("User is disconnected. Couldn't send message {:?}", &msg);
         } else {
-            eprint!("Message successfully sent\n");
+            eprintln!("Message successfully sent");
         }
     }
 }

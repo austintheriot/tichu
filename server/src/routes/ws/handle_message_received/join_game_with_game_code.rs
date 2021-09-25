@@ -31,8 +31,8 @@ pub async fn join_game_with_game_code(
 
     // user already associated with a game, no action needed
     if let Some(game_id) = &connection.game_id {
-        eprint!(
-    "Can't Join game with game code for user {}: user is already associated with a game: {}\n",
+        eprintln!(
+    "Can't Join game with game code for user {}: user is already associated with a game: {}",
     user_id,
     game_id
   );
@@ -44,7 +44,7 @@ pub async fn join_game_with_game_code(
     let game_id = read_game_codes.get(&game_code.to_uppercase());
     let cloned_gamed_id = match game_id {
         None => {
-            eprint!("User supplied incorrect game_code: ignoring request to join\n");
+            eprintln!("User supplied incorrect game_code: ignoring request to join");
             return;
         }
         Some(game_id) => game_id.clone(),
@@ -55,6 +55,16 @@ pub async fn join_game_with_game_code(
     let game_state_clone = write_games
         .get_mut(&cloned_gamed_id)
         .expect(USER_ID_NOT_IN_MAP);
+
+    // Verify that there are not already 4 users in the game
+    if game_state_clone.participants.len() == 4 {
+        eprintln!(
+            "There are already 4 users in game {}: ignoring request to join from user {}",
+            cloned_gamed_id, user_id
+        );
+        return;
+    }
+
     let new_game_state = game_state_clone.add_user(user_id.clone(), display_name);
 
     // save new game state
@@ -72,7 +82,7 @@ pub async fn join_game_with_game_code(
     drop(write_games);
     drop(write_connections);
 
-    eprint!("User successfully joined game! {:#?}\n", &new_game_state);
+    eprintln!("User successfully joined game! {:#?}", &new_game_state);
 
     // Send updates to user
     // User Joined event

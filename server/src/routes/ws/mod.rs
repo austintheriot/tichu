@@ -31,7 +31,7 @@ pub async fn handle_ws_upgrade(
     games: Games,
     game_codes: GameCodes,
 ) {
-    eprintln!("User connected! Original user_id = {}\n", user_id);
+    eprintln!("User connected! Original user_id = {}", user_id);
 
     let (mut user_ws_tx, mut user_ws_rx) = ws.split();
     // use a channel to send messages to our websocket sink (sender)
@@ -65,7 +65,7 @@ pub async fn handle_ws_upgrade(
                 user_ws_tx
                     .send(message)
                     .unwrap_or_else(|e| {
-                        eprintln!("Websocket send error: {}\n", e);
+                        eprintln!("Websocket send error: {}", e);
                     })
                     .await;
             }
@@ -85,11 +85,11 @@ pub async fn handle_ws_upgrade(
         user_id
     };
 
-    eprintln!("Final user_id = {}\n", user_id);
+    eprintln!("Final user_id = {}", user_id);
 
     // get associated game_id from returning users
     if is_a_returning_user {
-        eprint!("User {} reconnected", user_id);
+        eprintln!("User {} reconnected", user_id);
         let existing_user = write_connections.get(&user_id).expect(USER_ID_NOT_IN_MAP);
         game_id = existing_user.game_id.clone();
     }
@@ -136,7 +136,7 @@ pub async fn handle_ws_upgrade(
                 drop(read_games);
                 send_ws_message_to_user(
                     &user_id,
-                    STCMsg::GameState(Some(game_state.to_public_game_state(&user_id))),
+                    STCMsg::GameState(game_state.to_public_game_state(&user_id)),
                     &connections,
                 )
                 .await;

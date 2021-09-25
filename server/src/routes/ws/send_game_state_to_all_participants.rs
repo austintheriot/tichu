@@ -16,7 +16,7 @@ pub async fn send_game_state_to_all_participants(
     for participant in game.participants.iter() {
         // format state for this user
         let public_game_state = private_game_state.to_public_game_state(&participant.user_id);
-        let msg = bincode::serialize(&STCMsg::GameState(Some(public_game_state)))
+        let msg = bincode::serialize(&STCMsg::GameState(public_game_state))
             .expect("Could not serialize message");
         let msg = Message::binary(msg);
 
@@ -25,9 +25,9 @@ pub async fn send_game_state_to_all_participants(
             .get(&participant.user_id)
             .expect(USER_ID_NOT_IN_MAP);
         if let Err(_disconnected) = ws.tx.send(msg.clone()) {
-            eprint!("User is disconnected. Couldn't send message {:?}\n", &msg);
+            eprintln!("User is disconnected. Couldn't send message {:?}", &msg);
         } else {
-            eprint!("Message successfully sent\n");
+            eprintln!("Message successfully sent");
         }
     }
 }

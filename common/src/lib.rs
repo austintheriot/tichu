@@ -179,7 +179,7 @@ impl PrivateGameState {
     }
 
     /// Converts game state that only the server can see into state relevant for a specific user.
-    pub fn to_public_game_state(&self, current_user_id: &str) -> PublicGameState {
+    pub fn to_public_game_state(&self, current_user_id: &str) -> Option<PublicGameState> {
         let mut public_participants: Vec<PublicUser> = Vec::with_capacity(4);
         let mut current_user = None;
         for private_participant in self.participants.iter() {
@@ -196,6 +196,11 @@ impl PrivateGameState {
             }
         }
 
+        if current_user.is_none() {
+            eprintln!("Can't convert PrivateGameState to PublicGameState, because current user does not exist in list of participants");
+            return None;
+        }
+
         let public_game_state = PublicGameState {
             game_id: self.game_id.clone(),
             game_code: self.game_code.clone(),
@@ -205,7 +210,7 @@ impl PrivateGameState {
             current_user: current_user.expect("Current user not found in participants"),
         };
 
-        public_game_state
+        Some(public_game_state)
     }
 
     pub fn move_to_team(

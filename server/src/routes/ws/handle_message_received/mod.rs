@@ -29,7 +29,7 @@ pub async fn handle_message_received(
     game_codes: &GameCodes,
 ) {
     if !msg.is_binary() {
-        eprint!("Text websocket message received: {:?}\n", &msg);
+        eprintln!("Text websocket message received: {:?}", &msg);
         return;
     }
 
@@ -103,7 +103,7 @@ pub async fn handle_message_received(
             .await;
         }
         any_other_message => {
-            eprint!("Unexpected message received: {:?}\n", any_other_message);
+            eprintln!("Unexpected message received: {:?}", any_other_message);
 
             // let user know something weird was received
             send_ws_message_to_user(

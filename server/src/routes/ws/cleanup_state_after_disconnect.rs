@@ -14,7 +14,7 @@ pub async fn cleanup_state_after_disconnect(
     games: &Games,
     game_codes: &GameCodes,
 ) {
-    eprintln!("User disconnected: {}\n", user_id);
+    eprintln!("User disconnected: {}", user_id);
 
     // extract game_id
     let mut write_connections = connections.write().await;
@@ -51,7 +51,7 @@ pub async fn cleanup_state_after_disconnect(
             if any_other_user_is_still_in_game {
                 if let GameStage::Lobby = game_state_clone.stage {
                     // if this is the lobby, remove from state
-                    eprint!("Removing user {} from lobby on disconnect\n", user_id);
+                    eprintln!("Removing user {} from lobby on disconnect", user_id);
                     let mut owner_reassigned = false;
                     write_connections.remove(user_id);
                     let new_game_state = if game_state_clone.owner_id == *user_id {
@@ -104,7 +104,7 @@ pub async fn cleanup_state_after_disconnect(
                     .await;
                 } else {
                     // no other users left in game and user is not in lobby: only mark this user as disconnected
-                    eprint!("Marking user {} as not connected\n", user_id);
+                    eprintln!("Marking user {} as not connected", user_id);
                     write_connections
                         .get_mut(user_id)
                         .expect(USER_ID_NOT_IN_MAP)
@@ -136,8 +136,8 @@ pub async fn cleanup_state_after_disconnect(
                 }
             } else {
                 // no users left in game: remove all users from Connections and delete game from Games
-                eprint!(
-                    "Removing all users and game from state for game {}\n",
+                eprintln!(
+                    "Removing all users and game from state for game {}",
                     game_id
                 );
                 for participant in participants_clone.iter() {

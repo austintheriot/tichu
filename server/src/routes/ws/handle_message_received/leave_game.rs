@@ -56,8 +56,8 @@ pub async fn leave_game(
     if any_other_user_is_still_in_game {
         if let GameStage::Lobby = game_state_clone.stage {
             // if this is the lobby, remove user from the lobby, but keep connection open
-            eprint!(
-                "Removing user {} from lobby on leave game event, but keeping connection open\n",
+            eprintln!(
+                "Removing user {} from lobby on leave game event, but keeping connection open",
                 user_id
             );
             let mut owner_reassigned = false;
@@ -122,16 +122,16 @@ pub async fn leave_game(
             send_ws_message_to_user(&user_id, STCMsg::GameState(None), connections).await;
         } else {
             // user not in lobby: can't leave
-            eprint!(
-                "User {} can't leave game since user is not in lobby\n",
+            eprintln!(
+                "User {} can't leave game since user is not in lobby",
                 user_id
             );
             return;
         }
     } else {
         // no other users left in game: delete game but keep user connection
-        eprint!(
-            "Removing user {} from game state and deleting game {}\n",
+        eprintln!(
+            "Removing user {} from game state and deleting game {}",
             user_id, game_id_clone
         );
 

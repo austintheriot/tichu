@@ -62,7 +62,7 @@ async fn main() {
             for (user_id, connection_data) in connections_clone.read().await.iter() {
                 if connection_data.connected && !*connection_data.is_alive.read().await {
                     // user is still connected but didn't respond to ping: close their websocket
-                    eprint!("Closing websocket connection for idle user {}", &user_id);
+                    eprintln!("Closing websocket connection for idle user {}", &user_id);
                     connection_data
                         .tx
                         .send(Message::text(CLOSE_WEBSOCKET))

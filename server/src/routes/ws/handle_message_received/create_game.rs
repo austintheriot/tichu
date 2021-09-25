@@ -26,8 +26,8 @@ pub async fn create_game(
 
     // user already associated with a game, no action needed
     if let Some(game_id) = &connection.game_id {
-        eprint!(
-            "Can't create game for user: user is already associated with a game: {}\n",
+        eprintln!(
+            "Can't create game for user: user is already associated with a game: {}",
             game_id
         );
         return;
@@ -59,13 +59,14 @@ pub async fn create_game(
 
     // send updated new game state to owner only
     // --no need to iterate through participants, since it's a new game
-    eprint!("New game successfully created! {:#?}\n", &game_state);
+    eprintln!("New game successfully created! {:#?}", &game_state);
     // Game Created event
     send_ws_message_to_user(&user_id, STCMsg::GameCreated(game_created), &connections).await;
+
     // Updated Game State
     send_ws_message_to_user(
         &user_id,
-        STCMsg::GameState(Some(game_state.to_public_game_state(&user_id))),
+        STCMsg::GameState(game_state.to_public_game_state(&user_id)),
         &connections,
     )
     .await;

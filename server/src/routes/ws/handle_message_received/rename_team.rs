@@ -26,7 +26,7 @@ pub async fn rename_team(
         // user is not associated with a game, do nothing
         None => {
             eprintln!(
-                "User {} is not associated with a game. Ignoring request to rename {:?}\n",
+                "User {} is not associated with a game. Ignoring request to rename {:?}",
                 &user_id, &team_to_rename,
             );
             return;
@@ -48,7 +48,7 @@ pub async fn rename_team(
                 .is_some()
             {
                 eprintln!(
-                    "User {} is not on the team they want to rename ({:?}). Ignoring request to rename team\n",
+                    "User {} is not on the team they want to rename ({:?}). Ignoring request to rename team",
                     &user_id,
                     &team_to_rename,
                 );
@@ -58,7 +58,7 @@ pub async fn rename_team(
         // current stage is not Teams, do nothing
         _ => {
             eprintln!(
-                "Current stage is not Teams. Ignoring request from user {} to rename team {:?}\n",
+                "Current stage is not Teams. Ignoring request from user {} to rename team {:?}",
                 &user_id, &team_to_rename,
             );
             return;
@@ -66,7 +66,7 @@ pub async fn rename_team(
     }
 
     eprintln!(
-        "User {} is renaming team {:?} to {}\n",
+        "User {} is renaming team {:?} to {}",
         &user_id, &team_to_rename, &new_team_name
     );
 
