@@ -2,11 +2,11 @@
 #![feature(never_type)]
 extern crate common;
 mod errors;
-mod handlers;
+mod routes;
 
 use common::{PrivateGameState, STCMsg};
 use futures::join;
-use handlers::{
+use routes::{
     index,
     ws::{self, send_ws_message_to_user},
 };
@@ -18,7 +18,7 @@ use tokio::{task, time};
 use warp::ws::Message;
 use warp::Filter;
 
-use crate::handlers::ws::CLOSE_WEBSOCKET;
+use crate::routes::ws::CLOSE_WEBSOCKET;
 
 /// Maps `user_id`s to websocket connections and `game_codes`
 pub type Connections = Arc<RwLock<HashMap<String, ConnectionData>>>;
@@ -53,8 +53,6 @@ async fn main() {
     let game_codes = GameCodes::default();
 
     let connections_clone = Arc::clone(&connections);
-    let games_clone = Arc::clone(&games);
-    let game_codes_clone = Arc::clone(&game_codes);
 
     // send ping messages every 5 messages to every websocket
     let ping_pong = task::spawn(async move {
@@ -73,14 +71,8 @@ async fn main() {
                     // send ping to user
                     let mut is_alive = connection_data.is_alive.write().await;
                     *is_alive = false;
-                    send_ws_message_to_user(
-                        user_id.into(),
-                        STCMsg::Ping,
-                        &Arc::clone(&connections_clone),
-                        &Arc::clone(&games_clone),
-                        &Arc::clone(&game_codes_clone),
-                    )
-                    .await;
+                    send_ws_message_to_user(user_id, STCMsg::Ping, &Arc::clone(&connections_clone))
+                        .await;
                 }
             }
         }

@@ -15,6 +15,12 @@ enum TichuCallStatus {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub enum TeamOption {
+    TeamA,
+    TeamB,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct Team {
     pub id: String,
     pub team_name: String,
