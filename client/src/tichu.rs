@@ -250,6 +250,8 @@ impl Component for App {
             <div>
                 // Info -----------------------------------------------------------------------------------
                 <h1> { "Info" } </h1>
+                <p> { "Display Name: " } { &self.state.display_name }</p>
+                <p> { "User ID: " } { &self.state.user_id }</p>
                 <p>{ "Websocket Status: "}{ match &self.state.ws_connection_status {
                     WSConnectionStatus::Connected => "Connected",
                     WSConnectionStatus::NotConnected => "Not Connected"
@@ -521,8 +523,25 @@ impl App {
                 STCMsg::UserIdAssigned(s) => {
                     self.link.send_message(AppMsg::SetUserId(s));
                 }
-                STCMsg::GameState(game_state) => {
-                    self.state.game_state = game_state;
+                STCMsg::GameState(new_game_state) => {
+                    // if team names are empty, update team name inputs to reflect state
+                    if self.state.team_a_name_input.len() == 0
+                        || self.state.team_b_name_input.len() == 0
+                    {
+                        match &new_game_state {
+                            Some(new_game_state) => match &new_game_state.stage {
+                                GameStage::Teams(teams_state) => {
+                                    self.link.send_message_batch(vec![
+                                        AppMsg::SetTeamANameInput(teams_state.0.team_name.clone()),
+                                        AppMsg::SetTeamBNameInput(teams_state.1.team_name.clone()),
+                                    ])
+                                }
+                                _ => {}
+                            },
+                            None => {}
+                        }
+                    }
+                    self.state.game_state = new_game_state;
                     should_rerender = true;
                 }
                 STCMsg::UnexpectedMessageReceived(s) => {
@@ -534,6 +553,14 @@ impl App {
                 STCMsg::Pong => {
                     self.state.is_alive = true;
                 }
+                STCMsg::TeamARenamed(new_team_a_name) => {
+                    self.link
+                        .send_message(AppMsg::SetTeamANameInput(new_team_a_name));
+                }
+                STCMsg::TeamBRenamed(new_team_b_name) => {
+                    self.link
+                        .send_message(AppMsg::SetTeamBNameInput(new_team_b_name));
+                }
                 STCMsg::Test(_) => {}
                 STCMsg::GameCreated(_) => {}
                 STCMsg::UserJoined(_) => {}
@@ -543,6 +570,8 @@ impl App {
                 STCMsg::OwnerReassigned(_) => {}
                 STCMsg::UserMovedToTeamA(_) => {}
                 STCMsg::UserMovedToTeamB(_) => {}
+                STCMsg::GameStageChanged(_) => {}
+
                 _ => warn!("Unexpected websocket message received {:#?}", data),
             },
         }
@@ -629,13 +658,35 @@ impl App {
                 self._send_ws_message(&CTSMsg::MoveToTeamB);
             }
             CTSMsgInternal::RenameTeamA => {
-                if validate_team_name(&self.state.team_a_name_input).is_some() {
+                // if team name A input is empty on blur, replace with existing state and do not try to update on server
+                if self.state.team_a_name_input.len() == 0 {
+                    let existing_team_a_name = match &self.state.game_state.as_ref().unwrap().stage
+                    {
+                        GameStage::Teams(teams_state) => teams_state.0.team_name.clone(),
+                        // not in teams stage, do nothing
+                        _ => return false,
+                    };
+                    self.link
+                        .send_message(AppMsg::SetTeamANameInput(existing_team_a_name));
+                    return true;
+                } else if validate_team_name(&self.state.team_a_name_input).is_some() {
                     return false;
                 }
                 self._send_ws_message(&CTSMsg::RenameTeamA(self.state.team_a_name_input.clone()));
             }
             CTSMsgInternal::RenameTeamB => {
-                if validate_team_name(&self.state.team_b_name_input).is_some() {
+                // if team name B input is empty on blur, replace with existing state and do not try to update on server
+                if self.state.team_b_name_input.len() == 0 {
+                    let existing_team_b_name = match &self.state.game_state.as_ref().unwrap().stage
+                    {
+                        GameStage::Teams(teams_state) => teams_state.1.team_name.clone(),
+                        // not in teams stage, do nothing
+                        _ => return false,
+                    };
+                    self.link
+                        .send_message(AppMsg::SetTeamBNameInput(existing_team_b_name));
+                    return true;
+                } else if validate_team_name(&self.state.team_b_name_input).is_some() {
                     return false;
                 }
                 self._send_ws_message(&CTSMsg::RenameTeamB(self.state.team_b_name_input.clone()));

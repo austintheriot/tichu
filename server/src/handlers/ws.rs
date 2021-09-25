@@ -559,7 +559,13 @@ pub async fn handle_message_received(
                     }
                 }
                 // current stage is not Teams, do nothing
-                _ => return,
+                _ => {
+                    eprintln!(
+                        "Current stage is not Teams. Ignoring request to move user {} to team A.",
+                        &user_id
+                    );
+                    return;
+                }
             }
 
             eprintln!("Moving user {} to team A", &user_id);
@@ -627,7 +633,13 @@ pub async fn handle_message_received(
                     }
                 }
                 // current stage is not Teams, do nothing
-                _ => return,
+                _ => {
+                    eprintln!(
+                        "Current stage is not Teams. Ignoring request to move user {} to team B.",
+                        &user_id
+                    );
+                    return;
+                }
             }
 
             eprintln!("Moving user {} to team B", &user_id);
@@ -643,6 +655,166 @@ pub async fn handle_message_received(
             send_ws_message_to_all_participants(
                 &game_id_clone,
                 STCMsg::UserMovedToTeamA(user_id),
+                connections,
+                games,
+                game_codes,
+            )
+            .await;
+
+            // send updated game state
+            send_game_state_to_all_participants(
+                &game_id_clone,
+                &new_game_state,
+                connections,
+                games,
+                game_codes,
+            )
+            .await;
+        }
+        CTSMsg::RenameTeamA(new_team_a_name) => {
+            let read_connections = connections.read().await;
+            let mut write_games = games.write().await;
+
+            let game_id_clone = read_connections
+                .get(&user_id)
+                .expect(USER_ID_NOT_IN_MAP)
+                .game_id
+                .clone();
+            let game_id_clone = match game_id_clone {
+                // user is not associated with a game, do nothing
+                None => {
+                    eprintln!(
+                        "User {} is not associated with a game. Ignoring request to rename A\n",
+                        &user_id
+                    );
+                    return;
+                }
+                Some(game_id_clone) => game_id_clone,
+            };
+            let prev_game_state = write_games.get(&game_id_clone).expect(GAME_ID_NOT_IN_MAP);
+            match &prev_game_state.stage {
+                GameStage::Teams(teams_state) => {
+                    // if user on team B, return
+                    if teams_state
+                        .1
+                        .user_ids
+                        .iter()
+                        .find(|participant_id| **participant_id == user_id)
+                        .is_some()
+                    {
+                        eprintln!(
+                            "User {} is not on team A. Ignoring request to rename team A\n",
+                            &user_id
+                        );
+                        return;
+                    }
+                }
+                // current stage is not Teams, do nothing
+                _ => {
+                    eprintln!(
+                        "Current stage is not Teams. Ignoring request from user {} to rename team A\n",
+                        &user_id
+                    );
+                    return;
+                }
+            }
+
+            eprintln!(
+                "User {} is renaming team A to {}\n",
+                &user_id, &new_team_a_name
+            );
+
+            // update game state
+            let new_game_state = prev_game_state.rename_team_a(&user_id, &new_team_a_name);
+            *write_games
+                .get_mut(&game_id_clone)
+                .expect(GAME_ID_NOT_IN_MAP) = new_game_state.clone();
+            drop(write_games);
+
+            // send team rename event
+            send_ws_message_to_all_participants(
+                &game_id_clone,
+                STCMsg::TeamARenamed(new_team_a_name),
+                connections,
+                games,
+                game_codes,
+            )
+            .await;
+
+            // send updated game state
+            send_game_state_to_all_participants(
+                &game_id_clone,
+                &new_game_state,
+                connections,
+                games,
+                game_codes,
+            )
+            .await;
+        }
+        CTSMsg::RenameTeamB(new_team_b_name) => {
+            let read_connections = connections.read().await;
+            let mut write_games = games.write().await;
+
+            let game_id_clone = read_connections
+                .get(&user_id)
+                .expect(USER_ID_NOT_IN_MAP)
+                .game_id
+                .clone();
+            let game_id_clone = match game_id_clone {
+                // user is not associated with a game, do nothing
+                None => {
+                    eprintln!(
+                        "User {} is not associated with a game. Ignoring request to rename B\n",
+                        &user_id
+                    );
+                    return;
+                }
+                Some(game_id_clone) => game_id_clone,
+            };
+            let prev_game_state = write_games.get(&game_id_clone).expect(GAME_ID_NOT_IN_MAP);
+            match &prev_game_state.stage {
+                GameStage::Teams(teams_state) => {
+                    // if user on team A, return
+                    if teams_state
+                        .0
+                        .user_ids
+                        .iter()
+                        .find(|participant_id| **participant_id == user_id)
+                        .is_some()
+                    {
+                        eprintln!(
+                            "User {} is not on team B. Ignoring request to rename team B\n",
+                            &user_id
+                        );
+                        return;
+                    }
+                }
+                // current stage is not Teams, do nothing
+                _ => {
+                    eprintln!(
+                        "Current stage is not Teams. Ignoring request from user {} to rename team B\n",
+                        &user_id
+                    );
+                    return;
+                }
+            }
+
+            eprintln!(
+                "User {} is renaming team B to {}\n",
+                &user_id, &new_team_b_name
+            );
+
+            // update game state
+            let new_game_state = prev_game_state.rename_team_b(&user_id, &new_team_b_name);
+            *write_games
+                .get_mut(&game_id_clone)
+                .expect(GAME_ID_NOT_IN_MAP) = new_game_state.clone();
+            drop(write_games);
+
+            // send team rename event
+            send_ws_message_to_all_participants(
+                &game_id_clone,
+                STCMsg::TeamBRenamed(new_team_b_name),
                 connections,
                 games,
                 game_codes,
