@@ -203,9 +203,10 @@ impl PrivateGameState {
     }
 
     pub fn move_to_team_a(&self, current_user_id: &str) -> PrivateGameState {
-        match &self.stage {
+        let mut new_state = self.clone();
+        match &mut new_state.stage {
             GameStage::Teams(teams) => {
-                //if user is on team a already, return
+                //if user is on team A already, return
                 if teams
                     .0
                     .user_ids
@@ -213,11 +214,49 @@ impl PrivateGameState {
                     .find(|user_id| **user_id == current_user_id)
                     .is_some()
                 {
-                    return self.clone();
+                    return new_state;
                 } else {
+                    // remove user from team b
+                    teams
+                        .1
+                        .user_ids
+                        .retain(|user_id| user_id != current_user_id);
+
+                    // add user to team a
+                    teams.0.user_ids.push(current_user_id.to_string());
+                    new_state
                 }
             }
-            _ => self.clone(),
+            _ => new_state,
+        }
+    }
+
+    pub fn move_to_team_b(&self, current_user_id: &str) -> PrivateGameState {
+        let mut new_state = self.clone();
+        match &mut new_state.stage {
+            GameStage::Teams(teams) => {
+                //if user is on team B already, return
+                if teams
+                    .1
+                    .user_ids
+                    .iter()
+                    .find(|user_id| **user_id == current_user_id)
+                    .is_some()
+                {
+                    return new_state;
+                } else {
+                    // remove user from team a
+                    teams
+                        .0
+                        .user_ids
+                        .retain(|user_id| user_id != current_user_id);
+
+                    // add user to team b
+                    teams.1.user_ids.push(current_user_id.to_string());
+                    new_state
+                }
+            }
+            _ => new_state,
         }
     }
 }
@@ -378,6 +417,8 @@ pub enum STCMsg {
     GameStageChanged(GameStage),
     TeamRenamed,
     UserJoined(String),
+    UserMovedToTeamA(String),
+    UserMovedToTeamB(String),
 
     /// completely left game--not coming back.
     /// For now, this can only occur in the lobby.

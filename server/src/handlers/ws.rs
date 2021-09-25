@@ -524,20 +524,140 @@ pub async fn handle_message_received(
             }
         }
         CTSMsg::MoveToTeamA => {
-            // if user on team_a, return
+            let read_connections = connections.read().await;
+            let mut write_games = games.write().await;
+
+            let game_id_clone = read_connections
+                .get(&user_id)
+                .expect(USER_ID_NOT_IN_MAP)
+                .game_id
+                .clone();
+            let game_id_clone = match game_id_clone {
+                // user is not associated with a game, do nothing
+                None => {
+                    eprintln!(
+                        "User {} is not associated with a game. Ignoring request",
+                        &user_id
+                    );
+                    return;
+                }
+                Some(game_id_clone) => game_id_clone,
+            };
+            let prev_game_state = write_games.get(&game_id_clone).expect(GAME_ID_NOT_IN_MAP);
+            match &prev_game_state.stage {
+                GameStage::Teams(teams_state) => {
+                    // if user on team A, return
+                    if teams_state
+                        .0
+                        .user_ids
+                        .iter()
+                        .find(|participant_id| **participant_id == user_id)
+                        .is_some()
+                    {
+                        eprintln!("User {} is already on team A. Ignoring request", &user_id);
+                        return;
+                    }
+                }
+                // current stage is not Teams, do nothing
+                _ => return,
+            }
+
+            eprintln!("Moving user {} to team A", &user_id);
 
             // update game state
+            let new_game_state = prev_game_state.move_to_team_a(&user_id);
+            *write_games
+                .get_mut(&game_id_clone)
+                .expect(GAME_ID_NOT_IN_MAP) = new_game_state.clone();
+            drop(write_games);
 
             // send moved teams event
+            send_ws_message_to_all_participants(
+                &game_id_clone,
+                STCMsg::UserMovedToTeamA(user_id),
+                connections,
+                games,
+                game_codes,
+            )
+            .await;
+
             // send updated game state
+            send_game_state_to_all_participants(
+                &game_id_clone,
+                &new_game_state,
+                connections,
+                games,
+                game_codes,
+            )
+            .await;
         }
         CTSMsg::MoveToTeamB => {
-            // if user on team_b, return
+            let read_connections = connections.read().await;
+            let mut write_games = games.write().await;
+
+            let game_id_clone = read_connections
+                .get(&user_id)
+                .expect(USER_ID_NOT_IN_MAP)
+                .game_id
+                .clone();
+            let game_id_clone = match game_id_clone {
+                // user is not associated with a game, do nothing
+                None => {
+                    eprintln!(
+                        "User {} is not associated with a game. Ignoring request",
+                        &user_id
+                    );
+                    return;
+                }
+                Some(game_id_clone) => game_id_clone,
+            };
+            let prev_game_state = write_games.get(&game_id_clone).expect(GAME_ID_NOT_IN_MAP);
+            match &prev_game_state.stage {
+                GameStage::Teams(teams_state) => {
+                    // if user on team B, return
+                    if teams_state
+                        .1
+                        .user_ids
+                        .iter()
+                        .find(|participant_id| **participant_id == user_id)
+                        .is_some()
+                    {
+                        eprintln!("User {} is already on team B. Ignoring request", &user_id);
+                        return;
+                    }
+                }
+                // current stage is not Teams, do nothing
+                _ => return,
+            }
+
+            eprintln!("Moving user {} to team B", &user_id);
 
             // update game state
+            let new_game_state = prev_game_state.move_to_team_b(&user_id);
+            *write_games
+                .get_mut(&game_id_clone)
+                .expect(GAME_ID_NOT_IN_MAP) = new_game_state.clone();
+            drop(write_games);
 
             // send moved teams event
+            send_ws_message_to_all_participants(
+                &game_id_clone,
+                STCMsg::UserMovedToTeamA(user_id),
+                connections,
+                games,
+                game_codes,
+            )
+            .await;
+
             // send updated game state
+            send_game_state_to_all_participants(
+                &game_id_clone,
+                &new_game_state,
+                connections,
+                games,
+                game_codes,
+            )
+            .await;
         }
         any_other_message => {
             eprint!("Unexpected message received: {:?}\n", any_other_message);

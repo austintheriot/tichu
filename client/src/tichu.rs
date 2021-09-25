@@ -9,7 +9,7 @@ use bincode;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
     validate_team_name, CTSMsg, CreateGame, GameStage, JoinGameWithGameCode, PublicGameState,
-    STCMsg, Team, NO_USER_ID,
+    PublicUser, STCMsg, Team, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -19,6 +19,12 @@ use yew::services::interval::IntervalTask;
 use yew::services::storage::{Area, StorageService};
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 use yew::services::IntervalService;
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+enum WSConnectionStatus {
+    Connected,
+    NotConnected,
+}
 
 pub struct App {
     link: ComponentLink<Self>,
@@ -30,7 +36,7 @@ pub struct App {
 
 #[derive(Serialize, Deserialize)]
 struct State {
-    ws_connection_status: String,
+    ws_connection_status: WSConnectionStatus,
     user_id: String,
     display_name: String,
     game_state: Option<PublicGameState>,
@@ -103,7 +109,7 @@ impl Component for App {
             };
 
         let state = State {
-            ws_connection_status: "Not connected".into(),
+            ws_connection_status: WSConnectionStatus::NotConnected,
             user_id,
             display_name: display_name.clone(),
             display_name_input: display_name,
@@ -135,7 +141,7 @@ impl Component for App {
             AppMsg::Noop => false,
             AppMsg::Disconnected => {
                 self.ws = None;
-                self.state.ws_connection_status = "Disconnected".into();
+                self.state.ws_connection_status = WSConnectionStatus::NotConnected;
                 true
             }
             AppMsg::ConnectToWS => {
@@ -160,7 +166,7 @@ impl Component for App {
                     .expect("Couldn't initialize websocket connection");
                     self.ws = Some(ws_task);
                     self.state.is_alive = true;
-                    self.state.ws_connection_status = "Connected".into();
+                    self.state.ws_connection_status = WSConnectionStatus::Connected;
                 }
                 true
             }
@@ -244,7 +250,10 @@ impl Component for App {
             <div>
                 // Info -----------------------------------------------------------------------------------
                 <h1> { "Info" } </h1>
-                <p>{ "Websocket Status: "}{ &self.state.ws_connection_status } </p>
+                <p>{ "Websocket Status: "}{ match &self.state.ws_connection_status {
+                    WSConnectionStatus::Connected => "Connected",
+                    WSConnectionStatus::NotConnected => "Not Connected"
+                } } </p>
                 <p> {"Stage: " }
                 { if let Some(game_state) = &self.state.game_state {
                         match game_state.stage {
@@ -315,7 +324,7 @@ impl Component for App {
                 <br />
                 <input
                     id="team-a-name-input"
-                    disabled=self.is_on_team_b()
+                    disabled=!self.is_team_stage() || self.is_on_team_b()
                     type="text"
                     value=self.state.team_a_name_input.clone()
                     onblur=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamA))
@@ -323,17 +332,17 @@ impl Component for App {
                 <br />
                 <button
                     onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeamA)})
-                    disabled=self.is_on_team_a()
+                    disabled=!self.is_team_stage() || self.is_on_team_a()
                     >{ "Move to Team A" }</button>
                 <br />
                 <button
                     onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeamB)})
-                    disabled=self.is_on_team_b()
+                    disabled=!self.is_team_stage() || self.is_on_team_b()
                     >{ "Move to Team B" }</button>
                 <br />
                 <input
                     id="team-b-name-input"
-                    disabled=self.is_on_team_a()
+                    disabled=!self.is_team_stage() || self.is_on_team_a()
                     type="text"
                     value=self.state.team_b_name_input.clone()
                     onblur=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamB))
@@ -363,12 +372,22 @@ impl App {
             }
     }
 
+    fn is_team_stage(&self) -> bool {
+        match &self.state.game_state {
+            None => false,
+            Some(game_state) => match &game_state.stage {
+                GameStage::Teams(_) => true,
+                _ => false,
+            },
+        }
+    }
+
     fn is_on_team_a(&self) -> bool {
         match &self.state.game_state {
             None => false,
             Some(game_state) => match &game_state.stage {
                 GameStage::Teams(teams) => teams
-                    .1
+                    .0
                     .user_ids
                     .iter()
                     .find(|participant_id| **participant_id == self.state.user_id)
@@ -383,7 +402,7 @@ impl App {
             None => false,
             Some(game_state) => match &game_state.stage {
                 GameStage::Teams(teams) => teams
-                    .0
+                    .1
                     .user_ids
                     .iter()
                     .find(|participant_id| **participant_id == self.state.user_id)
@@ -409,6 +428,16 @@ impl App {
         }
     }
 
+    fn get_participant_by_id(&self, user_id: &str) -> Option<&PublicUser> {
+        match &self.state.game_state {
+            None => None,
+            Some(game_state) => game_state
+                .participants
+                .iter()
+                .find(|participant| participant.user_id == user_id),
+        }
+    }
+
     fn view_team(&self, team: &Team) -> Html {
         html! {
             <ul>
@@ -416,7 +445,10 @@ impl App {
                 <li> { "Score: "} {{&team.score}} </li>
                 <li> { "Users: "} { for team.user_ids.iter().map(|id| {
                     html!{
-                        <p> {&id} </p>
+                        <p> { match &self.get_participant_by_id(id) {
+                            Some(participant) => &participant.display_name,
+                            None => ""
+                        }} </p>
                     }
                 })} </li>
             </ul>
@@ -509,7 +541,9 @@ impl App {
                 STCMsg::UserReconnected(_) => {}
                 STCMsg::UserLeft(_) => {}
                 STCMsg::OwnerReassigned(_) => {}
-                _ => warn!("Unexpected websocket message received."),
+                STCMsg::UserMovedToTeamA(_) => {}
+                STCMsg::UserMovedToTeamB(_) => {}
+                _ => warn!("Unexpected websocket message received {:#?}", data),
             },
         }
 
