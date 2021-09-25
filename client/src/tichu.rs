@@ -255,22 +255,21 @@ impl Component for App {
     fn view(&self) -> Html {
         html! {
             <div>
-                // Info -----------------------------------------------------------------------------------
                 { self.view_debug() }
                 <br />
                 <br />
                 <hr />
-                // Lobby -----------------------------------------------------------------------------------
-                { self.view_join() }
                 <br />
-                <br />
-                <hr />
-                { self.view_lobby() }
-                <br />
-                <br />
-                <hr />
-                // Teams -----------------------------------------------------------------------------------
-                { self.view_teams() }
+                { match &self.state.game_state {
+                    None => self.view_join(),
+                    Some(game_state) => {
+                        match game_state.stage {
+                            GameStage::Lobby => self.view_lobby(),
+                            GameStage::Teams(_) => self.view_teams(),
+                            _ => html!{ <> </> }
+                        }
+                    }
+                }}
             </div>
         }
     }
