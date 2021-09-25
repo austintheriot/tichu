@@ -35,8 +35,8 @@ pub async fn move_to_team(
     match &prev_game_state.stage {
         GameStage::Teams(teams_state) => {
             let team = match &team_to_move_to {
-                &TeamOption::TeamA => &teams_state.0,
-                &TeamOption::TeamB => &teams_state.1,
+                &TeamOption::TeamA => &teams_state[0],
+                &TeamOption::TeamB => &teams_state[1],
             };
             // if user is already on the team they want to move to, ignore request
             if team

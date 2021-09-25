@@ -38,8 +38,8 @@ pub async fn rename_team(
         GameStage::Teams(teams_state) => {
             // if user is not on team they want to rename, ignore
             let opposite_team = match team_to_rename {
-                TeamOption::TeamA => &teams_state.1,
-                TeamOption::TeamB => &teams_state.0,
+                TeamOption::TeamA => &teams_state[1],
+                TeamOption::TeamB => &teams_state[0],
             };
             if opposite_team
                 .user_ids

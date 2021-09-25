@@ -8,10 +8,27 @@ pub const NO_USER_ID: &str = "NO_USER_ID";
 pub const NO_GAME_UD: &str = "NO_GAME_UD";
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-enum TichuCallStatus {
+pub enum TichuCallStatus {
+    /// User has not called one way or the other yet
+    NotCalled,
+
+    /// User has called some form of Tichu
     Called,
+
+    /// User has declined to call Tichu
+    Declined,
+
+    /// User has called Tichu and has successfully achieved it
     Achieved,
+
+    /// User has called Tichu but failed to achieve it
     Failed,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct UserIdToTichuCallStatus {
+    user_id: String,
+    tichu_call_status: TichuCallStatus,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -21,7 +38,7 @@ pub enum TeamOption {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct Team {
+pub struct MutableTeam {
     pub id: String,
     pub team_name: String,
     pub user_ids: Vec<String>,
@@ -29,12 +46,31 @@ pub struct Team {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct TeamsState(pub Team, pub Team);
+pub struct ImmutableTeam {
+    pub id: String,
+    pub team_name: String,
+    pub user_ids: [String; 2],
+    pub score: i32,
+}
+
+pub type MutableTeams = [MutableTeam; 2];
+
+pub type ImmutableTeams = [ImmutableTeam; 2];
+
+/// State that only the server knows about:
+/// Contains the information about the deck, etc.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct PrivateGrandTichu {
+    small_tichus: Vec<UserIdToTichuCallStatus>,
+    grand_tichus: Vec<UserIdToTichuCallStatus>,
+    teams: ImmutableTeams,
+    deck: Vec<Card>,
+}
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum GameStage {
     Lobby,
-    Teams(TeamsState),
+    Teams(MutableTeams),
     GrandTichu,
     Trade,
     Game,
@@ -60,12 +96,8 @@ pub struct PrivateGameState {
     pub owner_id: String,
     pub stage: GameStage,
     pub participants: Vec<PrivateUser>,
-    // small_tichus: Vec<TichuCallStatus>,
-    // grand_tichus: Vec<TichuCallStatus>,
-    // teams: [Team; 2],
     // active_player: String,
     // card_wished_for: Card,
-    // deck: Vec<Card>,
     // discard: Vec<Card>,
     // in_play: Vec<Card>,
 }
@@ -118,14 +150,14 @@ impl PrivateGameState {
 
         // if 4 have joined, the new game stage should become Teams
         let new_stage = if current_participants == 3 {
-            let team_a = Team {
+            let team_a = MutableTeam {
                 id: Uuid::new_v4().to_string(),
                 score: 0,
                 team_name: "Team A".into(),
                 user_ids: vec![user_id, self.participants.get(0).unwrap().user_id.clone()],
             };
 
-            let team_b = Team {
+            let team_b = MutableTeam {
                 id: Uuid::new_v4().to_string(),
                 score: 0,
                 team_name: "Team B".into(),
@@ -135,7 +167,7 @@ impl PrivateGameState {
                 ],
             };
 
-            GameStage::Teams(TeamsState(team_a, team_b))
+            GameStage::Teams([team_a, team_b])
         } else {
             GameStage::Lobby
         };
@@ -223,8 +255,8 @@ impl PrivateGameState {
             GameStage::Teams(teams) => {
                 //if user is on the team they want to move to already, return
                 let new_team = match team_to_move_to {
-                    TeamOption::TeamA => &teams.0,
-                    TeamOption::TeamB => &teams.1,
+                    TeamOption::TeamA => &teams[0],
+                    TeamOption::TeamB => &teams[1],
                 };
                 if new_team
                     .user_ids
@@ -236,8 +268,8 @@ impl PrivateGameState {
                 } else {
                     // remove user from team they were on before
                     let prev_team = match team_to_move_to {
-                        TeamOption::TeamA => &mut teams.1,
-                        TeamOption::TeamB => &mut teams.0,
+                        TeamOption::TeamA => &mut teams[1],
+                        TeamOption::TeamB => &mut teams[0],
                     };
                     prev_team
                         .user_ids
@@ -245,8 +277,8 @@ impl PrivateGameState {
 
                     // add user to the new team
                     let new_team = match team_to_move_to {
-                        TeamOption::TeamA => &mut teams.0,
-                        TeamOption::TeamB => &mut teams.1,
+                        TeamOption::TeamA => &mut teams[0],
+                        TeamOption::TeamB => &mut teams[1],
                     };
                     new_team.user_ids.push(current_user_id.to_string());
                     new_state
@@ -268,8 +300,8 @@ impl PrivateGameState {
             GameStage::Teams(teams) => {
                 // user is on opposite team, so can't rename this team
                 let opposite_team = match team_to_rename {
-                    TeamOption::TeamA => &teams.1,
-                    TeamOption::TeamB => &teams.0,
+                    TeamOption::TeamA => &teams[1],
+                    TeamOption::TeamB => &teams[0],
                 };
                 if opposite_team
                     .user_ids
@@ -281,8 +313,8 @@ impl PrivateGameState {
                 } else {
                     // rename intended team
                     let team_to_rename = match team_to_rename {
-                        TeamOption::TeamA => &mut teams.0,
-                        TeamOption::TeamB => &mut teams.1,
+                        TeamOption::TeamA => &mut teams[0],
+                        TeamOption::TeamB => &mut teams[1],
                     };
                     team_to_rename.team_name = new_team_a_name.to_string();
                     new_state
@@ -291,6 +323,48 @@ impl PrivateGameState {
             // game stage is not teams, can't rename any team
             _ => new_state,
         }
+    }
+
+    /// Move from Teams stage to Grand Tichu stage
+    fn start_game(&self, requesting_user_id: &str) -> PrivateGameState {
+        let mut new_game_state = self.clone();
+
+        // requesting user must be the owner
+        if new_game_state.owner_id != requesting_user_id {
+            eprintln!(
+                "User {} cannot start game because the user is not the owner. Ignoring request.",
+                requesting_user_id,
+            );
+            return new_game_state;
+        }
+
+        let teams_are_ready = match &new_game_state.stage {
+            GameStage::Teams(teams_state) => {
+                if teams_state[0].user_ids.len() == 2 && teams_state[1].user_ids.len() == 2 {
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        };
+
+        if !teams_are_ready {
+            eprintln!(
+                "Teams are not ready to start game. Ignoring request to start by user {}",
+                requesting_user_id,
+            );
+            return new_game_state;
+        }
+
+        // initialize deck
+
+        // deal first 9 cards
+
+        // move into Grand Tichu stage
+        new_game_state.stage = GameStage::GrandTichu;
+
+        new_game_state
     }
 }
 

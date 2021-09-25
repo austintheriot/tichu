@@ -8,8 +8,8 @@ use anyhow::Error;
 use bincode;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
-    validate_team_name, CTSMsg, CreateGame, GameStage, JoinGameWithGameCode, PublicGameState,
-    PublicUser, STCMsg, Team, NO_USER_ID,
+    validate_team_name, CTSMsg, CreateGame, GameStage, JoinGameWithGameCode, MutableTeam,
+    PublicGameState, PublicUser, STCMsg, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -310,8 +310,7 @@ impl App {
         match &self.state.game_state {
             None => false,
             Some(game_state) => match &game_state.stage {
-                GameStage::Teams(teams) => teams
-                    .0
+                GameStage::Teams(teams) => teams[0]
                     .user_ids
                     .iter()
                     .find(|participant_id| **participant_id == self.state.user_id)
@@ -325,8 +324,7 @@ impl App {
         match &self.state.game_state {
             None => false,
             Some(game_state) => match &game_state.stage {
-                GameStage::Teams(teams) => teams
-                    .1
+                GameStage::Teams(teams) => teams[1]
                     .user_ids
                     .iter()
                     .find(|participant_id| **participant_id == self.state.user_id)
@@ -362,7 +360,7 @@ impl App {
         }
     }
 
-    fn debug_team(&self, team: &Team) -> Html {
+    fn debug_team(&self, team: &MutableTeam) -> Html {
         html! {
             <ul>
                 <li> { "Team Name: "} {{&team.team_name}} </li>
@@ -385,8 +383,8 @@ impl App {
                 GameStage::Teams(team_state) => {
                     html! {
                         <ul>
-                            <li> {self.debug_team(&team_state.0)} </li>
-                            <li> {self.debug_team(&team_state.1)} </li>
+                            <li> {self.debug_team(&team_state[0])} </li>
+                            <li> {self.debug_team(&team_state[1])} </li>
                         </ul>
                     }
                 }
@@ -504,7 +502,7 @@ impl App {
             None => {}
             Some(game_state) => match &game_state.stage {
                 GameStage::Teams(teams_state) => {
-                    if teams_state.0.user_ids.len() == 2 && teams_state.1.user_ids.len() == 2 {
+                    if teams_state[0].user_ids.len() == 2 && teams_state[1].user_ids.len() == 2 {
                         teams_are_ready = true;
                     }
                 }
@@ -628,8 +626,8 @@ impl App {
                             Some(new_game_state) => match &new_game_state.stage {
                                 GameStage::Teams(teams_state) => {
                                     self.link.send_message_batch(vec![
-                                        AppMsg::SetTeamANameInput(teams_state.0.team_name.clone()),
-                                        AppMsg::SetTeamBNameInput(teams_state.1.team_name.clone()),
+                                        AppMsg::SetTeamANameInput(teams_state[0].team_name.clone()),
+                                        AppMsg::SetTeamBNameInput(teams_state[1].team_name.clone()),
                                     ])
                                 }
                                 _ => {}
@@ -761,7 +759,7 @@ impl App {
                 if self.state.team_a_name_input.len() == 0 {
                     let existing_team_a_name = match &self.state.game_state.as_ref().unwrap().stage
                     {
-                        GameStage::Teams(teams_state) => teams_state.0.team_name.clone(),
+                        GameStage::Teams(teams_state) => teams_state[0].team_name.clone(),
                         // not in teams stage, do nothing
                         _ => return false,
                     };
@@ -778,7 +776,7 @@ impl App {
                 if self.state.team_b_name_input.len() == 0 {
                     let existing_team_b_name = match &self.state.game_state.as_ref().unwrap().stage
                     {
-                        GameStage::Teams(teams_state) => teams_state.1.team_name.clone(),
+                        GameStage::Teams(teams_state) => teams_state[1].team_name.clone(),
                         // not in teams stage, do nothing
                         _ => return false,
                     };
