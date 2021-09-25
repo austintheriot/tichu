@@ -42,8 +42,9 @@ struct State {
     game_state: Option<PublicGameState>,
     is_alive: bool,
 
-    game_code_input: String,
-    display_name_input: String,
+    join_room_game_code_input: String,
+    join_room_display_name_input: String,
+    create_room_display_name_input: String,
     team_a_name_input: String,
     team_b_name_input: String,
 }
@@ -60,8 +61,9 @@ pub enum AppMsg {
     SendWSMsg(CTSMsgInternal),
     SetUserId(String),
     SetDisplayName(String),
-    SetDisplayNameInput(String),
-    SetGameCodeInput(String),
+    SetJoinRoomDisplayNameInput(String),
+    SetCreateRoomDisplayNameInput(String),
+    SetJoinRoomGameCodeInput(String),
     SetTeamANameInput(String),
     SetTeamBNameInput(String),
 }
@@ -112,9 +114,10 @@ impl Component for App {
             ws_connection_status: WSConnectionStatus::NotConnected,
             user_id,
             display_name: display_name.clone(),
-            display_name_input: display_name,
+            join_room_display_name_input: display_name.clone(),
+            create_room_display_name_input: display_name,
             game_state: None,
-            game_code_input: "".into(),
+            join_room_game_code_input: "".into(),
             is_alive: false,
             team_a_name_input: "".into(),
             team_b_name_input: "".into(),
@@ -211,16 +214,20 @@ impl Component for App {
                 let s = clean_up_display_name(&s);
                 self.storage.store(DISPLAY_NAME_STORAGE_KEY, Json(&s));
                 self.state.display_name = s.clone();
-                self.state.display_name_input = s;
+                self.state.join_room_display_name_input = s;
                 true
             }
-            AppMsg::SetGameCodeInput(s) => {
+            AppMsg::SetJoinRoomGameCodeInput(s) => {
                 let s = clean_up_game_code(&s);
-                self.state.game_code_input = s;
+                self.state.join_room_game_code_input = s;
                 true
             }
-            AppMsg::SetDisplayNameInput(s) => {
-                self.state.display_name_input = s;
+            AppMsg::SetJoinRoomDisplayNameInput(s) => {
+                self.state.join_room_display_name_input = s;
+                true
+            }
+            AppMsg::SetCreateRoomDisplayNameInput(s) => {
+                self.state.create_room_display_name_input = s;
                 true
             }
             AppMsg::SetTeamANameInput(s) => {
@@ -249,116 +256,21 @@ impl Component for App {
         html! {
             <div>
                 // Info -----------------------------------------------------------------------------------
-                <h1> { "Info" } </h1>
-                <p> { "Display Name: " } { &self.state.display_name }</p>
-                <p> { "User ID: " } { &self.state.user_id }</p>
-                <p>{ "Websocket Status: "}{ match &self.state.ws_connection_status {
-                    WSConnectionStatus::Connected => "Connected",
-                    WSConnectionStatus::NotConnected => "Not Connected"
-                } } </p>
-                <p> {"Stage: " }
-                { if let Some(game_state) = &self.state.game_state {
-                        match game_state.stage {
-                            GameStage::Lobby => {
-                                "Lobby"
-                            },
-                            _ => "Other",
-                        }
-                    } else {
-                        "No game state"
-                }}
-                </p>
-                <p> { "Game Code: " } {if let Some(game_state) = &self.state.game_state {
-                    &game_state.game_code
-                } else {
-                    ""
-                } } </p>
-                <p> { "Participants: " } { self.view_participants() } </p>
-                <p> { "Owner: " } { self.view_owner() } </p>
-                <p> { "Teams: " } { self.view_teams() } </p>
-                <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
-                <br />
-                <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{ "Send ping to server" }</button>
-                <br />
-                <br />
-                 // Lobby -----------------------------------------------------------------------------------
-                 <h1> { "Lobby" } </h1>
-                <label for="display-name-input"> { "Display Name" } </label>
-                <br />
-                <input
-                    id="display-name-input"
-                    type="text"
-                    value=self.state.display_name_input.clone()
-                    oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
-                <br />
-                <label for="game-code-input"> { "Game Code" } </label>
-                <br />
-                <br />
-                <input
-                    id="game-code-input"
-                    type="text"
-                    value=self.state.game_code_input.clone()
-                    oninput=self.link.callback(|e: InputData| AppMsg::SetGameCodeInput(e.value))/>
-                <br />
-                <br />
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)})
-                    disabled=!self.can_create_game()
-                    >{ "Create game" }</button>
-                <br />
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)})
-                    disabled=!self.can_join_game()
-                    >{ "Join game" }</button>
-                <br />
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::LeaveGame)})
-                    disabled=!self.can_leave_game()
-                    >{ "Leave game" }</button>
+                { self.view_debug() }
                 <br />
                 <br />
                 <hr />
+                // Lobby -----------------------------------------------------------------------------------
+                { self.view_join() }
                 <br />
                 <br />
+                <hr />
+                { self.view_lobby() }
+                <br />
+                <br />
+                <hr />
                 // Teams -----------------------------------------------------------------------------------
-                <h1> { "Teams" } </h1>
-                <label for="team-a-name-input"> { "Team A Name" } </label>
-                <br />
-                <form onsubmit=self.link.callback(|e: FocusEvent | {
-                    e.prevent_default();
-                    AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamA)
-                })>
-                    <label for="team-a-name-input">{ "Team Name" }</label>
-                    <input
-                        id="team-a-name-input"
-                        disabled=!self.is_team_stage() || self.is_on_team_b()
-                        type="text"
-                        value=self.state.team_a_name_input.clone()
-                        oninput=self.link.callback(|e: InputData| AppMsg::SetTeamANameInput(e.value))/>
-               </form>
-                <br />
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeamA)})
-                    disabled=!self.is_team_stage() || self.is_on_team_a()
-                    >{ "Move to Team A" }</button>
-                <br />
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeamB)})
-                    disabled=!self.is_team_stage() || self.is_on_team_b()
-                    >{ "Move to Team B" }</button>
-                <br />
-                <form onsubmit=self.link.callback(|e: FocusEvent | {
-                    e.prevent_default();
-                    AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamB)
-                })>
-                    <label for="team-b-name-input">{ "Team Name" }</label>
-                    <input
-                        id="team-b-name-input"
-                        disabled=!self.is_team_stage() || self.is_on_team_a()
-                        type="text"
-                        value=self.state.team_b_name_input.clone()
-                        oninput=self.link.callback(|e: InputData| AppMsg::SetTeamBNameInput(e.value))/>
-               </form>
+                { self.view_teams() }
             </div>
         }
     }
@@ -366,13 +278,14 @@ impl Component for App {
 
 impl App {
     fn can_create_game(&self) -> bool {
-        self.ws.is_some() && validate_display_name(&self.state.display_name_input).is_none()
+        self.ws.is_some()
+            && validate_display_name(&self.state.create_room_display_name_input).is_none()
     }
 
     fn can_join_game(&self) -> bool {
         self.ws.is_some()
-            && validate_display_name(&self.state.display_name_input).is_none()
-            && validate_game_code(&self.state.game_code_input).is_none()
+            && validate_display_name(&self.state.join_room_display_name_input).is_none()
+            && validate_game_code(&self.state.join_room_game_code_input).is_none()
     }
 
     fn can_leave_game(&self) -> bool {
@@ -450,7 +363,7 @@ impl App {
         }
     }
 
-    fn view_team(&self, team: &Team) -> Html {
+    fn debug_team(&self, team: &Team) -> Html {
         html! {
             <ul>
                 <li> { "Team Name: "} {{&team.team_name}} </li>
@@ -467,14 +380,14 @@ impl App {
         }
     }
 
-    fn view_teams(&self) -> Html {
+    fn debug_teams(&self) -> Html {
         if let Some(game_state) = &self.state.game_state {
             match &game_state.stage {
                 GameStage::Teams(team_state) => {
                     html! {
                         <ul>
-                            <li> {self.view_team(&team_state.0)} </li>
-                            <li> {self.view_team(&team_state.1)} </li>
+                            <li> {self.debug_team(&team_state.0)} </li>
+                            <li> {self.debug_team(&team_state.1)} </li>
                         </ul>
                     }
                 }
@@ -482,6 +395,144 @@ impl App {
             }
         } else {
             html! { <></> }
+        }
+    }
+
+    fn view_debug(&self) -> Html {
+        html! {
+            <>
+            <h1> { "Debug Info:" } </h1>
+                <p> { "Display Name: " } { &self.state.display_name }</p>
+                <p> { "User ID: " } { &self.state.user_id }</p>
+                <p>{ "Websocket Status: "}{ match &self.state.ws_connection_status {
+                    WSConnectionStatus::Connected => "Connected",
+                    WSConnectionStatus::NotConnected => "Not Connected"
+                } } </p>
+                <p> {"Stage: " }
+                { if let Some(game_state) = &self.state.game_state {
+                        match game_state.stage {
+                            GameStage::Lobby => {
+                                "Lobby"
+                            },
+                            _ => "Other",
+                        }
+                    } else {
+                        "No game state"
+                }}
+                </p>
+                <p> { "Game Code: " } {
+                    if let Some(game_state) = &self.state.game_state {
+                        &game_state.game_code
+                    } else {
+                        ""
+                    }}
+                </p>
+                <p> { "Participants: " } { self.view_participants() } </p>
+                <p> { "Owner: " } { self.view_owner() } </p>
+                <p> { "Teams: " } { self.debug_teams() } </p>
+                <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
+                <br />
+                <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{ "Send ping to server" }</button>
+            </>
+        }
+    }
+
+    fn view_join(&self) -> Html {
+        html! {
+            <>
+            <h1> { "Tichu" } </h1>
+                <label for="join-room-display-name-input"> { "Display Name" } </label>
+                <br />
+                <input
+                    id="join-room-display-name-input"
+                    type="text"
+                    value=self.state.join_room_display_name_input.clone()
+                    oninput=self.link.callback(|e: InputData| AppMsg::SetJoinRoomDisplayNameInput(e.value))/>
+                <br />
+                <label for="join-room-game-code-input"> { "Game Code" } </label>
+                <br />
+                <input
+                    id="join-room-game-code-input"
+                    type="text"
+                    value=self.state.join_room_game_code_input.clone()
+                    oninput=self.link.callback(|e: InputData| AppMsg::SetJoinRoomGameCodeInput(e.value))/>
+                <br />
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)})
+                    disabled=!self.can_join_game()
+                    >{ "Join game" }</button>
+                <br />
+                <br />
+                <label for="join-room-display-name-input"> { "Display Name" } </label>
+                <br />
+                <input
+                    id="create-room-display-name-input"
+                    type="text"
+                    value=self.state.create_room_display_name_input.clone()
+                    oninput=self.link.callback(|e: InputData| AppMsg::SetCreateRoomDisplayNameInput(e.value))/>
+                <br />
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)})
+                    disabled=!self.can_create_game()
+                    >{ "Create game" }</button>
+            </>
+        }
+    }
+
+    fn view_lobby(&self) -> Html {
+        html! {
+            <>
+            <h1> { "Lobby" } </h1>
+                <button
+                onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::LeaveGame)})
+                disabled=!self.can_leave_game()
+                >{ "Leave game" }</button>
+            </>
+        }
+    }
+
+    fn view_teams(&self) -> Html {
+        html! {
+            <>
+            <h1> { "Teams" } </h1>
+                <label for="team-a-name-input"> { "Team A Name" } </label>
+                <br />
+                <form onsubmit=self.link.callback(|e: FocusEvent | {
+                    e.prevent_default();
+                    AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamA)
+                })>
+                    <label for="team-a-name-input">{ "Team Name" }</label>
+                    <input
+                        id="team-a-name-input"
+                        disabled=!self.is_team_stage() || self.is_on_team_b()
+                        type="text"
+                        value=self.state.team_a_name_input.clone()
+                        oninput=self.link.callback(|e: InputData| AppMsg::SetTeamANameInput(e.value))/>
+               </form>
+                <br />
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeamA)})
+                    disabled=!self.is_team_stage() || self.is_on_team_a()
+                    >{ "Move to Team A" }</button>
+                <br />
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeamB)})
+                    disabled=!self.is_team_stage() || self.is_on_team_b()
+                    >{ "Move to Team B" }</button>
+                <br />
+                <form onsubmit=self.link.callback(|e: FocusEvent | {
+                    e.prevent_default();
+                    AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamB)
+                })>
+                    <label for="team-b-name-input">{ "Team Name" }</label>
+                    <input
+                        id="team-b-name-input"
+                        disabled=!self.is_team_stage() || self.is_on_team_a()
+                        type="text"
+                        value=self.state.team_b_name_input.clone()
+                        oninput=self.link.callback(|e: InputData| AppMsg::SetTeamBNameInput(e.value))/>
+               </form>
+            </>
         }
     }
 
@@ -551,6 +602,17 @@ impl App {
                             None => {}
                         }
                     }
+
+                    // save display name input to state/localStorage
+                    match &new_game_state {
+                        None => {}
+                        Some(new_game_state) => {
+                            self.link.send_message(AppMsg::SetDisplayName(
+                                new_game_state.current_user.display_name.clone(),
+                            ));
+                        }
+                    }
+
                     self.state.game_state = new_game_state;
                     should_rerender = true;
                 }
@@ -624,15 +686,11 @@ impl App {
                     return false;
                 }
 
-                // save display name input to state/localStorage
-                self.link.send_message(AppMsg::SetDisplayName(
-                    self.state.display_name_input.clone(),
-                ));
-
                 let create_game = CreateGame {
                     user_id: self.state.user_id.clone(),
-                    display_name: self.state.display_name_input.clone(),
+                    display_name: self.state.create_room_display_name_input.clone(),
                 };
+
                 let msg = CTSMsg::CreateGame(create_game);
                 self._send_ws_message(&msg);
             }
@@ -641,16 +699,12 @@ impl App {
                     return false;
                 }
 
-                // save display name input to state/localStorage
-                self.link.send_message(AppMsg::SetDisplayName(
-                    self.state.display_name_input.clone(),
-                ));
-
                 let join_game_with_game_code = JoinGameWithGameCode {
-                    game_code: self.state.game_code_input.clone().to_uppercase(),
-                    display_name: self.state.display_name_input.clone(),
+                    game_code: self.state.join_room_game_code_input.clone().to_uppercase(),
+                    display_name: self.state.join_room_display_name_input.clone(),
                     user_id: self.state.user_id.clone(),
                 };
+
                 let msg = CTSMsg::JoinGameWithGameCode(join_game_with_game_code);
                 self._send_ws_message(&msg);
             }
