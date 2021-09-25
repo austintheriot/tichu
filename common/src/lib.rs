@@ -208,13 +208,20 @@ impl PrivateGameState {
         public_game_state
     }
 
-    pub fn move_to_team_a(&self, current_user_id: &str) -> PrivateGameState {
+    pub fn move_to_team(
+        &self,
+        team_to_move_to: &TeamOption,
+        current_user_id: &str,
+    ) -> PrivateGameState {
         let mut new_state = self.clone();
         match &mut new_state.stage {
             GameStage::Teams(teams) => {
-                //if user is on team A already, return
-                if teams
-                    .0
+                //if user is on the team they want to move to already, return
+                let new_team = match team_to_move_to {
+                    TeamOption::TeamA => &teams.0,
+                    TeamOption::TeamB => &teams.1,
+                };
+                if new_team
                     .user_ids
                     .iter()
                     .find(|user_id| **user_id == current_user_id)
@@ -222,14 +229,21 @@ impl PrivateGameState {
                 {
                     return new_state;
                 } else {
-                    // remove user from team b
-                    teams
-                        .1
+                    // remove user from team they were on before
+                    let prev_team = match team_to_move_to {
+                        TeamOption::TeamA => &mut teams.1,
+                        TeamOption::TeamB => &mut teams.0,
+                    };
+                    prev_team
                         .user_ids
                         .retain(|user_id| user_id != current_user_id);
 
-                    // add user to team a
-                    teams.0.user_ids.push(current_user_id.to_string());
+                    // add user to the new team
+                    let new_team = match team_to_move_to {
+                        TeamOption::TeamA => &mut teams.0,
+                        TeamOption::TeamB => &mut teams.1,
+                    };
+                    new_team.user_ids.push(current_user_id.to_string());
                     new_state
                 }
             }
@@ -238,13 +252,21 @@ impl PrivateGameState {
         }
     }
 
-    pub fn move_to_team_b(&self, current_user_id: &str) -> PrivateGameState {
+    pub fn rename_team(
+        &self,
+        team_to_rename: &TeamOption,
+        current_user_id: &str,
+        new_team_a_name: &str,
+    ) -> PrivateGameState {
         let mut new_state = self.clone();
         match &mut new_state.stage {
             GameStage::Teams(teams) => {
-                //if user is on team B already, return
-                if teams
-                    .1
+                // user is on opposite team, so can't rename this team
+                let opposite_team = match team_to_rename {
+                    TeamOption::TeamA => &teams.1,
+                    TeamOption::TeamB => &teams.0,
+                };
+                if opposite_team
                     .user_ids
                     .iter()
                     .find(|user_id| **user_id == current_user_id)
@@ -252,66 +274,16 @@ impl PrivateGameState {
                 {
                     return new_state;
                 } else {
-                    // remove user from team a
-                    teams
-                        .0
-                        .user_ids
-                        .retain(|user_id| user_id != current_user_id);
-
-                    // add user to team b
-                    teams.1.user_ids.push(current_user_id.to_string());
+                    // rename intended team
+                    let team_to_rename = match team_to_rename {
+                        TeamOption::TeamA => &mut teams.0,
+                        TeamOption::TeamB => &mut teams.1,
+                    };
+                    team_to_rename.team_name = new_team_a_name.to_string();
                     new_state
                 }
             }
-            // game stage is not teams, can't move teams
-            _ => new_state,
-        }
-    }
-
-    pub fn rename_team_a(&self, current_user_id: &str, new_team_a_name: &str) -> PrivateGameState {
-        let mut new_state = self.clone();
-        match &mut new_state.stage {
-            GameStage::Teams(teams) => {
-                // user is on team B so can't edit team A's name
-                if teams
-                    .1
-                    .user_ids
-                    .iter()
-                    .find(|user_id| **user_id == current_user_id)
-                    .is_some()
-                {
-                    return new_state;
-                } else {
-                    // rename team a
-                    teams.0.team_name = new_team_a_name.to_string();
-                    new_state
-                }
-            }
-            // game stage is not teams, can't rename team A
-            _ => new_state,
-        }
-    }
-
-    pub fn rename_team_b(&self, current_user_id: &str, new_team_b_name: &str) -> PrivateGameState {
-        let mut new_state = self.clone();
-        match &mut new_state.stage {
-            GameStage::Teams(teams) => {
-                // user is on team A so can't edit team B's name
-                if teams
-                    .0
-                    .user_ids
-                    .iter()
-                    .find(|user_id| **user_id == current_user_id)
-                    .is_some()
-                {
-                    return new_state;
-                } else {
-                    // rename team b
-                    teams.1.team_name = new_team_b_name.to_string();
-                    new_state
-                }
-            }
-            // game stage is not teams, can't rename team B
+            // game stage is not teams, can't rename any team
             _ => new_state,
         }
     }

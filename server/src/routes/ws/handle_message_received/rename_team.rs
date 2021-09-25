@@ -71,10 +71,7 @@ pub async fn rename_team(
     );
 
     // update game state
-    let new_game_state = match team_to_rename {
-        TeamOption::TeamA => prev_game_state.rename_team_a(&user_id, &new_team_name),
-        TeamOption::TeamB => prev_game_state.rename_team_b(&user_id, &new_team_name),
-    };
+    let new_game_state = prev_game_state.rename_team(team_to_rename, &user_id, &new_team_name);
     *write_games
         .get_mut(&game_id_clone)
         .expect(GAME_ID_NOT_IN_MAP) = new_game_state.clone();
