@@ -324,13 +324,18 @@ impl Component for App {
                 <h1> { "Teams" } </h1>
                 <label for="team-a-name-input"> { "Team A Name" } </label>
                 <br />
-                <input
-                    id="team-a-name-input"
-                    disabled=!self.is_team_stage() || self.is_on_team_b()
-                    type="text"
-                    value=self.state.team_a_name_input.clone()
-                    onblur=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamA))
-                    oninput=self.link.callback(|e: InputData| AppMsg::SetTeamANameInput(e.value))/>
+                <form onsubmit=self.link.callback(|e: FocusEvent | {
+                    e.prevent_default();
+                    AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamA)
+                })>
+                    <label for="team-a-name-input">{ "Team Name" }</label>
+                    <input
+                        id="team-a-name-input"
+                        disabled=!self.is_team_stage() || self.is_on_team_b()
+                        type="text"
+                        value=self.state.team_a_name_input.clone()
+                        oninput=self.link.callback(|e: InputData| AppMsg::SetTeamANameInput(e.value))/>
+               </form>
                 <br />
                 <button
                     onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeamA)})
@@ -342,13 +347,18 @@ impl Component for App {
                     disabled=!self.is_team_stage() || self.is_on_team_b()
                     >{ "Move to Team B" }</button>
                 <br />
-                <input
-                    id="team-b-name-input"
-                    disabled=!self.is_team_stage() || self.is_on_team_a()
-                    type="text"
-                    value=self.state.team_b_name_input.clone()
-                    onblur=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamB))
-                    oninput=self.link.callback(|e: InputData| AppMsg::SetTeamBNameInput(e.value))/>
+                <form onsubmit=self.link.callback(|e: FocusEvent | {
+                    e.prevent_default();
+                    AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamB)
+                })>
+                    <label for="team-b-name-input">{ "Team Name" }</label>
+                    <input
+                        id="team-b-name-input"
+                        disabled=!self.is_team_stage() || self.is_on_team_a()
+                        type="text"
+                        value=self.state.team_b_name_input.clone()
+                        oninput=self.link.callback(|e: InputData| AppMsg::SetTeamBNameInput(e.value))/>
+               </form>
             </div>
         }
     }
