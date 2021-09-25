@@ -490,6 +490,30 @@ impl App {
         }
     }
 
+    fn is_current_user_owner(&self) -> bool {
+        match &self.state.game_state {
+            None => false,
+            Some(game_state) => game_state.owner_id == self.state.user_id,
+        }
+    }
+
+    fn can_start_game(&self) -> bool {
+        let current_user_is_owner = self.is_current_user_owner();
+        let mut teams_are_ready = false;
+        match &self.state.game_state {
+            None => {}
+            Some(game_state) => match &game_state.stage {
+                GameStage::Teams(teams_state) => {
+                    if teams_state.0.user_ids.len() == 2 && teams_state.1.user_ids.len() == 2 {
+                        teams_are_ready = true;
+                    }
+                }
+                _ => {}
+            },
+        }
+        current_user_is_owner && teams_are_ready
+    }
+
     fn view_teams(&self) -> Html {
         html! {
             <>
@@ -531,6 +555,18 @@ impl App {
                         value=self.state.team_b_name_input.clone()
                         oninput=self.link.callback(|e: InputData| AppMsg::SetTeamBNameInput(e.value))/>
                </form>
+               {if self.is_current_user_owner() {
+                  html!{
+                    <button
+                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::StartGame)})
+                        disabled=!self.can_start_game()
+                    > { "Start" } </button>
+                  }
+               } else {
+                   html!{
+                       <> </>
+                   }
+               }}
             </>
         }
     }
@@ -753,6 +789,13 @@ impl App {
                     return false;
                 }
                 self._send_ws_message(&CTSMsg::RenameTeamB(self.state.team_b_name_input.clone()));
+            }
+            CTSMsgInternal::StartGame => {
+                if !self.can_start_game() {
+                    warn!("State is not ready to start game. Ignoring request to send websocket message.");
+                    return false;
+                }
+                self._send_ws_message(&CTSMsg::StartGame);
             }
             _ => {
                 warn!("Tried to send unexpected message type {:?}", &msg_type);
