@@ -39,7 +39,8 @@ pub async fn handle_ws_upgrade(
     tokio::task::spawn(async move {
         while let Some(message) = rx.next().await {
             // user didn't respond to ping: close connection
-            if message == Message::text(CLOSE_WEBSOCKET) {
+            // for now, the only text-type message is the CLOSE message
+            if message.is_text() {
                 user_ws_tx
                     .close()
                     .await
