@@ -685,7 +685,14 @@ pub enum CTSMsg {
     LeaveGame,
     MoveToTeam(TeamOption),
     RenameTeam(RenameTeam),
+
+    /// Move from Teams stage to Grand Tichu stage
     StartGrandTichu,
+
+    CallGrandTichu,
+    DeclineGrandTichu,
+    CallSmallTichu,
+
     SubmitTrade(SubmitTrade),
     PlayCards(PlayCard),
     GiveDragon(GiveDragon),

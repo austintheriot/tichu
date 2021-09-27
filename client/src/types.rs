@@ -17,6 +17,9 @@ pub enum CTSMsgInternal {
     SubmitTrade,
     PlayCards,
     GiveDragon,
+    CallGrandTichu,
+    DeclineGrandTichu,
+    CallSmallTichu,
 
     Ping,
     Pong,

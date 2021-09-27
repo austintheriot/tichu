@@ -289,6 +289,16 @@ impl App {
             }
     }
 
+    fn can_call_or_decline_grand_tichu(&self) -> bool {
+        match &self.state.game_state {
+            Some(game_state) => match &game_state.stage {
+                GameStage::GrandTichu(_) => true,
+                _ => false,
+            },
+            None => false,
+        }
+    }
+
     fn is_team_stage(&self) -> bool {
         match &self.state.game_state {
             None => false,
@@ -620,9 +630,17 @@ impl App {
         html! {
             <>
                 <h1> { "Grand Tichu" } </h1>
-                <button> { "Call Grand Tichu" } </button>
-                <button> { "Decline Grand Tichu" } </button>
-                <button> { "Call Small Tichu" } </button>
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu)})
+                    disabled=!self.can_call_or_decline_grand_tichu()
+                > { "Call Grand Tichu" } </button>
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::DeclineGrandTichu)})
+                    disabled=!self.can_call_or_decline_grand_tichu()
+                > { "Decline Grand Tichu" } </button>
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallSmallTichu)})
+                > { "Call Small Tichu" } </button>
                 <p> { "Hand:" } </p>
                 { self.view_hand() }
             </>
@@ -720,11 +738,11 @@ impl App {
     /// Sends a message to the server via websocket
     /// Returns whether the component should rerender
     fn send_ws_message(&mut self, msg_type: CTSMsgInternal) -> bool {
-        let should_rerender = false;
         info!("Sending websocket message: {:#?}", msg_type);
         match msg_type {
             CTSMsgInternal::Test => {
-                self._send_ws_message(&CTSMsg::Test(String::from("Hello, server!")))
+                self._send_ws_message(&CTSMsg::Test(String::from("Hello, server!")));
+                false
             }
             CTSMsgInternal::Ping => {
                 let mut should_reconnect = false;
@@ -745,8 +763,12 @@ impl App {
                     self.state.is_alive = false;
                     self._send_ws_message(&CTSMsg::Ping);
                 }
+                false
             }
-            CTSMsgInternal::Pong => self._send_ws_message(&CTSMsg::Pong),
+            CTSMsgInternal::Pong => {
+                self._send_ws_message(&CTSMsg::Pong);
+                false
+            }
             CTSMsgInternal::CreateGame => {
                 if !self.can_create_game() {
                     return false;
@@ -759,6 +781,7 @@ impl App {
 
                 let msg = CTSMsg::CreateGame(create_game);
                 self._send_ws_message(&msg);
+                false
             }
             CTSMsgInternal::JoinGameWithGameCode => {
                 if !self.can_join_game() {
@@ -773,6 +796,7 @@ impl App {
 
                 let msg = CTSMsg::JoinGameWithGameCode(join_game_with_game_code);
                 self._send_ws_message(&msg);
+                false
             }
             CTSMsgInternal::LeaveGame => {
                 if !self.can_leave_game() {
@@ -780,9 +804,11 @@ impl App {
                 }
 
                 self._send_ws_message(&CTSMsg::LeaveGame);
+                false
             }
             CTSMsgInternal::MoveToTeam(team_option) => {
                 self._send_ws_message(&CTSMsg::MoveToTeam(team_option));
+                false
             }
             CTSMsgInternal::RenameTeam(team_option) => {
                 let team_name_input_clone = match &team_option {
@@ -815,6 +841,8 @@ impl App {
                     team_name: team_name_input_clone,
                     team_option,
                 }));
+
+                false
             }
             CTSMsgInternal::StartGrandTichu => {
                 if !self.can_start_game() {
@@ -822,12 +850,32 @@ impl App {
                     return false;
                 }
                 self._send_ws_message(&CTSMsg::StartGrandTichu);
+                false
+            }
+            CTSMsgInternal::CallGrandTichu => {
+                if !self.can_call_or_decline_grand_tichu() {
+                    return false;
+                }
+
+                self._send_ws_message(&CTSMsg::CallGrandTichu);
+                true
+            }
+            CTSMsgInternal::DeclineGrandTichu => {
+                if !self.can_call_or_decline_grand_tichu() {
+                    return false;
+                }
+
+                self._send_ws_message(&CTSMsg::DeclineGrandTichu);
+                true
+            }
+            CTSMsgInternal::CallSmallTichu => {
+                unimplemented!();
             }
             _ => {
                 warn!("Tried to send unexpected message type {:?}", &msg_type);
+                false
             }
         }
-        should_rerender
     }
 
     /// Helper function to actually send the websocket message
