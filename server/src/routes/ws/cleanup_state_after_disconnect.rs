@@ -1,5 +1,4 @@
-use super::send_game_state_to_all_participants::send_game_state_to_all_participants;
-use super::send_ws_message_to_all_participants::send_ws_message_to_all_participants;
+use super::send_ws_message;
 use common::{GameStage, STCMsg};
 
 use crate::{
@@ -72,7 +71,7 @@ pub async fn cleanup_state_after_disconnect(
                     drop(write_game_codes);
 
                     // notify remaining participants that user left
-                    send_ws_message_to_all_participants(
+                    send_ws_message::to_group(
                         game_id,
                         STCMsg::UserLeft(user_id.to_string()),
                         connections,
@@ -83,7 +82,7 @@ pub async fn cleanup_state_after_disconnect(
 
                     // notify remaining participants that new owner was chosen
                     if owner_reassigned {
-                        send_ws_message_to_all_participants(
+                        send_ws_message::to_group(
                             game_id,
                             STCMsg::OwnerReassigned(new_game_state.owner_id.clone()),
                             connections,
@@ -94,7 +93,7 @@ pub async fn cleanup_state_after_disconnect(
                     }
 
                     // send updated game state
-                    send_game_state_to_all_participants(
+                    send_ws_message::game_state_to_group(
                         game_id,
                         &new_game_state,
                         connections,
@@ -115,7 +114,7 @@ pub async fn cleanup_state_after_disconnect(
                     drop(write_game_codes);
 
                     // notify remaining participants that user was disconnected
-                    send_ws_message_to_all_participants(
+                    send_ws_message::to_group(
                         game_id,
                         STCMsg::UserDisconnected(user_id.to_string()),
                         connections,
@@ -125,7 +124,7 @@ pub async fn cleanup_state_after_disconnect(
                     .await;
 
                     // send old game state (no change occurred)
-                    send_game_state_to_all_participants(
+                    send_ws_message::game_state_to_group(
                         game_id,
                         &game_state_clone,
                         connections,

@@ -18,9 +18,9 @@ use rename_team::rename_team;
 use start_grand_tichu::start_grand_tichu;
 use test::test;
 
-use super::send_ws_message_to_user::send_ws_message_to_user;
+use super::send_ws_message;
 use crate::{Connections, GameCodes, Games};
-use common::{CTSMsg, RenameTeam, STCMsg, TeamOption};
+use common::{CTSMsg, RenameTeam, STCMsg};
 use warp::ws::Message;
 
 pub async fn handle_message_received(
@@ -87,7 +87,7 @@ pub async fn handle_message_received(
             eprintln!("Unexpected message received: {:?}", any_other_message);
 
             // let user know something weird was received
-            send_ws_message_to_user(
+            send_ws_message::to_user(
                 &user_id,
                 STCMsg::UnexpectedMessageReceived(format!("{:#?}", &any_other_message)),
                 &connections,

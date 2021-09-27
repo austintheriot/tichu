@@ -1,14 +1,9 @@
 mod cleanup_state_after_disconnect;
 mod handle_message_received;
-mod send_game_state_to_all_participants;
-mod send_ws_message_to_all_participants;
-mod send_ws_message_to_user;
+pub mod send_ws_message;
 
 pub use cleanup_state_after_disconnect::cleanup_state_after_disconnect;
 pub use handle_message_received::handle_message_received;
-pub use send_game_state_to_all_participants::send_game_state_to_all_participants;
-pub use send_ws_message_to_all_participants::send_ws_message_to_all_participants;
-pub use send_ws_message_to_user::send_ws_message_to_user;
 
 use crate::{
     errors::{GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
@@ -108,7 +103,7 @@ pub async fn handle_ws_upgrade(
 
     // must be saved under new user_id before sending message
     if new_user_id_assigned {
-        send_ws_message_to_user(
+        send_ws_message::to_user(
             &user_id,
             STCMsg::UserIdAssigned(user_id.clone()),
             &connections,
@@ -121,7 +116,7 @@ pub async fn handle_ws_upgrade(
         match game_id {
             Some(game_id) => {
                 // notify other participants (if any) that the user reconnected
-                send_ws_message_to_all_participants(
+                send_ws_message::to_group(
                     &game_id,
                     STCMsg::UserReconnected(user_id.to_string()),
                     &connections,
@@ -134,7 +129,7 @@ pub async fn handle_ws_upgrade(
                 let read_games = games.read().await;
                 let game_state = read_games.get(&game_id).expect(GAME_ID_NOT_IN_MAP).clone();
                 drop(read_games);
-                send_ws_message_to_user(
+                send_ws_message::to_user(
                     &user_id,
                     STCMsg::GameState(game_state.to_public_game_state(&user_id)),
                     &connections,
@@ -145,7 +140,7 @@ pub async fn handle_ws_upgrade(
         }
     } else {
         // send them a None state update to clear any lingering local state
-        send_ws_message_to_user(&user_id, STCMsg::GameState(None), &connections).await;
+        send_ws_message::to_user(&user_id, STCMsg::GameState(None), &connections).await;
     }
 
     // Listen for incoming messages

@@ -1,9 +1,7 @@
 use common::{validate_display_name, validate_game_code, GameStage, JoinGameWithGameCode, STCMsg};
 
 use crate::{
-    errors::USER_ID_NOT_IN_MAP,
-    routes::ws::{send_game_state_to_all_participants, send_ws_message_to_all_participants},
-    Connections, GameCodes, Games,
+    errors::USER_ID_NOT_IN_MAP, routes::ws::send_ws_message, Connections, GameCodes, Games,
 };
 
 pub async fn join_game_with_game_code(
@@ -86,7 +84,7 @@ pub async fn join_game_with_game_code(
 
     // Send updates to user
     // User Joined event
-    send_ws_message_to_all_participants(
+    send_ws_message::to_group(
         &cloned_gamed_id,
         STCMsg::UserJoined(user_id.clone()),
         &connections,
@@ -97,7 +95,7 @@ pub async fn join_game_with_game_code(
 
     // Game Stage Changed event
     if let GameStage::Teams(_) = new_game_state.stage {
-        send_ws_message_to_all_participants(
+        send_ws_message::to_group(
             &cloned_gamed_id,
             STCMsg::GameStageChanged(new_game_state.stage.clone()),
             &connections,
@@ -108,7 +106,7 @@ pub async fn join_game_with_game_code(
     }
 
     // Game State
-    send_game_state_to_all_participants(
+    send_ws_message::game_state_to_group(
         &cloned_gamed_id,
         &new_game_state,
         &connections,

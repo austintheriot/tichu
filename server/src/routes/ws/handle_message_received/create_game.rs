@@ -1,4 +1,4 @@
-use super::send_ws_message_to_user;
+use super::send_ws_message;
 use crate::{errors::USER_ID_NOT_IN_MAP, Connections, GameCodes, Games};
 use common::{validate_display_name, CreateGame, GameCreated, PrivateGameState, STCMsg};
 
@@ -61,10 +61,10 @@ pub async fn create_game(
     // --no need to iterate through participants, since it's a new game
     eprintln!("New game successfully created! {:#?}", &game_state);
     // Game Created event
-    send_ws_message_to_user(&user_id, STCMsg::GameCreated(game_created), &connections).await;
+    send_ws_message::to_user(&user_id, STCMsg::GameCreated(game_created), &connections).await;
 
     // Updated Game State
-    send_ws_message_to_user(
+    send_ws_message::to_user(
         &user_id,
         STCMsg::GameState(game_state.to_public_game_state(&user_id)),
         &connections,

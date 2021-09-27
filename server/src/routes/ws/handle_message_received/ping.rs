@@ -1,7 +1,7 @@
 use common::STCMsg;
 
-use crate::{routes::ws::send_ws_message_to_user, Connections};
+use crate::{routes::ws::send_ws_message, Connections};
 
 pub async fn ping(user_id: &str, connections: &Connections) {
-    send_ws_message_to_user(&user_id, STCMsg::Pong, &connections).await;
+    send_ws_message::to_user(&user_id, STCMsg::Pong, &connections).await;
 }

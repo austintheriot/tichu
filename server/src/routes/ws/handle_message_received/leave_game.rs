@@ -1,9 +1,8 @@
-use crate::{routes::ws::send_game_state_to_all_participants, ws::send_ws_message_to_user};
+use crate::routes::ws::send_ws_message;
 use common::{GameStage, STCMsg};
 
 use crate::{
     errors::{GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
-    routes::ws::send_ws_message_to_all_participants,
     Connections, GameCodes, Games,
 };
 
@@ -87,7 +86,7 @@ pub async fn leave_game(
             drop(write_game_codes);
 
             // notify remaining participants that user left
-            send_ws_message_to_all_participants(
+            send_ws_message::to_group(
                 &game_id_clone,
                 STCMsg::UserLeft(user_id.to_string()),
                 connections,
@@ -98,7 +97,7 @@ pub async fn leave_game(
 
             // notify remaining participants that new owner was chosen
             if owner_reassigned {
-                send_ws_message_to_all_participants(
+                send_ws_message::to_group(
                     &game_id_clone,
                     STCMsg::OwnerReassigned(new_game_state.owner_id.clone()),
                     connections,
@@ -109,7 +108,7 @@ pub async fn leave_game(
             }
 
             // send updated game state to other participants
-            send_game_state_to_all_participants(
+            send_ws_message::game_state_to_group(
                 &game_id_clone,
                 &new_game_state,
                 connections,
@@ -119,7 +118,7 @@ pub async fn leave_game(
             .await;
 
             // send a None game state to current user
-            send_ws_message_to_user(&user_id, STCMsg::GameState(None), connections).await;
+            send_ws_message::to_user(&user_id, STCMsg::GameState(None), connections).await;
         } else {
             // user not in lobby: can't leave
             eprintln!(
@@ -149,6 +148,6 @@ pub async fn leave_game(
         drop(write_game_codes);
 
         // send a None game state to current user
-        send_ws_message_to_user(&user_id, STCMsg::GameState(None), connections).await;
+        send_ws_message::to_user(&user_id, STCMsg::GameState(None), connections).await;
     }
 }

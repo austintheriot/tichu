@@ -4,11 +4,11 @@ extern crate common;
 mod errors;
 mod routes;
 
-use common::{Deck, PrivateGameState, STCMsg};
+use common::{PrivateGameState, STCMsg};
 use futures::join;
 use routes::{
     index,
-    ws::{self, send_ws_message_to_user},
+    ws::{self, send_ws_message},
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -71,8 +71,12 @@ async fn main() {
                     // send ping to user
                     let mut is_alive = connection_data.is_alive.write().await;
                     *is_alive = false;
-                    send_ws_message_to_user(user_id, STCMsg::Ping, &Arc::clone(&connections_clone))
-                        .await;
+                    send_ws_message::to_user(
+                        user_id,
+                        STCMsg::Ping,
+                        &Arc::clone(&connections_clone),
+                    )
+                    .await;
                 }
             }
         }

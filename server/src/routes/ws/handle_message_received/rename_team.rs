@@ -2,7 +2,7 @@ use common::{GameStage, STCMsg, TeamOption};
 
 use crate::{
     errors::{GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
-    routes::ws::{send_game_state_to_all_participants, send_ws_message_to_all_participants},
+    routes::ws::send_ws_message,
     Connections, GameCodes, Games,
 };
 
@@ -82,7 +82,7 @@ pub async fn rename_team(
         TeamOption::TeamB => STCMsg::TeamBRenamed(new_team_name),
     };
     // send team rename event
-    send_ws_message_to_all_participants(
+    send_ws_message::to_group(
         &game_id_clone,
         team_renamed_event,
         connections,
@@ -92,7 +92,7 @@ pub async fn rename_team(
     .await;
 
     // send updated game state
-    send_game_state_to_all_participants(
+    send_ws_message::game_state_to_group(
         &game_id_clone,
         &new_game_state,
         connections,
