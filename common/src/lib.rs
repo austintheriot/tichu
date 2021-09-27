@@ -383,7 +383,8 @@ impl PrivateGameState {
                                 .participants
                                 .iter_mut()
                                 .for_each(|participant| {
-                                    let cards = deck.draw(9);
+                                    let mut cards = deck.draw(9);
+                                    cards.sort();
                                     for card in cards.into_iter() {
                                         participant.hand.push(card);
                                     }
@@ -480,10 +481,10 @@ pub enum Card {
     Jade(CardValue),
     Pagoda(CardValue),
     Star(CardValue),
-    Dragon,
-    Phoenix,
     MahJong,
     Dog,
+    Phoenix,
+    Dragon,
 }
 
 impl Card {
@@ -522,13 +523,13 @@ impl Iterator for Card {
                 let next_card_value = card_value.clone().next();
                 match next_card_value {
                     Some(next_card_value) => Some(Card::Star(next_card_value)),
-                    None => Some(Card::Dragon),
+                    None => Some(Card::MahJong),
                 }
             }
-            Card::Dragon => Some(Card::Phoenix),
-            Card::Phoenix => Some(Card::MahJong),
             Card::MahJong => Some(Card::Dog),
-            Card::Dog => None,
+            Card::Dog => Some(Card::Phoenix),
+            Card::Phoenix => Some(Card::Dragon),
+            Card::Dragon => None,
         };
 
         if let Some(next_card) = &next_card {

@@ -598,9 +598,11 @@ impl App {
     fn view_hand(&self) -> Html {
         match &self.state.game_state {
             Some(game_state) => {
+                let mut sorted_hand = game_state.current_user.hand.clone();
+                sorted_hand.sort();
                 html! {
                     <ul>
-                        { for game_state.current_user.hand.iter().map(|card| {
+                        { for sorted_hand.iter().map(|card| {
                             html!{
                                 <li> { &format!("{:#?}", card) } </li>
                             }

@@ -4,7 +4,7 @@ extern crate common;
 mod errors;
 mod routes;
 
-use common::{PrivateGameState, STCMsg};
+use common::{Deck, PrivateGameState, STCMsg};
 use futures::join;
 use routes::{
     index,
