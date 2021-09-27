@@ -15,7 +15,7 @@ pub enum CTSMsgInternal {
     CreateGame,
     LeaveGame,
     RenameTeam,
-    StartGame,
+    StartGrandTichu,
     SubmitTrade,
     PlayCards,
     GiveDragon,

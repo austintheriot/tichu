@@ -5,6 +5,7 @@ mod move_to_team;
 mod ping;
 mod pong;
 mod rename_team;
+mod start_grand_tichu;
 mod test;
 
 use create_game::create_game;
@@ -14,6 +15,7 @@ use move_to_team::move_to_team;
 use ping::ping;
 use pong::pong;
 use rename_team::rename_team;
+use start_grand_tichu::start_grand_tichu;
 use test::test;
 
 use super::send_ws_message_to_user::send_ws_message_to_user;
@@ -101,6 +103,9 @@ pub async fn handle_message_received(
                 &game_codes,
             )
             .await;
+        }
+        CTSMsg::StartGrandTichu => {
+            start_grand_tichu(&user_id, &connections, &games, &game_codes).await;
         }
         any_other_message => {
             eprintln!("Unexpected message received: {:?}", any_other_message);

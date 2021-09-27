@@ -63,25 +63,42 @@ pub struct ImmutableTeam {
     pub score: i32,
 }
 
+impl TryFrom<MutableTeam> for ImmutableTeam {
+    type Error = String;
+    fn try_from(item: MutableTeam) -> Result<Self, String> {
+        let user_id1 = item.user_ids.get(0);
+        let user_id2 = item.user_ids.get(1);
+        if user_id1.is_none() || user_id2.is_none() {
+            return Err("Could not convert MutableTeam to ImmutableTeam, since there were not enough user_ids".to_string());
+        }
+
+        Ok(ImmutableTeam {
+            id: item.id,
+            score: item.score,
+            team_name: item.team_name,
+            user_ids: [user_id1.unwrap().to_string(), user_id2.unwrap().to_string()],
+        })
+    }
+}
+
 pub type MutableTeams = [MutableTeam; 2];
 
 pub type ImmutableTeams = [ImmutableTeam; 2];
 
-/// State that only the server knows about:
-/// Contains the information about the deck, etc.
+/// TODO: Make a private version to send to clients so as not to expose the deck data
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct PrivateGrandTichu {
+pub struct GrandTichu {
     small_tichus: Vec<UserIdWithTichuCallStatus>,
     grand_tichus: Vec<UserIdWithTichuCallStatus>,
     teams: ImmutableTeams,
-    deck: Vec<Card>,
+    deck: Deck,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum GameStage {
     Lobby,
     Teams(MutableTeams),
-    GrandTichu,
+    GrandTichu(GrandTichu),
     Trade,
     Game,
     Scoreboard,
@@ -336,45 +353,78 @@ impl PrivateGameState {
     }
 
     /// Move from Teams stage to Grand Tichu stage
-    fn start_game(&self, requesting_user_id: &str) -> PrivateGameState {
+    pub fn start_grand_tichu(&self, requesting_user_id: &str) -> PrivateGameState {
         let mut new_game_state = self.clone();
 
         // requesting user must be the owner
         if new_game_state.owner_id != requesting_user_id {
             eprintln!(
-                "User {} cannot start game because the user is not the owner. Ignoring request.",
+                "User {} cannot start Grand Tichu stage because the user is not the owner. Ignoring request.",
                 requesting_user_id,
             );
             return new_game_state;
         }
 
-        let teams_are_ready = match &new_game_state.stage {
+        match &new_game_state.stage {
             GameStage::Teams(teams_state) => {
                 if teams_state[0].user_ids.len() == 2 && teams_state[1].user_ids.len() == 2 {
-                    true
+                    // participants are ready to move to game
+
+                    // convert mutable teams to immutable teams
+                    let team_0: Option<ImmutableTeam> = teams_state[0].clone().try_into().ok();
+                    let team_1: Option<ImmutableTeam> = teams_state[1].clone().try_into().ok();
+
+                    match (team_0, team_1) {
+                        (Some(team_0), Some(team_1)) => {
+                            let mut deck = Deck::new().shuffle().to_owned();
+
+                            // deal 9 cards to each player
+                            new_game_state
+                                .participants
+                                .iter_mut()
+                                .for_each(|participant| {
+                                    let cards = deck.draw(9);
+                                    for card in cards.into_iter() {
+                                        participant.hand.push(card);
+                                    }
+                                });
+
+                            let grand_tichu_game_state = GrandTichu {
+                                grand_tichus: Vec::new(),
+                                small_tichus: Vec::new(),
+                                teams: [team_0, team_1],
+                                deck,
+                            };
+
+                            // move into Grand Tichu stage
+                            new_game_state.stage = GameStage::GrandTichu(grand_tichu_game_state);
+
+                            return new_game_state;
+                        }
+                        _ => {
+                            eprintln!(
+                                "Could not convert MutableTeams to ImmutableTeams. Ignoring request to start Grand Tichu stage by user {}",
+                                requesting_user_id,
+                            );
+                            return new_game_state;
+                        }
+                    }
                 } else {
-                    false
+                    eprintln!(
+                        "Teams are not ready to start game. Ignoring request to start Grand Tichu stage by user {}",
+                        requesting_user_id,
+                    );
+                    new_game_state
                 }
             }
-            _ => false,
-        };
-
-        if !teams_are_ready {
-            eprintln!(
-                "Teams are not ready to start game. Ignoring request to start by user {}",
-                requesting_user_id,
-            );
-            return new_game_state;
+            _ => {
+                eprintln!(
+                    "Game stage is not currently teams. Ignoring request to start by user {}",
+                    requesting_user_id,
+                );
+                new_game_state
+            }
         }
-
-        // initialize deck
-
-        // deal first 9 cards
-
-        // move into Grand Tichu stage
-        new_game_state.stage = GameStage::GrandTichu;
-
-        new_game_state
     }
 }
 
@@ -630,7 +680,7 @@ pub enum CTSMsg {
     MoveToTeamB,
     RenameTeamA(String),
     RenameTeamB(String),
-    StartGame,
+    StartGrandTichu,
     SubmitTrade(SubmitTrade),
     PlayCards(PlayCard),
     GiveDragon(GiveDragon),
@@ -671,7 +721,6 @@ pub enum STCMsg {
     UserLeft(String),
     SmallTichuCalled,
     GrandTichuCalled,
-    StartGame,
 
     /// deal first 9 cards
     DealFinalCards,
@@ -685,11 +734,14 @@ pub enum STCMsg {
     DragonWasWon,
     PlayerReceivedDragon,
 
-    /// show scores, etc.
-    EndGame,
+    /// Temporary end game: show scores, etc.
+    /// Users can restart if they want to play another game.
+    GameEnded,
 
-    /// game state has been entirely cleaned up and no longer exists on the server
-    GameOver,
+    /// Game state has been entirely cleaned up and no longer exists on the server.
+    /// All users are completely ejected. There is no possibility of restarting without
+    /// creating a new game.
+    GameEndedFinal,
 
     Ping,
     Pong,

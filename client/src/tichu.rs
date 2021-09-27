@@ -43,8 +43,7 @@ struct State {
     is_alive: bool,
 
     join_room_game_code_input: String,
-    join_room_display_name_input: String,
-    create_room_display_name_input: String,
+    display_name_input: String,
     team_a_name_input: String,
     team_b_name_input: String,
 }
@@ -61,8 +60,7 @@ pub enum AppMsg {
     SendWSMsg(CTSMsgInternal),
     SetUserId(String),
     SetDisplayName(String),
-    SetJoinRoomDisplayNameInput(String),
-    SetCreateRoomDisplayNameInput(String),
+    SetDisplayNameInput(String),
     SetJoinRoomGameCodeInput(String),
     SetTeamANameInput(String),
     SetTeamBNameInput(String),
@@ -114,8 +112,7 @@ impl Component for App {
             ws_connection_status: WSConnectionStatus::NotConnected,
             user_id,
             display_name: display_name.clone(),
-            join_room_display_name_input: display_name.clone(),
-            create_room_display_name_input: display_name,
+            display_name_input: display_name.clone(),
             game_state: None,
             join_room_game_code_input: "".into(),
             is_alive: false,
@@ -214,7 +211,7 @@ impl Component for App {
                 let s = clean_up_display_name(&s);
                 self.storage.store(DISPLAY_NAME_STORAGE_KEY, Json(&s));
                 self.state.display_name = s.clone();
-                self.state.join_room_display_name_input = s;
+                self.state.display_name_input = s;
                 true
             }
             AppMsg::SetJoinRoomGameCodeInput(s) => {
@@ -222,12 +219,8 @@ impl Component for App {
                 self.state.join_room_game_code_input = s;
                 true
             }
-            AppMsg::SetJoinRoomDisplayNameInput(s) => {
-                self.state.join_room_display_name_input = s;
-                true
-            }
-            AppMsg::SetCreateRoomDisplayNameInput(s) => {
-                self.state.create_room_display_name_input = s;
+            AppMsg::SetDisplayNameInput(s) => {
+                self.state.display_name_input = s;
                 true
             }
             AppMsg::SetTeamANameInput(s) => {
@@ -266,6 +259,7 @@ impl Component for App {
                         match game_state.stage {
                             GameStage::Lobby => self.view_lobby(),
                             GameStage::Teams(_) => self.view_teams(),
+                            GameStage::GrandTichu(_) => self.view_grand_tichu(),
                             _ => html!{ <> </> }
                         }
                     }
@@ -277,13 +271,12 @@ impl Component for App {
 
 impl App {
     fn can_create_game(&self) -> bool {
-        self.ws.is_some()
-            && validate_display_name(&self.state.create_room_display_name_input).is_none()
+        self.ws.is_some() && validate_display_name(&self.state.display_name_input).is_none()
     }
 
     fn can_join_game(&self) -> bool {
         self.ws.is_some()
-            && validate_display_name(&self.state.join_room_display_name_input).is_none()
+            && validate_display_name(&self.state.display_name_input).is_none()
             && validate_game_code(&self.state.join_room_game_code_input).is_none()
     }
 
@@ -395,6 +388,32 @@ impl App {
         }
     }
 
+    fn debug_owner(&self) -> Html {
+        if let Some(game_state) = &self.state.game_state {
+            let owner = game_state
+                .participants
+                .iter()
+                .find(|user| user.user_id == game_state.owner_id);
+
+            match owner {
+                Some(owner) => {
+                    html! {
+                        <ul>
+                            <li> { &owner.display_name } </li>
+                        </ul>
+                    }
+                }
+                None => {
+                    html! {
+                        <> </>
+                    }
+                }
+            }
+        } else {
+            html! { <></> }
+        }
+    }
+
     fn view_debug(&self) -> Html {
         html! {
             <>
@@ -405,18 +424,6 @@ impl App {
                     WSConnectionStatus::Connected => "Connected",
                     WSConnectionStatus::NotConnected => "Not Connected"
                 } } </p>
-                <p> {"Stage: " }
-                { if let Some(game_state) = &self.state.game_state {
-                        match game_state.stage {
-                            GameStage::Lobby => {
-                                "Lobby"
-                            },
-                            _ => "Other",
-                        }
-                    } else {
-                        "No game state"
-                }}
-                </p>
                 <p> { "Game Code: " } {
                     if let Some(game_state) = &self.state.game_state {
                         &game_state.game_code
@@ -425,7 +432,7 @@ impl App {
                     }}
                 </p>
                 <p> { "Participants: " } { self.view_participants() } </p>
-                <p> { "Owner: " } { self.view_owner() } </p>
+                <p> { "Owner: " } { self.debug_owner() } </p>
                 <p> { "Teams: " } { self.debug_teams() } </p>
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
                 <br />
@@ -438,40 +445,52 @@ impl App {
         html! {
             <>
             <h1> { "Tichu" } </h1>
-                <label for="join-room-display-name-input"> { "Display Name" } </label>
+                <form onsubmit=self.link.callback(|e: FocusEvent| {
+                    e.prevent_default();
+                    AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)
+                })>
+                    <label for="join-room-display-name-input"> { "Display Name" } </label>
+                    <br />
+                    <input
+                        id="join-room-display-name-input"
+                        type="text"
+                        value=self.state.display_name_input.clone()
+                        oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
+                    <br />
+                    <label for="join-room-game-code-input"> { "Game Code" } </label>
+                    <br />
+                    <input
+                        id="join-room-game-code-input"
+                        type="text"
+                        value=self.state.join_room_game_code_input.clone()
+                        oninput=self.link.callback(|e: InputData| AppMsg::SetJoinRoomGameCodeInput(e.value))/>
+                    <br />
+                    <button
+                        type="submit"
+                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)})
+                        disabled=!self.can_join_game()
+                        >{ "Join game" }</button>
+                </form>
                 <br />
-                <input
-                    id="join-room-display-name-input"
-                    type="text"
-                    value=self.state.join_room_display_name_input.clone()
-                    oninput=self.link.callback(|e: InputData| AppMsg::SetJoinRoomDisplayNameInput(e.value))/>
                 <br />
-                <label for="join-room-game-code-input"> { "Game Code" } </label>
-                <br />
-                <input
-                    id="join-room-game-code-input"
-                    type="text"
-                    value=self.state.join_room_game_code_input.clone()
-                    oninput=self.link.callback(|e: InputData| AppMsg::SetJoinRoomGameCodeInput(e.value))/>
-                <br />
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)})
-                    disabled=!self.can_join_game()
-                    >{ "Join game" }</button>
-                <br />
-                <br />
-                <label for="join-room-display-name-input"> { "Display Name" } </label>
-                <br />
-                <input
-                    id="create-room-display-name-input"
-                    type="text"
-                    value=self.state.create_room_display_name_input.clone()
-                    oninput=self.link.callback(|e: InputData| AppMsg::SetCreateRoomDisplayNameInput(e.value))/>
-                <br />
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)})
-                    disabled=!self.can_create_game()
-                    >{ "Create game" }</button>
+                <form onsubmit=self.link.callback(|e: FocusEvent| {
+                    e.prevent_default();
+                    AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)
+                })>
+                    <label for="join-room-display-name-input"> { "Display Name" } </label>
+                    <br />
+                    <input
+                        id="create-room-display-name-input"
+                        type="text"
+                        value=self.state.display_name_input.clone()
+                        oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
+                    <br />
+                    <button
+                        type="submit"
+                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)})
+                        disabled=!self.can_create_game()
+                        >{ "Create game" }</button>
+                </form>
             </>
         }
     }
@@ -480,6 +499,13 @@ impl App {
         html! {
             <>
             <h1> { "Lobby" } </h1>
+            <h2> { "Game Code: " } {
+                if let Some(game_state) = &self.state.game_state {
+                    &game_state.game_code
+                } else {
+                    ""
+                }
+            } </h2>
                 <button
                 onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::LeaveGame)})
                 disabled=!self.can_leave_game()
@@ -556,7 +582,7 @@ impl App {
                {if self.is_current_user_owner() {
                   html!{
                     <button
-                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::StartGame)})
+                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::StartGrandTichu)})
                         disabled=!self.can_start_game()
                     > { "Start" } </button>
                   }
@@ -569,29 +595,32 @@ impl App {
         }
     }
 
-    fn view_owner(&self) -> Html {
-        if let Some(game_state) = &self.state.game_state {
-            let owner = game_state
-                .participants
-                .iter()
-                .find(|user| user.user_id == game_state.owner_id);
-
-            match owner {
-                Some(owner) => {
-                    html! {
-                        <ul>
-                            <li> { &owner.display_name } </li>
-                        </ul>
-                    }
-                }
-                None => {
-                    html! {
-                        <> </>
-                    }
+    fn view_hand(&self) -> Html {
+        match &self.state.game_state {
+            Some(game_state) => {
+                html! {
+                    <ul>
+                        { for game_state.current_user.hand.iter().map(|card| {
+                            html!{
+                                <li> { &format!("{:#?}", card) } </li>
+                            }
+                        })}
+                    </ul>
                 }
             }
-        } else {
-            html! { <></> }
+            None => html! {
+                <></>
+            },
+        }
+    }
+
+    fn view_grand_tichu(&self) -> Html {
+        html! {
+            <>
+                <h1> { "Grand Tichu" } </h1>
+                <p> { "Hand:" } </p>
+                { self.view_hand() }
+            </>
         }
     }
 
@@ -676,7 +705,6 @@ impl App {
                 STCMsg::UserMovedToTeamA(_) => {}
                 STCMsg::UserMovedToTeamB(_) => {}
                 STCMsg::GameStageChanged(_) => {}
-
                 _ => warn!("Unexpected websocket message received {:#?}", data),
             },
         }
@@ -721,7 +749,7 @@ impl App {
 
                 let create_game = CreateGame {
                     user_id: self.state.user_id.clone(),
-                    display_name: self.state.create_room_display_name_input.clone(),
+                    display_name: self.state.display_name_input.clone(),
                 };
 
                 let msg = CTSMsg::CreateGame(create_game);
@@ -734,7 +762,7 @@ impl App {
 
                 let join_game_with_game_code = JoinGameWithGameCode {
                     game_code: self.state.join_room_game_code_input.clone().to_uppercase(),
-                    display_name: self.state.join_room_display_name_input.clone(),
+                    display_name: self.state.display_name_input.clone(),
                     user_id: self.state.user_id.clone(),
                 };
 
@@ -788,12 +816,12 @@ impl App {
                 }
                 self._send_ws_message(&CTSMsg::RenameTeamB(self.state.team_b_name_input.clone()));
             }
-            CTSMsgInternal::StartGame => {
+            CTSMsgInternal::StartGrandTichu => {
                 if !self.can_start_game() {
                     warn!("State is not ready to start game. Ignoring request to send websocket message.");
                     return false;
                 }
-                self._send_ws_message(&CTSMsg::StartGame);
+                self._send_ws_message(&CTSMsg::StartGrandTichu);
             }
             _ => {
                 warn!("Tried to send unexpected message type {:?}", &msg_type);
