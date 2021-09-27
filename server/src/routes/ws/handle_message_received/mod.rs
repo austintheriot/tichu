@@ -20,7 +20,7 @@ use test::test;
 
 use super::send_ws_message_to_user::send_ws_message_to_user;
 use crate::{Connections, GameCodes, Games};
-use common::{CTSMsg, STCMsg, TeamOption};
+use common::{CTSMsg, RenameTeam, STCMsg, TeamOption};
 use warp::ws::Message;
 
 pub async fn handle_message_received(
@@ -62,40 +62,16 @@ pub async fn handle_message_received(
         CTSMsg::LeaveGame => {
             leave_game(&user_id, &connections, &games, &game_codes).await;
         }
-        CTSMsg::MoveToTeamA => {
-            move_to_team(
-                &TeamOption::TeamA,
-                &user_id,
-                &connections,
-                &games,
-                &game_codes,
-            )
-            .await;
+        CTSMsg::MoveToTeam(team_option) => {
+            move_to_team(&team_option, &user_id, &connections, &games, &game_codes).await;
         }
-        CTSMsg::MoveToTeamB => {
-            move_to_team(
-                &TeamOption::TeamB,
-                &user_id,
-                &connections,
-                &games,
-                &game_codes,
-            )
-            .await;
-        }
-        CTSMsg::RenameTeamA(new_team_name) => {
+        CTSMsg::RenameTeam(rename_team_data) => {
+            let RenameTeam {
+                team_name: new_team_name,
+                team_option,
+            } = rename_team_data;
             rename_team(
-                &TeamOption::TeamA,
-                new_team_name,
-                &user_id,
-                &connections,
-                &games,
-                &game_codes,
-            )
-            .await;
-        }
-        CTSMsg::RenameTeamB(new_team_name) => {
-            rename_team(
-                &TeamOption::TeamB,
+                &team_option,
                 new_team_name,
                 &user_id,
                 &connections,

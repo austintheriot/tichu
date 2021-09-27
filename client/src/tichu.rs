@@ -9,7 +9,7 @@ use bincode;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
     validate_team_name, CTSMsg, CreateGame, GameStage, JoinGameWithGameCode, MutableTeam,
-    PublicGameState, PublicUser, STCMsg, NO_USER_ID,
+    PublicGameState, PublicUser, RenameTeam, STCMsg, TeamOption, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -546,7 +546,7 @@ impl App {
                 <br />
                 <form onsubmit=self.link.callback(|e: FocusEvent | {
                     e.prevent_default();
-                    AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamA)
+                    AppMsg::SendWSMsg(CTSMsgInternal::RenameTeam(TeamOption::TeamA))
                 })>
                     <label for="team-a-name-input">{ "Team Name" }</label>
                     <input
@@ -558,18 +558,18 @@ impl App {
                </form>
                 <br />
                 <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeamA)})
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeam(TeamOption::TeamA))})
                     disabled=!self.is_team_stage() || self.is_on_team_a()
                     >{ "Move to Team A" }</button>
                 <br />
                 <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeamB)})
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeam(TeamOption::TeamB))})
                     disabled=!self.is_team_stage() || self.is_on_team_b()
                     >{ "Move to Team B" }</button>
                 <br />
                 <form onsubmit=self.link.callback(|e: FocusEvent | {
                     e.prevent_default();
-                    AppMsg::SendWSMsg(CTSMsgInternal::RenameTeamB)
+                    AppMsg::SendWSMsg(CTSMsgInternal::RenameTeam(TeamOption::TeamB))
                 })>
                     <label for="team-b-name-input">{ "Team Name" }</label>
                     <input
@@ -620,6 +620,9 @@ impl App {
         html! {
             <>
                 <h1> { "Grand Tichu" } </h1>
+                <button> { "Call Grand Tichu" } </button>
+                <button> { "Decline Grand Tichu" } </button>
+                <button> { "Call Small Tichu" } </button>
                 <p> { "Hand:" } </p>
                 { self.view_hand() }
             </>
@@ -778,45 +781,40 @@ impl App {
 
                 self._send_ws_message(&CTSMsg::LeaveGame);
             }
-            CTSMsgInternal::MoveToTeamA => {
-                self._send_ws_message(&CTSMsg::MoveToTeamA);
+            CTSMsgInternal::MoveToTeam(team_option) => {
+                self._send_ws_message(&CTSMsg::MoveToTeam(team_option));
             }
-            CTSMsgInternal::MoveToTeamB => {
-                self._send_ws_message(&CTSMsg::MoveToTeamB);
-            }
-            CTSMsgInternal::RenameTeamA => {
-                // if team name A input is empty on blur, replace with existing state and do not try to update on server
-                if self.state.team_a_name_input.len() == 0 {
-                    let existing_team_a_name = match &self.state.game_state.as_ref().unwrap().stage
-                    {
-                        GameStage::Teams(teams_state) => teams_state[0].team_name.clone(),
+            CTSMsgInternal::RenameTeam(team_option) => {
+                let team_name_input_clone = match &team_option {
+                    TeamOption::TeamA => self.state.team_a_name_input.clone(),
+                    TeamOption::TeamB => self.state.team_b_name_input.clone(),
+                };
+
+                let team_index = match &team_option {
+                    TeamOption::TeamA => 0,
+                    TeamOption::TeamB => 1,
+                };
+
+                // if team name input is empty on blur, replace with existing state and do not try to update on server
+                if team_name_input_clone.len() == 0 {
+                    let existing_team_name = match &self.state.game_state.as_ref().unwrap().stage {
+                        GameStage::Teams(teams_state) => teams_state[team_index].team_name.clone(),
                         // not in teams stage, do nothing
                         _ => return false,
                     };
-                    self.link
-                        .send_message(AppMsg::SetTeamANameInput(existing_team_a_name));
+                    self.link.send_message(match &team_option {
+                        TeamOption::TeamA => AppMsg::SetTeamANameInput(existing_team_name),
+                        TeamOption::TeamB => AppMsg::SetTeamBNameInput(existing_team_name),
+                    });
                     return true;
-                } else if validate_team_name(&self.state.team_a_name_input).is_some() {
+                } else if validate_team_name(&team_name_input_clone).is_some() {
                     return false;
                 }
-                self._send_ws_message(&CTSMsg::RenameTeamA(self.state.team_a_name_input.clone()));
-            }
-            CTSMsgInternal::RenameTeamB => {
-                // if team name B input is empty on blur, replace with existing state and do not try to update on server
-                if self.state.team_b_name_input.len() == 0 {
-                    let existing_team_b_name = match &self.state.game_state.as_ref().unwrap().stage
-                    {
-                        GameStage::Teams(teams_state) => teams_state[1].team_name.clone(),
-                        // not in teams stage, do nothing
-                        _ => return false,
-                    };
-                    self.link
-                        .send_message(AppMsg::SetTeamBNameInput(existing_team_b_name));
-                    return true;
-                } else if validate_team_name(&self.state.team_b_name_input).is_some() {
-                    return false;
-                }
-                self._send_ws_message(&CTSMsg::RenameTeamB(self.state.team_b_name_input.clone()));
+
+                self._send_ws_message(&CTSMsg::RenameTeam(RenameTeam {
+                    team_name: team_name_input_clone,
+                    team_option,
+                }));
             }
             CTSMsgInternal::StartGrandTichu => {
                 if !self.can_start_game() {

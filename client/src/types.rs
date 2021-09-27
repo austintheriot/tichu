@@ -1,3 +1,4 @@
+use common::TeamOption;
 use serde::{Deserialize, Serialize};
 
 /// Internal Tichu-client message for alerting that it's time to send a websocket message
@@ -8,13 +9,10 @@ use serde::{Deserialize, Serialize};
 pub enum CTSMsgInternal {
     JoinGameWithGameCode,
     JoinRandomGame,
-    MoveToTeamA,
-    MoveToTeamB,
-    RenameTeamA,
-    RenameTeamB,
+    MoveToTeam(TeamOption),
+    RenameTeam(TeamOption),
     CreateGame,
     LeaveGame,
-    RenameTeam,
     StartGrandTichu,
     SubmitTrade,
     PlayCards,

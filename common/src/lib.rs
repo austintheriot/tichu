@@ -665,6 +665,12 @@ pub struct GiveDragon {
     pub user_id: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct RenameTeam {
+    pub team_option: TeamOption,
+    pub team_name: String,
+}
+
 /// Client to Server Websocket Messages
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum CTSMsg {
@@ -677,10 +683,8 @@ pub enum CTSMsg {
 
     /// User can only explicitly leave game when in the lobby
     LeaveGame,
-    MoveToTeamA,
-    MoveToTeamB,
-    RenameTeamA(String),
-    RenameTeamB(String),
+    MoveToTeam(TeamOption),
+    RenameTeam(RenameTeam),
     StartGrandTichu,
     SubmitTrade(SubmitTrade),
     PlayCards(PlayCard),
