@@ -1,4 +1,4 @@
-use common::{GameStage, STCMsg, TeamOption};
+use common::{PrivateGameStage, STCMsg, TeamOption};
 
 use crate::{
     errors::{GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
@@ -35,7 +35,7 @@ pub async fn rename_team(
     };
     let prev_game_state = write_games.get(&game_id_clone).expect(GAME_ID_NOT_IN_MAP);
     match &prev_game_state.stage {
-        GameStage::Teams(teams_state) => {
+        PrivateGameStage::Teams(teams_state) => {
             // if user is not on team they want to rename, ignore
             let opposite_team = match team_to_rename {
                 TeamOption::TeamA => &teams_state[1],

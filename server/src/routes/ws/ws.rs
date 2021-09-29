@@ -4,7 +4,7 @@ use crate::{
 };
 use bincode;
 use common::{
-    validate_display_name, validate_game_code, CTSMsg, CreateGame, GameCreated, GameStage,
+    validate_display_name, validate_game_code, CTSMsg, CreateGame, GameCreated, PrivateGameStage,
     JoinGameWithGameCode, PrivateGameState, STCMsg, NO_USER_ID,
 };
 use futures::{SinkExt, StreamExt, TryFutureExt};
@@ -352,7 +352,7 @@ pub async fn handle_message_received(
             .await;
 
             // Game Stage Changed event
-            if let GameStage::Teams(_) = new_game_state.stage {
+            if let PrivateGameStage::Teams(_) = new_game_state.stage {
                 send_ws_message_to_all_participants(
                     &cloned_gamed_id,
                     STCMsg::GameStageChanged(new_game_state.stage.clone()),
@@ -415,7 +415,7 @@ pub async fn handle_message_received(
 
             // other users still in game:
             if any_other_user_is_still_in_game {
-                if let GameStage::Lobby = game_state_clone.stage {
+                if let PrivateGameStage::Lobby = game_state_clone.stage {
                     // if this is the lobby, remove user from the lobby, but keep connection open
                     eprintln!("Removing user {} from lobby on leave game event, but keeping connection open", user_id);
                     let mut owner_reassigned = false;
@@ -546,7 +546,7 @@ pub async fn handle_message_received(
             };
             let prev_game_state = write_games.get(&game_id_clone).expect(GAME_ID_NOT_IN_MAP);
             match &prev_game_state.stage {
-                GameStage::Teams(teams_state) => {
+                PrivateGameStage::Teams(teams_state) => {
                     // if user on team A, return
                     if teams_state
                         .0
@@ -620,7 +620,7 @@ pub async fn handle_message_received(
             };
             let prev_game_state = write_games.get(&game_id_clone).expect(GAME_ID_NOT_IN_MAP);
             match &prev_game_state.stage {
-                GameStage::Teams(teams_state) => {
+                PrivateGameStage::Teams(teams_state) => {
                     // if user on team B, return
                     if teams_state
                         .1
@@ -694,7 +694,7 @@ pub async fn handle_message_received(
             };
             let prev_game_state = write_games.get(&game_id_clone).expect(GAME_ID_NOT_IN_MAP);
             match &prev_game_state.stage {
-                GameStage::Teams(teams_state) => {
+                PrivateGameStage::Teams(teams_state) => {
                     // if user on team B, return
                     if teams_state
                         .1
@@ -774,7 +774,7 @@ pub async fn handle_message_received(
             };
             let prev_game_state = write_games.get(&game_id_clone).expect(GAME_ID_NOT_IN_MAP);
             match &prev_game_state.stage {
-                GameStage::Teams(teams_state) => {
+                PrivateGameStage::Teams(teams_state) => {
                     // if user on team A, return
                     if teams_state
                         .0
@@ -964,7 +964,7 @@ pub async fn cleanup_state_after_disconnect(
 
             // other users still in game:
             if any_other_user_is_still_in_game {
-                if let GameStage::Lobby = game_state_clone.stage {
+                if let PrivateGameStage::Lobby = game_state_clone.stage {
                     // if this is the lobby, remove from state
                     eprintln!("Removing user {} from lobby on disconnect", user_id);
                     let mut owner_reassigned = false;

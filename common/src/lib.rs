@@ -85,23 +85,66 @@ pub type MutableTeams = [MutableTeam; 2];
 
 pub type ImmutableTeams = [ImmutableTeam; 2];
 
-/// TODO: Make a private version to send to clients so as not to expose the deck data
+/// Client state: does NOT include sensitive information, such as the Deck
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct GrandTichu {
+pub struct PublicGrandTichu {
+    small_tichus: Vec<UserIdWithTichuCallStatus>,
+    grand_tichus: Vec<UserIdWithTichuCallStatus>,
+    teams: ImmutableTeams,
+}
+
+/// Server state: includes sensitive information, such as the Deck
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct PrivateGrandTichu {
     small_tichus: Vec<UserIdWithTichuCallStatus>,
     grand_tichus: Vec<UserIdWithTichuCallStatus>,
     teams: ImmutableTeams,
     deck: Deck,
 }
 
+impl From<PrivateGrandTichu> for PublicGrandTichu {
+    fn from(item: PrivateGrandTichu) -> Self {
+        PublicGrandTichu {
+            grand_tichus: item.grand_tichus.clone(),
+            small_tichus: item.small_tichus.clone(),
+            teams: item.teams.clone(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub enum GameStage {
+pub enum PrivateGameStage {
     Lobby,
     Teams(MutableTeams),
-    GrandTichu(GrandTichu),
+    PrivateGrandTichu(PrivateGrandTichu),
     Trade,
     Game,
     Scoreboard,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub enum PublicGameStage {
+    Lobby,
+    Teams(MutableTeams),
+    PublicGrandTichu(PublicGrandTichu),
+    Trade,
+    Game,
+    Scoreboard,
+}
+
+impl From<PrivateGameStage> for PublicGameStage {
+    fn from(item: PrivateGameStage) -> Self {
+        match item {
+            PrivateGameStage::Lobby => PublicGameStage::Lobby,
+            PrivateGameStage::Teams(teams_state) => PublicGameStage::Teams(teams_state),
+            PrivateGameStage::PrivateGrandTichu(private_grand_tichu) => {
+                Self::PublicGrandTichu(private_grand_tichu.into())
+            }
+            PrivateGameStage::Trade => PublicGameStage::Trade,
+            PrivateGameStage::Game => PublicGameStage::Game,
+            PrivateGameStage::Scoreboard => PublicGameStage::Scoreboard,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -109,8 +152,10 @@ pub struct PublicGameState {
     pub game_id: String,
     pub game_code: String,
     pub owner_id: String,
-    pub stage: GameStage,
+    pub stage: PublicGameStage,
     pub participants: Vec<PublicUser>,
+
+    // unique to PublicGameState:
     pub current_user: PrivateUser,
 }
 
@@ -121,7 +166,7 @@ pub struct PrivateGameState {
     pub game_id: String,
     pub game_code: String,
     pub owner_id: String,
-    pub stage: GameStage,
+    pub stage: PrivateGameStage,
     pub participants: Vec<PrivateUser>,
     // active_player: String,
     // card_wished_for: Card,
@@ -145,7 +190,7 @@ impl PrivateGameState {
         let first_game_state = PrivateGameState {
             game_id: Uuid::new_v4().to_string(),
             game_code: get_new_game_code(existing_game_codes),
-            stage: GameStage::Lobby,
+            stage: PrivateGameStage::Lobby,
             participants: vec![owner_user],
             owner_id: owner_id.clone(),
         };
@@ -156,7 +201,7 @@ impl PrivateGameState {
         let current_participants = self.participants.len();
         let game_has_max_participants = current_participants == 4;
         let is_lobby = match self.stage {
-            GameStage::Lobby => true,
+            PrivateGameStage::Lobby => true,
             _ => false,
         };
 
@@ -194,9 +239,9 @@ impl PrivateGameState {
                 ],
             };
 
-            GameStage::Teams([team_a, team_b])
+            PrivateGameStage::Teams([team_a, team_b])
         } else {
-            GameStage::Lobby
+            PrivateGameStage::Lobby
         };
 
         // clone old game state and update only what's necessary
@@ -264,7 +309,7 @@ impl PrivateGameState {
             game_id: self.game_id.clone(),
             game_code: self.game_code.clone(),
             owner_id: self.owner_id.clone(),
-            stage: self.stage.clone(),
+            stage: self.stage.clone().into(),
             participants: public_participants,
             current_user: current_user.expect("Current user not found in participants"),
         };
@@ -279,7 +324,7 @@ impl PrivateGameState {
     ) -> PrivateGameState {
         let mut new_state = self.clone();
         match &mut new_state.stage {
-            GameStage::Teams(teams) => {
+            PrivateGameStage::Teams(teams) => {
                 //if user is on the team they want to move to already, return
                 let new_team = match team_to_move_to {
                     TeamOption::TeamA => &teams[0],
@@ -324,7 +369,7 @@ impl PrivateGameState {
     ) -> PrivateGameState {
         let mut new_state = self.clone();
         match &mut new_state.stage {
-            GameStage::Teams(teams) => {
+            PrivateGameStage::Teams(teams) => {
                 // user is on opposite team, so can't rename this team
                 let opposite_team = match team_to_rename {
                     TeamOption::TeamA => &teams[1],
@@ -366,7 +411,7 @@ impl PrivateGameState {
         }
 
         match &new_game_state.stage {
-            GameStage::Teams(teams_state) => {
+            PrivateGameStage::Teams(teams_state) => {
                 if teams_state[0].user_ids.len() == 2 && teams_state[1].user_ids.len() == 2 {
                     // participants are ready to move to game
 
@@ -390,7 +435,7 @@ impl PrivateGameState {
                                     }
                                 });
 
-                            let grand_tichu_game_state = GrandTichu {
+                            let grand_tichu_game_state = PrivateGrandTichu {
                                 grand_tichus: Vec::new(),
                                 small_tichus: Vec::new(),
                                 teams: [team_0, team_1],
@@ -398,7 +443,8 @@ impl PrivateGameState {
                             };
 
                             // move into Grand Tichu stage
-                            new_game_state.stage = GameStage::GrandTichu(grand_tichu_game_state);
+                            new_game_state.stage =
+                                PrivateGameStage::PrivateGrandTichu(grand_tichu_game_state);
 
                             return new_game_state;
                         }
@@ -721,7 +767,7 @@ pub enum STCMsg {
     /// The game owner has changed to be a different user.
     /// This can occur if the owner of the room leaves while still waiting in the lobby.
     OwnerReassigned(String),
-    GameStageChanged(GameStage),
+    GameStageChanged(PublicGameStage),
     TeamARenamed(String),
     TeamBRenamed(String),
     UserJoined(String),

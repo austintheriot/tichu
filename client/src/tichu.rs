@@ -8,7 +8,7 @@ use anyhow::Error;
 use bincode;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
-    validate_team_name, CTSMsg, CreateGame, GameStage, JoinGameWithGameCode, MutableTeam,
+    validate_team_name, CTSMsg, CreateGame, JoinGameWithGameCode, MutableTeam, PublicGameStage,
     PublicGameState, PublicUser, RenameTeam, STCMsg, TeamOption, NO_USER_ID,
 };
 use log::*;
@@ -257,9 +257,9 @@ impl Component for App {
                     None => self.view_join(),
                     Some(game_state) => {
                         match game_state.stage {
-                            GameStage::Lobby => self.view_lobby(),
-                            GameStage::Teams(_) => self.view_teams(),
-                            GameStage::GrandTichu(_) => self.view_grand_tichu(),
+                            PublicGameStage::Lobby => self.view_lobby(),
+                            PublicGameStage::Teams(_) => self.view_teams(),
+                            PublicGameStage::PublicGrandTichu(_) => self.view_grand_tichu(),
                             _ => html!{ <> </> }
                         }
                     }
@@ -284,7 +284,7 @@ impl App {
         self.ws.is_some()
             && self.state.game_state.is_some()
             && match self.state.game_state.as_ref().unwrap().stage {
-                GameStage::Lobby => true,
+                PublicGameStage::Lobby => true,
                 _ => false,
             }
     }
@@ -292,7 +292,7 @@ impl App {
     fn can_call_or_decline_grand_tichu(&self) -> bool {
         match &self.state.game_state {
             Some(game_state) => match &game_state.stage {
-                GameStage::GrandTichu(_) => true,
+                PublicGameStage::PublicGrandTichu(_) => true,
                 _ => false,
             },
             None => false,
@@ -303,7 +303,7 @@ impl App {
         match &self.state.game_state {
             None => false,
             Some(game_state) => match &game_state.stage {
-                GameStage::Teams(_) => true,
+                PublicGameStage::Teams(_) => true,
                 _ => false,
             },
         }
@@ -313,7 +313,7 @@ impl App {
         match &self.state.game_state {
             None => false,
             Some(game_state) => match &game_state.stage {
-                GameStage::Teams(teams) => teams[0]
+                PublicGameStage::Teams(teams) => teams[0]
                     .user_ids
                     .iter()
                     .find(|participant_id| **participant_id == self.state.user_id)
@@ -327,7 +327,7 @@ impl App {
         match &self.state.game_state {
             None => false,
             Some(game_state) => match &game_state.stage {
-                GameStage::Teams(teams) => teams[1]
+                PublicGameStage::Teams(teams) => teams[1]
                     .user_ids
                     .iter()
                     .find(|participant_id| **participant_id == self.state.user_id)
@@ -383,7 +383,7 @@ impl App {
     fn debug_teams(&self) -> Html {
         if let Some(game_state) = &self.state.game_state {
             match &game_state.stage {
-                GameStage::Teams(team_state) => {
+                PublicGameStage::Teams(team_state) => {
                     html! {
                         <ul>
                             <li> {self.debug_team(&team_state[0])} </li>
@@ -537,7 +537,7 @@ impl App {
         match &self.state.game_state {
             None => {}
             Some(game_state) => match &game_state.stage {
-                GameStage::Teams(teams_state) => {
+                PublicGameStage::Teams(teams_state) => {
                     if teams_state[0].user_ids.len() == 2 && teams_state[1].user_ids.len() == 2 {
                         teams_are_ready = true;
                     }
@@ -676,7 +676,7 @@ impl App {
                     {
                         match &new_game_state {
                             Some(new_game_state) => match &new_game_state.stage {
-                                GameStage::Teams(teams_state) => {
+                                PublicGameStage::Teams(teams_state) => {
                                     self.link.send_message_batch(vec![
                                         AppMsg::SetTeamANameInput(teams_state[0].team_name.clone()),
                                         AppMsg::SetTeamBNameInput(teams_state[1].team_name.clone()),
@@ -824,7 +824,9 @@ impl App {
                 // if team name input is empty on blur, replace with existing state and do not try to update on server
                 if team_name_input_clone.len() == 0 {
                     let existing_team_name = match &self.state.game_state.as_ref().unwrap().stage {
-                        GameStage::Teams(teams_state) => teams_state[team_index].team_name.clone(),
+                        PublicGameStage::Teams(teams_state) => {
+                            teams_state[team_index].team_name.clone()
+                        }
                         // not in teams stage, do nothing
                         _ => return false,
                     };

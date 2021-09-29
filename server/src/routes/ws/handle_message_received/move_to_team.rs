@@ -3,7 +3,7 @@ use crate::{
     routes::ws::send_ws_message,
     Connections, GameCodes, Games,
 };
-use common::{GameStage, STCMsg, TeamOption};
+use common::{PrivateGameStage, STCMsg, TeamOption};
 
 pub async fn move_to_team(
     team_to_move_to: &TeamOption,
@@ -33,7 +33,7 @@ pub async fn move_to_team(
     };
     let prev_game_state = write_games.get(&game_id_clone).expect(GAME_ID_NOT_IN_MAP);
     match &prev_game_state.stage {
-        GameStage::Teams(teams_state) => {
+        PrivateGameStage::Teams(teams_state) => {
             let team = match &team_to_move_to {
                 &TeamOption::TeamA => &teams_state[0],
                 &TeamOption::TeamB => &teams_state[1],

@@ -1,4 +1,6 @@
-use common::{validate_display_name, validate_game_code, GameStage, JoinGameWithGameCode, STCMsg};
+use common::{
+    validate_display_name, validate_game_code, JoinGameWithGameCode, PrivateGameStage, STCMsg,
+};
 
 use crate::{
     errors::USER_ID_NOT_IN_MAP, routes::ws::send_ws_message, Connections, GameCodes, Games,
@@ -94,10 +96,10 @@ pub async fn join_game_with_game_code(
     .await;
 
     // Game Stage Changed event
-    if let GameStage::Teams(_) = new_game_state.stage {
+    if let PrivateGameStage::Teams(_) = new_game_state.stage {
         send_ws_message::to_group(
             &cloned_gamed_id,
-            STCMsg::GameStageChanged(new_game_state.stage.clone()),
+            STCMsg::GameStageChanged(new_game_state.stage.clone().into()),
             &connections,
             &games,
             &game_codes,

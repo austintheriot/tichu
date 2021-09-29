@@ -3,7 +3,7 @@ use crate::{
     routes::ws::send_ws_message,
     Connections, GameCodes, Games,
 };
-use common::{GameStage, STCMsg};
+use common::{PrivateGameStage, STCMsg};
 
 pub async fn start_grand_tichu(
     user_id: &str,
@@ -32,7 +32,7 @@ pub async fn start_grand_tichu(
 
     // game stage must be Teams
     let teams_state = match &game_state.stage {
-        GameStage::Teams(teams_state) => teams_state,
+        PrivateGameStage::Teams(teams_state) => teams_state,
         _ => {
             eprintln!("User {} can't start game because current game stage is not teams. Ignoring request", user_id);
             return;
@@ -54,10 +54,10 @@ pub async fn start_grand_tichu(
 
     drop(write_games);
 
-    // send GameStage change event to Grand Tichu
+    // send PrivateGameStage change event to Grand Tichu
     send_ws_message::to_group(
         game_id_clone,
-        STCMsg::GameStageChanged(new_game_state.stage.clone()),
+        STCMsg::GameStageChanged(new_game_state.stage.clone().into()),
         connections,
         games,
         game_codes,

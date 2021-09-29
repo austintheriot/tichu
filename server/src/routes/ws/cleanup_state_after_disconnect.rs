@@ -1,5 +1,5 @@
 use super::send_ws_message;
-use common::{GameStage, STCMsg};
+use common::{PrivateGameStage, STCMsg};
 
 use crate::{
     errors::{GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
@@ -48,7 +48,7 @@ pub async fn cleanup_state_after_disconnect(
 
             // other users still in game:
             if any_other_user_is_still_in_game {
-                if let GameStage::Lobby = game_state_clone.stage {
+                if let PrivateGameStage::Lobby = game_state_clone.stage {
                     // if this is the lobby, remove from state
                     eprintln!("Removing user {} from lobby on disconnect", user_id);
                     let mut owner_reassigned = false;
