@@ -20,7 +20,7 @@ pub const NO_GAME_UD: &str = "NO_GAME_UD";
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum TichuCallStatus {
     /// User has not called one way or the other yet
-    NotCalled,
+    Undecided,
 
     /// User has called some form of Tichu
     Called,
@@ -37,8 +37,8 @@ pub enum TichuCallStatus {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct UserIdWithTichuCallStatus {
-    user_id: String,
-    tichu_call_status: TichuCallStatus,
+    pub user_id: String,
+    pub tichu_call_status: TichuCallStatus,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -88,18 +88,18 @@ pub type ImmutableTeams = [ImmutableTeam; 2];
 /// Client state: does NOT include sensitive information, such as the Deck
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct PublicGrandTichu {
-    small_tichus: Vec<UserIdWithTichuCallStatus>,
-    grand_tichus: Vec<UserIdWithTichuCallStatus>,
-    teams: ImmutableTeams,
+    pub small_tichus: [UserIdWithTichuCallStatus; 4],
+    pub grand_tichus: [UserIdWithTichuCallStatus; 4],
+    pub teams: ImmutableTeams,
 }
 
 /// Server state: includes sensitive information, such as the Deck
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct PrivateGrandTichu {
-    small_tichus: Vec<UserIdWithTichuCallStatus>,
-    grand_tichus: Vec<UserIdWithTichuCallStatus>,
-    teams: ImmutableTeams,
-    deck: Deck,
+    pub small_tichus: [UserIdWithTichuCallStatus; 4],
+    pub grand_tichus: [UserIdWithTichuCallStatus; 4],
+    pub teams: ImmutableTeams,
+    pub deck: Deck,
 }
 
 impl From<PrivateGrandTichu> for PublicGrandTichu {
@@ -435,9 +435,88 @@ impl PrivateGameState {
                                     }
                                 });
 
+                            // create undecided Grand Tichu statuses
+                            let grand_tichus = [
+                                UserIdWithTichuCallStatus {
+                                    user_id: new_game_state
+                                        .participants
+                                        .get(0)
+                                        .unwrap()
+                                        .user_id
+                                        .clone(),
+                                    tichu_call_status: TichuCallStatus::Undecided,
+                                },
+                                UserIdWithTichuCallStatus {
+                                    user_id: new_game_state
+                                        .participants
+                                        .get(1)
+                                        .unwrap()
+                                        .user_id
+                                        .clone(),
+                                    tichu_call_status: TichuCallStatus::Undecided,
+                                },
+                                UserIdWithTichuCallStatus {
+                                    user_id: new_game_state
+                                        .participants
+                                        .get(2)
+                                        .unwrap()
+                                        .user_id
+                                        .clone(),
+                                    tichu_call_status: TichuCallStatus::Undecided,
+                                },
+                                UserIdWithTichuCallStatus {
+                                    user_id: new_game_state
+                                        .participants
+                                        .get(3)
+                                        .unwrap()
+                                        .user_id
+                                        .clone(),
+                                    tichu_call_status: TichuCallStatus::Undecided,
+                                },
+                            ];
+                            // create undecided Small Tichu statuses
+                            let small_tichus = [
+                                UserIdWithTichuCallStatus {
+                                    user_id: new_game_state
+                                        .participants
+                                        .get(0)
+                                        .unwrap()
+                                        .user_id
+                                        .clone(),
+                                    tichu_call_status: TichuCallStatus::Undecided,
+                                },
+                                UserIdWithTichuCallStatus {
+                                    user_id: new_game_state
+                                        .participants
+                                        .get(1)
+                                        .unwrap()
+                                        .user_id
+                                        .clone(),
+                                    tichu_call_status: TichuCallStatus::Undecided,
+                                },
+                                UserIdWithTichuCallStatus {
+                                    user_id: new_game_state
+                                        .participants
+                                        .get(2)
+                                        .unwrap()
+                                        .user_id
+                                        .clone(),
+                                    tichu_call_status: TichuCallStatus::Undecided,
+                                },
+                                UserIdWithTichuCallStatus {
+                                    user_id: new_game_state
+                                        .participants
+                                        .get(3)
+                                        .unwrap()
+                                        .user_id
+                                        .clone(),
+                                    tichu_call_status: TichuCallStatus::Undecided,
+                                },
+                            ];
+
                             let grand_tichu_game_state = PrivateGrandTichu {
-                                grand_tichus: Vec::new(),
-                                small_tichus: Vec::new(),
+                                grand_tichus,
+                                small_tichus,
                                 teams: [team_0, team_1],
                                 deck,
                             };
@@ -472,6 +551,44 @@ impl PrivateGameState {
                 new_game_state
             }
         }
+    }
+
+    pub fn call_grand_tichu(&self, user_id: &str) -> PrivateGameState {
+        let mut new_game_state = self.clone();
+
+        // game stage must be GrandTichu
+        match &mut new_game_state.stage {
+            PrivateGameStage::PrivateGrandTichu(grand_tichu_state) => {
+                let i = grand_tichu_state
+                    .grand_tichus
+                    .iter()
+                    .position(|user_call_status| *user_call_status.user_id == *user_id);
+                match i {
+                    None => {
+                        eprintln!("Couldn't find user's call status in GrandTichu call stage. Ignoring request to call Grand Tichu from user {}", user_id);
+                        return new_game_state;
+                    }
+                    Some(i) => {
+                        let grand_tichus = &mut grand_tichu_state.grand_tichus;
+                        let user_call_status = &grand_tichus[i];
+                        if user_call_status.tichu_call_status != TichuCallStatus::Undecided {
+                            eprintln!("User has already declared or declined Grand Tichu. Ignoring request to call Grand Tichu from user {}", user_id);
+                            return new_game_state;
+                        }
+                        grand_tichus[i] = UserIdWithTichuCallStatus {
+                            user_id: user_id.to_string(),
+                            tichu_call_status: TichuCallStatus::Called,
+                        };
+                    }
+                }
+            }
+            _ => {
+                eprintln!("Can't call Grand Tichu when game stage is not GrandTichu. Ignoring request from user {}", user_id);
+                return new_game_state;
+            }
+        }
+
+        new_game_state
     }
 }
 
@@ -778,7 +895,7 @@ pub enum STCMsg {
     /// For now, this can only occur in the lobby.
     UserLeft(String),
     SmallTichuCalled,
-    GrandTichuCalled,
+    GrandTichuCalled(String),
 
     /// deal first 9 cards
     DealFinalCards,

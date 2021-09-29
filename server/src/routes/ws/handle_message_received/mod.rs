@@ -1,3 +1,4 @@
+mod call_grand_tichu;
 mod create_game;
 mod join_game_with_game_code;
 mod leave_game;
@@ -8,6 +9,7 @@ mod rename_team;
 mod start_grand_tichu;
 mod test;
 
+use call_grand_tichu::call_grand_tichu;
 use create_game::create_game;
 use join_game_with_game_code::join_game_with_game_code;
 use leave_game::leave_game;
@@ -82,6 +84,9 @@ pub async fn handle_message_received(
         }
         CTSMsg::StartGrandTichu => {
             start_grand_tichu(&user_id, &connections, &games, &game_codes).await;
+        }
+        CTSMsg::CallGrandTichu => {
+            call_grand_tichu(&user_id, &connections, &games, &game_codes).await;
         }
         any_other_message => {
             eprintln!("Unexpected message received: {:?}", any_other_message);

@@ -728,6 +728,7 @@ impl App {
                 STCMsg::UserMovedToTeamA(_) => {}
                 STCMsg::UserMovedToTeamB(_) => {}
                 STCMsg::GameStageChanged(_) => {}
+                STCMsg::GrandTichuCalled(_) => {}
                 _ => warn!("Unexpected websocket message received {:#?}", data),
             },
         }
