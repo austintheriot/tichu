@@ -17,6 +17,7 @@ IDEAS:
 
 MUST HAVES:
 - Deck should not be sent in game state to other participants. This will require distinguishing between public and private states for various Game Stages.
+- Minimize .expect() errors (see example in call_grand_tichu.rs for better match expressions)
 
 NICE TO HAVES:
 - DRY up code around moving between Team A/B & renaming Team A/B
