@@ -16,10 +16,10 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 MUST HAVES:
-- Deck should not be sent in game state to other participants. This will require distinguishing between public and private states for various Game Stages.
 - Minimize .expect() errors (see example in call_grand_tichu.rs for better match expressions)
 
 NICE TO HAVES:
+- Apply only Arc to HashMap, but apply Arc and Mutex to each individual game state, etc. that way users are not locked from reading from the hashmaps
 - DRY up code around moving between Team A/B & renaming Team A/B
 - Implement info routes: get current state of server: Connections, GameState, GameCodes
 - Send WS messages concurrently? Especially when sending to group?

@@ -9,7 +9,7 @@ use bincode;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
     validate_team_name, CTSMsg, CreateGame, JoinGameWithGameCode, MutableTeam, PublicGameStage,
-    PublicGameState, PublicUser, RenameTeam, STCMsg, TeamOption, NO_USER_ID,
+    PublicGameState, PublicUser, RenameTeam, STCMsg, TeamOption, TichuCallStatus, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -424,6 +424,48 @@ impl App {
         }
     }
 
+    fn view_debug_grand_tichu_for_user(&self, user_id: &str) -> Html {
+        let grand_tichu_call_status = match &self.state.game_state {
+            Some(game_state) => match &game_state.stage {
+                PublicGameStage::PublicGrandTichu(grand_tichu_state) => {
+                    match grand_tichu_state.grand_tichus.iter().find(
+                        |user_id_with_tichu_call_status| {
+                            *user_id_with_tichu_call_status.user_id == *user_id
+                        },
+                    ) {
+                        Some(user_id_with_tichu_call_status) => {
+                            match user_id_with_tichu_call_status.tichu_call_status {
+                                TichuCallStatus::Undecided => "Undecided",
+                                TichuCallStatus::Called => "Called",
+                                TichuCallStatus::Declined => "Declined",
+                                TichuCallStatus::Achieved => "Achieved",
+                                TichuCallStatus::Failed => "Failed",
+                            }
+                        }
+                        None => "n/a",
+                    }
+                }
+                _ => "n/a",
+            },
+            None => "n/a",
+        };
+        html! {
+            <p> { &format!("Grand Tichu Call Status for {} ----- ", user_id)} {grand_tichu_call_status} { "\n" }</p>
+        }
+    }
+
+    fn view_debug_all_participants_grand_tichu(&self) -> Html {
+        match &self.state.game_state {
+            Some(game_state) => html! {{
+            for game_state
+                .participants
+                .iter()
+                .map(|user| self.view_debug_grand_tichu_for_user(&user.user_id))
+            }},
+            None => html! {<> </>},
+        }
+    }
+
     fn view_debug(&self) -> Html {
         html! {
             <>
@@ -444,6 +486,7 @@ impl App {
                 <p> { "Participants: " } { self.view_participants() } </p>
                 <p> { "Owner: " } { self.debug_owner() } </p>
                 <p> { "Teams: " } { self.debug_teams() } </p>
+                { self.view_debug_all_participants_grand_tichu() }
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
                 <br />
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{ "Send ping to server" }</button>
