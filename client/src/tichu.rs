@@ -320,7 +320,7 @@ impl App {
                 (true, false)
             };
 
-        return !has_played_first_card && undecided_about_small_tichu && game_stage_is_active;
+        !has_played_first_card && undecided_about_small_tichu && game_stage_is_active
     }
 
     fn is_team_stage(&self) -> bool {
