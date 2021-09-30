@@ -85,8 +85,15 @@ pub async fn handle_message_received(
         CTSMsg::StartGrandTichu => {
             start_grand_tichu(&user_id, &connections, &games, &game_codes).await;
         }
-        CTSMsg::CallGrandTichu => {
-            call_grand_tichu(&user_id, &connections, &games, &game_codes).await;
+        CTSMsg::CallGrandTichu(call_grand_tichu_request) => {
+            call_grand_tichu(
+                &call_grand_tichu_request,
+                &user_id,
+                &connections,
+                &games,
+                &game_codes,
+            )
+            .await;
         }
         any_other_message => {
             eprintln!("Unexpected message received: {:?}", any_other_message);

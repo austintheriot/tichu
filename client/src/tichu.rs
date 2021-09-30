@@ -8,8 +8,9 @@ use anyhow::Error;
 use bincode;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
-    validate_team_name, CTSMsg, CreateGame, JoinGameWithGameCode, MutableTeam, PublicGameStage,
-    PublicGameState, PublicUser, RenameTeam, STCMsg, TeamOption, TichuCallStatus, NO_USER_ID,
+    validate_team_name, CTSMsg, CallGrandTichuRequest, CreateGame, JoinGameWithGameCode,
+    MutableTeam, PublicGameStage, PublicGameState, PublicUser, RenameTeam, STCMsg, TeamOption,
+    TichuCallStatus, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -674,11 +675,11 @@ impl App {
             <>
                 <h1> { "Grand Tichu" } </h1>
                 <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu)})
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Call))})
                     disabled=!self.can_call_or_decline_grand_tichu()
                 > { "Call Grand Tichu" } </button>
                 <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::DeclineGrandTichu)})
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Decline))})
                     disabled=!self.can_call_or_decline_grand_tichu()
                 > { "Decline Grand Tichu" } </button>
                 <button
@@ -771,7 +772,7 @@ impl App {
                 STCMsg::UserMovedToTeamA(_) => {}
                 STCMsg::UserMovedToTeamB(_) => {}
                 STCMsg::GameStageChanged(_) => {}
-                STCMsg::GrandTichuCalled(_) => {}
+                STCMsg::GrandTichuCalled(_, _) => {}
                 _ => warn!("Unexpected websocket message received {:#?}", data),
             },
         }
@@ -898,20 +899,12 @@ impl App {
                 self._send_ws_message(&CTSMsg::StartGrandTichu);
                 false
             }
-            CTSMsgInternal::CallGrandTichu => {
+            CTSMsgInternal::CallGrandTichu(call_grand_tichu_request) => {
                 if !self.can_call_or_decline_grand_tichu() {
                     return false;
                 }
 
-                self._send_ws_message(&CTSMsg::CallGrandTichu);
-                true
-            }
-            CTSMsgInternal::DeclineGrandTichu => {
-                if !self.can_call_or_decline_grand_tichu() {
-                    return false;
-                }
-
-                self._send_ws_message(&CTSMsg::DeclineGrandTichu);
+                self._send_ws_message(&CTSMsg::CallGrandTichu(call_grand_tichu_request));
                 true
             }
             CTSMsgInternal::CallSmallTichu => {

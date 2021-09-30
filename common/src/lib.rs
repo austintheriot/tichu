@@ -553,7 +553,11 @@ impl PrivateGameState {
         }
     }
 
-    pub fn call_grand_tichu(&self, user_id: &str) -> PrivateGameState {
+    pub fn call_grand_tichu(
+        &self,
+        call_grand_tichu_request: &CallGrandTichuRequest,
+        user_id: &str,
+    ) -> PrivateGameState {
         let mut new_game_state = self.clone();
 
         // game stage must be GrandTichu
@@ -577,7 +581,10 @@ impl PrivateGameState {
                         }
                         grand_tichus[i] = UserIdWithTichuCallStatus {
                             user_id: user_id.to_string(),
-                            tichu_call_status: TichuCallStatus::Called,
+                            tichu_call_status: match call_grand_tichu_request {
+                                CallGrandTichuRequest::Call => TichuCallStatus::Called,
+                                CallGrandTichuRequest::Decline => TichuCallStatus::Declined,
+                            },
                         };
                     }
                 }
@@ -834,6 +841,12 @@ pub struct RenameTeam {
     pub team_name: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub enum CallGrandTichuRequest {
+    Call,
+    Decline,
+}
+
 /// Client to Server Websocket Messages
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum CTSMsg {
@@ -852,8 +865,7 @@ pub enum CTSMsg {
     /// Move from Teams stage to Grand Tichu stage
     StartGrandTichu,
 
-    CallGrandTichu,
-    DeclineGrandTichu,
+    CallGrandTichu(CallGrandTichuRequest),
     CallSmallTichu,
 
     SubmitTrade(SubmitTrade),
@@ -895,7 +907,7 @@ pub enum STCMsg {
     /// For now, this can only occur in the lobby.
     UserLeft(String),
     SmallTichuCalled,
-    GrandTichuCalled(String),
+    GrandTichuCalled(String, CallGrandTichuRequest),
 
     /// deal first 9 cards
     DealFinalCards,

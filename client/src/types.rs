@@ -1,4 +1,4 @@
-use common::TeamOption;
+use common::{CallGrandTichuRequest, TeamOption};
 use serde::{Deserialize, Serialize};
 
 /// Internal Tichu-client message for alerting that it's time to send a websocket message
@@ -17,8 +17,7 @@ pub enum CTSMsgInternal {
     SubmitTrade,
     PlayCards,
     GiveDragon,
-    CallGrandTichu,
-    DeclineGrandTichu,
+    CallGrandTichu(CallGrandTichuRequest),
     CallSmallTichu,
 
     Ping,

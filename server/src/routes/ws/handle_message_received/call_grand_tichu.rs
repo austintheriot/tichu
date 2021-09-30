@@ -1,7 +1,8 @@
 use crate::{routes::ws::send_ws_message, Connections, GameCodes, Games};
-use common::{PrivateGameStage, STCMsg, TichuCallStatus};
+use common::{CallGrandTichuRequest, PrivateGameStage, STCMsg, TichuCallStatus};
 
 pub async fn call_grand_tichu(
+    call_grand_tichu_request: &CallGrandTichuRequest,
     user_id: &str,
     connections: &Connections,
     games: &Games,
@@ -55,7 +56,7 @@ pub async fn call_grand_tichu(
     }
 
     // update game state
-    let new_game_state = game_state.call_grand_tichu(user_id);
+    let new_game_state = game_state.call_grand_tichu(call_grand_tichu_request, user_id);
     *game_state = new_game_state.clone();
 
     drop(write_games);
@@ -63,7 +64,7 @@ pub async fn call_grand_tichu(
     // send GrandTichuCalled
     send_ws_message::to_group(
         &game_id,
-        STCMsg::GrandTichuCalled(user_id.to_string()),
+        STCMsg::GrandTichuCalled(user_id.to_string(), call_grand_tichu_request.clone()),
         connections,
         games,
         game_codes,
