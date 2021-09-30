@@ -548,6 +548,7 @@ impl App {
                 <p> { "Owner: " } { self.debug_owner() } </p>
                 <p> { "Teams: " } { self.debug_teams() } </p>
                 { self.view_debug_all_participants_grand_tichu() }
+                <br />
                 { self.view_debug_all_participants_small_tichu() }
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
                 <br />
