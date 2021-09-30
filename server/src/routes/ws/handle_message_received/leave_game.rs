@@ -66,10 +66,10 @@ pub async fn leave_game(
                 // if owner leaves in lobby, assign ownership to next participant
                 eprintln!("Reassigning owner role to a different user");
                 owner_reassigned = true;
-                game_state_clone.remove_user(&user_id).reassign_owner()
+                game_state_clone.remove_user(user_id).reassign_owner()
             } else {
                 // if not the owner, just remove from state
-                game_state_clone.remove_user(&user_id)
+                game_state_clone.remove_user(user_id)
             };
             *write_games
                 .get_mut(&game_id_clone)
@@ -118,14 +118,13 @@ pub async fn leave_game(
             .await;
 
             // send a None game state to current user
-            send_ws_message::to_user(&user_id, STCMsg::GameState(None), connections).await;
+            send_ws_message::to_user(user_id, STCMsg::GameState(Box::new(None)), connections).await;
         } else {
             // user not in lobby: can't leave
             eprintln!(
                 "User {} can't leave game since user is not in lobby",
                 user_id
             );
-            return;
         }
     } else {
         // no other users left in game: delete game but keep user connection
@@ -148,6 +147,6 @@ pub async fn leave_game(
         drop(write_game_codes);
 
         // send a None game state to current user
-        send_ws_message::to_user(&user_id, STCMsg::GameState(None), connections).await;
+        send_ws_message::to_user(user_id, STCMsg::GameState(Box::new(None)), connections).await;
     }
 }

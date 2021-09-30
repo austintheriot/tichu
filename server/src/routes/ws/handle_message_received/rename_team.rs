@@ -44,8 +44,7 @@ pub async fn rename_team(
             if opposite_team
                 .user_ids
                 .iter()
-                .find(|participant_id| **participant_id == user_id)
-                .is_some()
+                .any(|participant_id| **participant_id == *user_id)
             {
                 eprintln!(
                     "User {} is not on the team they want to rename ({:?}). Ignoring request to rename team",
@@ -71,7 +70,7 @@ pub async fn rename_team(
     );
 
     // update game state
-    let new_game_state = prev_game_state.rename_team(team_to_rename, &user_id, &new_team_name);
+    let new_game_state = prev_game_state.rename_team(team_to_rename, user_id, &new_team_name);
     *write_games
         .get_mut(&game_id_clone)
         .expect(GAME_ID_NOT_IN_MAP) = new_game_state.clone();

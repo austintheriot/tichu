@@ -34,16 +34,15 @@ pub async fn move_to_team(
     let prev_game_state = write_games.get(&game_id_clone).expect(GAME_ID_NOT_IN_MAP);
     match &prev_game_state.stage {
         PrivateGameStage::Teams(teams_state) => {
-            let team = match &team_to_move_to {
-                &TeamOption::TeamA => &teams_state[0],
-                &TeamOption::TeamB => &teams_state[1],
+            let team = match team_to_move_to {
+                TeamOption::TeamA => &teams_state[0],
+                TeamOption::TeamB => &teams_state[1],
             };
             // if user is already on the team they want to move to, ignore request
             if team
                 .user_ids
                 .iter()
-                .find(|participant_id| **participant_id == user_id)
-                .is_some()
+                .any(|participant_id| **participant_id == *user_id)
             {
                 eprintln!(
                     "User {} is already on team {:?}. Ignoring request",
@@ -65,16 +64,16 @@ pub async fn move_to_team(
     eprintln!("Moving user {} to team A", &user_id);
 
     // update game state
-    let new_game_state = prev_game_state.move_to_team(&team_to_move_to, &user_id);
+    let new_game_state = prev_game_state.move_to_team(team_to_move_to, user_id);
     *write_games
         .get_mut(&game_id_clone)
         .expect(GAME_ID_NOT_IN_MAP) = new_game_state.clone();
     drop(write_games);
 
     // send moved teams event
-    let moved_teams_event = match team_to_move_to {
-        &TeamOption::TeamA => STCMsg::UserMovedToTeamA(user_id.to_string()),
-        &TeamOption::TeamB => STCMsg::UserMovedToTeamB(user_id.to_string()),
+    let moved_teams_event = match *team_to_move_to {
+        TeamOption::TeamA => STCMsg::UserMovedToTeamA(user_id.to_string()),
+        TeamOption::TeamB => STCMsg::UserMovedToTeamB(user_id.to_string()),
     };
     send_ws_message::to_group(
         &game_id_clone,

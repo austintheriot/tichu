@@ -28,16 +28,16 @@ use warp::ws::Message;
 pub async fn handle_message_received(
     user_id: String,
     msg: Message,
-    connections: &Connections,
-    games: &Games,
-    game_codes: &GameCodes,
+    connections: Connections,
+    games: Games,
+    game_codes: GameCodes,
 ) {
     if !msg.is_binary() {
         eprintln!("Text websocket message received: {:?}", &msg);
         return;
     }
 
-    let msg: CTSMsg = bincode::deserialize(&msg.as_bytes()).expect("Could not serialize message");
+    let msg: CTSMsg = bincode::deserialize(msg.as_bytes()).expect("Could not serialize message");
 
     match msg {
         CTSMsg::Test(_) => {
@@ -50,14 +50,14 @@ pub async fn handle_message_received(
             pong(&user_id, &connections).await;
         }
         CTSMsg::CreateGame(create_game_data) => {
-            create_game(create_game_data, &connections, &games, &game_codes).await;
+            create_game(create_game_data, connections, &games, &game_codes).await;
         }
         CTSMsg::JoinGameWithGameCode(join_game_with_game_code_data) => {
             join_game_with_game_code(
                 join_game_with_game_code_data,
-                &connections,
-                &games,
-                &game_codes,
+                connections,
+                games,
+                game_codes,
             )
             .await;
         }

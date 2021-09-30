@@ -113,34 +113,31 @@ pub async fn handle_ws_upgrade(
 
     // this user is already saved in Connections
     if is_a_returning_user {
-        match game_id {
-            Some(game_id) => {
-                // notify other participants (if any) that the user reconnected
-                send_ws_message::to_group(
-                    &game_id,
-                    STCMsg::UserReconnected(user_id.to_string()),
-                    &connections,
-                    &games,
-                    &game_codes,
-                )
-                .await;
+        if let Some(game_id) = game_id {
+            // notify other participants (if any) that the user reconnected
+            send_ws_message::to_group(
+                &game_id,
+                STCMsg::UserReconnected(user_id.to_string()),
+                &connections,
+                &games,
+                &game_codes,
+            )
+            .await;
 
-                // if user is associated with a game_id, send the new participant a state update
-                let read_games = games.read().await;
-                let game_state = read_games.get(&game_id).expect(GAME_ID_NOT_IN_MAP).clone();
-                drop(read_games);
-                send_ws_message::to_user(
-                    &user_id,
-                    STCMsg::GameState(game_state.to_public_game_state(&user_id)),
-                    &connections,
-                )
-                .await;
-            }
-            _ => {}
+            // if user is associated with a game_id, send the new participant a state update
+            let read_games = games.read().await;
+            let game_state = read_games.get(&game_id).expect(GAME_ID_NOT_IN_MAP).clone();
+            drop(read_games);
+            send_ws_message::to_user(
+                &user_id,
+                STCMsg::GameState(Box::new(game_state.to_public_game_state(&user_id))),
+                &connections,
+            )
+            .await;
         }
     } else {
         // send them a None state update to clear any lingering local state
-        send_ws_message::to_user(&user_id, STCMsg::GameState(None), &connections).await;
+        send_ws_message::to_user(&user_id, STCMsg::GameState(Box::new(None)), &connections).await;
     }
 
     // Listen for incoming messages
@@ -152,7 +149,14 @@ pub async fn handle_ws_upgrade(
                 break;
             }
         };
-        handle_message_received(user_id.clone(), msg, &connections, &games, &game_codes).await;
+        handle_message_received(
+            user_id.clone(),
+            msg,
+            Arc::clone(&connections),
+            Arc::clone(&games),
+            Arc::clone(&game_codes),
+        )
+        .await;
     }
 
     // handle if user disconnects

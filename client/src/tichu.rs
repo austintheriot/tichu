@@ -1,11 +1,9 @@
-use std::mem::discriminant;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::types::CTSMsgInternal;
 use anyhow::Error;
-use bincode;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
     validate_team_name, CTSMsg, CallGrandTichuRequest, CreateGame, JoinGameWithGameCode,
@@ -113,7 +111,7 @@ impl Component for App {
             ws_connection_status: WSConnectionStatus::NotConnected,
             user_id,
             display_name: display_name.clone(),
-            display_name_input: display_name.clone(),
+            display_name_input: display_name,
             game_state: None,
             join_room_game_code_input: "".into(),
             is_alive: false,
@@ -124,7 +122,7 @@ impl Component for App {
             interval_task: None,
             ws: None,
             storage,
-            link: link,
+            link,
             state,
         }
     }
@@ -147,9 +145,7 @@ impl Component for App {
             }
             AppMsg::ConnectToWS => {
                 info!("Connecting to websocket...");
-                let handle_ws_receive_data = self
-                    .link
-                    .callback(|data: Result<Vec<u8>, Error>| AppMsg::WSMsgReceived(data));
+                let handle_ws_receive_data = self.link.callback(AppMsg::WSMsgReceived);
                 let handle_ws_update_status = self.link.callback(|ws_status| {
                     info!("Websocket status: {:?}", ws_status);
                     match ws_status {
@@ -184,17 +180,12 @@ impl Component for App {
                     Callback::Callback(Rc::new(|_| {
                         let app_reference_guard =
                             APP_REFERENCE.ptr.lock().expect(APP_REFERENCE_MUTEX_ERROR);
-                        match *app_reference_guard {
-                            // It is unsafe to dereference raw pointer, but the pointer
-                            // should be valid as long as the App component is mounted.
-                            // The biggest risk here is trying to send a message while the
-                            // app is being mutated by some other message.
-                            Some(app) => unsafe {
+                        if let Some(app) = *app_reference_guard {
+                            unsafe {
                                 (*app)
                                     .link
                                     .send_message(AppMsg::SendWSMsg(CTSMsgInternal::Ping));
-                            },
-                            None => {}
+                            }
                         }
                     })),
                 );
@@ -242,8 +233,7 @@ impl Component for App {
     fn destroy(&mut self) {
         // clean up static reference to app
         let mut app_reference_guard = APP_REFERENCE.ptr.lock().expect(APP_REFERENCE_MUTEX_ERROR);
-        let app_reference = app_reference_guard.take();
-        drop(app_reference);
+        app_reference_guard.take();
     }
 
     fn view(&self) -> Html {
@@ -284,29 +274,23 @@ impl App {
     fn can_leave_game(&self) -> bool {
         self.ws.is_some()
             && self.state.game_state.is_some()
-            && match self.state.game_state.as_ref().unwrap().stage {
-                PublicGameStage::Lobby => true,
-                _ => false,
-            }
+            && matches!(
+                self.state.game_state.as_ref().unwrap().stage,
+                PublicGameStage::Lobby
+            )
     }
 
     fn can_call_or_decline_grand_tichu(&self) -> bool {
-        match &self.state.game_state {
-            Some(game_state) => match &game_state.stage {
-                PublicGameStage::PublicGrandTichu(_) => true,
-                _ => false,
-            },
-            None => false,
-        }
+        matches!(
+            self.state.game_state.as_ref().unwrap().stage,
+            PublicGameStage::PublicGrandTichu(_)
+        )
     }
 
     fn is_team_stage(&self) -> bool {
         match &self.state.game_state {
             None => false,
-            Some(game_state) => match &game_state.stage {
-                PublicGameStage::Teams(_) => true,
-                _ => false,
-            },
+            Some(game_state) => matches!(&game_state.stage, PublicGameStage::Teams(_)),
         }
     }
 
@@ -317,8 +301,7 @@ impl App {
                 PublicGameStage::Teams(teams) => teams[0]
                     .user_ids
                     .iter()
-                    .find(|participant_id| **participant_id == self.state.user_id)
-                    .is_some(),
+                    .any(|participant_id| **participant_id == *self.state.user_id),
                 _ => false,
             },
         }
@@ -331,8 +314,7 @@ impl App {
                 PublicGameStage::Teams(teams) => teams[1]
                     .user_ids
                     .iter()
-                    .find(|participant_id| **participant_id == self.state.user_id)
-                    .is_some(),
+                    .any(|participant_id| **participant_id == *self.state.user_id),
                 _ => false,
             },
         }
@@ -578,16 +560,12 @@ impl App {
     fn can_start_game(&self) -> bool {
         let current_user_is_owner = self.is_current_user_owner();
         let mut teams_are_ready = false;
-        match &self.state.game_state {
-            None => {}
-            Some(game_state) => match &game_state.stage {
-                PublicGameStage::Teams(teams_state) => {
-                    if teams_state[0].user_ids.len() == 2 && teams_state[1].user_ids.len() == 2 {
-                        teams_are_ready = true;
-                    }
+        if let Some(game_state) = &self.state.game_state {
+            if let PublicGameStage::Teams(teams_state) = &game_state.stage {
+                if teams_state[0].user_ids.len() == 2 && teams_state[1].user_ids.len() == 2 {
+                    teams_are_ready = true;
                 }
-                _ => {}
-            },
+            }
         }
         current_user_is_owner && teams_are_ready
     }
@@ -715,34 +693,34 @@ impl App {
                 }
                 STCMsg::GameState(new_game_state) => {
                     // if team names are empty, update team name inputs to reflect state
-                    if self.state.team_a_name_input.len() == 0
-                        || self.state.team_b_name_input.len() == 0
+                    if self.state.team_a_name_input.is_empty()
+                        || self.state.team_b_name_input.is_empty()
                     {
-                        match &new_game_state {
-                            Some(new_game_state) => match &new_game_state.stage {
-                                PublicGameStage::Teams(teams_state) => {
-                                    self.link.send_message_batch(vec![
-                                        AppMsg::SetTeamANameInput(teams_state[0].team_name.clone()),
-                                        AppMsg::SetTeamBNameInput(teams_state[1].team_name.clone()),
-                                    ])
-                                }
-                                _ => {}
-                            },
-                            None => {}
+                        if let Some(new_game_state) = &*new_game_state {
+                            if let PublicGameStage::Teams(teams_state) = &new_game_state.stage {
+                                self.link.send_message_batch(vec![
+                                    AppMsg::SetTeamANameInput(
+                                        (*teams_state[0].team_name).to_string(),
+                                    ),
+                                    AppMsg::SetTeamBNameInput(
+                                        (*teams_state[1].team_name).to_string(),
+                                    ),
+                                ])
+                            }
                         }
                     }
 
                     // save display name input to state/localStorage
-                    match &new_game_state {
+                    match &*new_game_state {
                         None => {}
                         Some(new_game_state) => {
                             self.link.send_message(AppMsg::SetDisplayName(
-                                new_game_state.current_user.display_name.clone(),
+                                (*new_game_state.current_user.display_name).to_string(),
                             ));
                         }
                     }
 
-                    self.state.game_state = new_game_state;
+                    self.state.game_state = *new_game_state;
                     should_rerender = true;
                 }
                 STCMsg::UnexpectedMessageReceived(s) => {
@@ -801,11 +779,10 @@ impl App {
                     drop(ws);
                 }
 
+                self.state.is_alive = false;
                 if should_reconnect {
-                    self.state.is_alive = false;
                     self.link.send_message(AppMsg::ConnectToWS);
                 } else {
-                    self.state.is_alive = false;
                     self._send_ws_message(&CTSMsg::Ping);
                 }
                 false
@@ -867,7 +844,7 @@ impl App {
                 };
 
                 // if team name input is empty on blur, replace with existing state and do not try to update on server
-                if team_name_input_clone.len() == 0 {
+                if team_name_input_clone.is_empty() {
                     let existing_team_name = match &self.state.game_state.as_ref().unwrap().stage {
                         PublicGameStage::Teams(teams_state) => {
                             teams_state[team_index].team_name.clone()

@@ -4,7 +4,7 @@ use common::{validate_display_name, CreateGame, GameCreated, PrivateGameState, S
 
 pub async fn create_game(
     create_game_data: CreateGame,
-    connections: &Connections,
+    connections: Connections,
     games: &Games,
     game_codes: &GameCodes,
 ) {
@@ -66,7 +66,7 @@ pub async fn create_game(
     // Updated Game State
     send_ws_message::to_user(
         &user_id,
-        STCMsg::GameState(game_state.to_public_game_state(&user_id)),
+        STCMsg::GameState(Box::new(game_state.to_public_game_state(&user_id))),
         &connections,
     )
     .await;

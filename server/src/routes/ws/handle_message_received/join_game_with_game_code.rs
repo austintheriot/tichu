@@ -8,9 +8,9 @@ use crate::{
 
 pub async fn join_game_with_game_code(
     join_game_with_game_code_data: JoinGameWithGameCode,
-    connections: &Connections,
-    games: &Games,
-    game_codes: &GameCodes,
+    connections: Connections,
+    games: Games,
+    game_codes: GameCodes,
 ) {
     let JoinGameWithGameCode {
         user_id,

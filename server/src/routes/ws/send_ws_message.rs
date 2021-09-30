@@ -8,7 +8,7 @@ use warp::ws::Message;
 /// Ensures that each user receives a version of the state that only THEY are allowed to see.
 /// I.e. each user can see everything in the state except for the other user's cards, etc.
 pub async fn game_state_to_group(
-    game_id: &String,
+    game_id: &str,
     private_game_state: &PrivateGameState,
     connections: &Connections,
     games: &Games,
@@ -19,7 +19,7 @@ pub async fn game_state_to_group(
     for participant in game.participants.iter() {
         // format state for this user
         let public_game_state = private_game_state.to_public_game_state(&participant.user_id);
-        let msg = bincode::serialize(&STCMsg::GameState(public_game_state))
+        let msg = bincode::serialize(&STCMsg::GameState(Box::new(public_game_state)))
             .expect("Could not serialize message");
         let msg = Message::binary(msg);
 
@@ -37,7 +37,7 @@ pub async fn game_state_to_group(
 
 /// Sends any server-to-client websocket message to all participants in the game represented by the given game_id.
 pub async fn to_group(
-    game_id: &String,
+    game_id: &str,
     stc_msg: STCMsg,
     connections: &Connections,
     games: &Games,

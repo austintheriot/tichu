@@ -8,7 +8,7 @@ use crate::{
 
 /// When a user disconnects, clean up their connection state and any game state their associated with.
 pub async fn cleanup_state_after_disconnect(
-    user_id: &String,
+    user_id: &str,
     connections: &Connections,
     games: &Games,
     game_codes: &GameCodes,
@@ -36,7 +36,7 @@ pub async fn cleanup_state_after_disconnect(
             // check if any other participants are still connected
             let mut any_other_user_is_still_in_game = false;
             for participant in participants_clone.iter() {
-                if &participant.user_id != user_id {
+                if participant.user_id != user_id {
                     let participant_connection = write_connections
                         .get(&participant.user_id)
                         .expect(USER_ID_NOT_IN_MAP);
