@@ -107,7 +107,7 @@ impl From<PrivateGrandTichu> for PublicGrandTichu {
         PublicGrandTichu {
             grand_tichus: item.grand_tichus.clone(),
             small_tichus: item.small_tichus.clone(),
-            teams: item.teams.clone(),
+            teams: item.teams,
         }
     }
 }
@@ -116,7 +116,7 @@ impl From<PrivateGrandTichu> for PublicGrandTichu {
 pub enum PrivateGameStage {
     Lobby,
     Teams(MutableTeams),
-    PrivateGrandTichu(PrivateGrandTichu),
+    PrivateGrandTichu(Box<PrivateGrandTichu>),
     Trade,
     Game,
     Scoreboard,
@@ -126,7 +126,7 @@ pub enum PrivateGameStage {
 pub enum PublicGameStage {
     Lobby,
     Teams(MutableTeams),
-    PublicGrandTichu(PublicGrandTichu),
+    PublicGrandTichu(Box<PublicGrandTichu>),
     Trade,
     Game,
     Scoreboard,
@@ -138,7 +138,7 @@ impl From<PrivateGameStage> for PublicGameStage {
             PrivateGameStage::Lobby => PublicGameStage::Lobby,
             PrivateGameStage::Teams(teams_state) => PublicGameStage::Teams(teams_state),
             PrivateGameStage::PrivateGrandTichu(private_grand_tichu) => {
-                Self::PublicGrandTichu(private_grand_tichu.into())
+                Self::PublicGrandTichu(Box::new((*private_grand_tichu).into()))
             }
             PrivateGameStage::Trade => PublicGameStage::Trade,
             PrivateGameStage::Game => PublicGameStage::Game,
@@ -181,29 +181,25 @@ impl PrivateGameState {
         existing_game_codes: &HashMap<String, String>,
     ) -> PrivateGameState {
         let owner_user = PrivateUser {
-            display_name: owner_display_name.clone(),
+            display_name: owner_display_name,
             user_id: owner_id.clone(),
             role: UserRole::Owner,
             tricks: vec![],
             hand: vec![],
         };
-        let first_game_state = PrivateGameState {
+        PrivateGameState {
             game_id: Uuid::new_v4().to_string(),
             game_code: get_new_game_code(existing_game_codes),
             stage: PrivateGameStage::Lobby,
             participants: vec![owner_user],
-            owner_id: owner_id.clone(),
-        };
-        first_game_state
+            owner_id,
+        }
     }
 
     pub fn add_user(&self, user_id: String, display_name: String) -> PrivateGameState {
         let current_participants = self.participants.len();
         let game_has_max_participants = current_participants == 4;
-        let is_lobby = match self.stage {
-            PrivateGameStage::Lobby => true,
-            _ => false,
-        };
+        let is_lobby = matches!(self.stage, PrivateGameStage::Lobby);
 
         // don't add any more than 4 users at a time
         if !is_lobby || game_has_max_participants {
@@ -330,14 +326,11 @@ impl PrivateGameState {
                     TeamOption::TeamA => &teams[0],
                     TeamOption::TeamB => &teams[1],
                 };
-                if new_team
+                if !new_team
                     .user_ids
                     .iter()
-                    .find(|user_id| **user_id == current_user_id)
-                    .is_some()
+                    .any(|user_id| **user_id == *current_user_id)
                 {
-                    return new_state;
-                } else {
                     // remove user from team they were on before
                     let prev_team = match team_to_move_to {
                         TeamOption::TeamA => &mut teams[1],
@@ -353,8 +346,8 @@ impl PrivateGameState {
                         TeamOption::TeamB => &mut teams[1],
                     };
                     new_team.user_ids.push(current_user_id.to_string());
-                    new_state
                 }
+                new_state
             }
             // game stage is not teams, can't move teams
             _ => new_state,
@@ -375,22 +368,19 @@ impl PrivateGameState {
                     TeamOption::TeamA => &teams[1],
                     TeamOption::TeamB => &teams[0],
                 };
-                if opposite_team
+                if !opposite_team
                     .user_ids
                     .iter()
-                    .find(|user_id| **user_id == current_user_id)
-                    .is_some()
+                    .any(|user_id| **user_id == *current_user_id)
                 {
-                    return new_state;
-                } else {
                     // rename intended team
                     let team_to_rename = match team_to_rename {
                         TeamOption::TeamA => &mut teams[0],
                         TeamOption::TeamB => &mut teams[1],
                     };
                     team_to_rename.team_name = new_team_a_name.to_string();
-                    new_state
                 }
+                new_state
             }
             // game stage is not teams, can't rename any team
             _ => new_state,
@@ -522,17 +512,18 @@ impl PrivateGameState {
                             };
 
                             // move into Grand Tichu stage
-                            new_game_state.stage =
-                                PrivateGameStage::PrivateGrandTichu(grand_tichu_game_state);
+                            new_game_state.stage = PrivateGameStage::PrivateGrandTichu(Box::new(
+                                grand_tichu_game_state,
+                            ));
 
-                            return new_game_state;
+                            new_game_state
                         }
                         _ => {
                             eprintln!(
                                 "Could not convert MutableTeams to ImmutableTeams. Ignoring request to start Grand Tichu stage by user {}",
                                 requesting_user_id,
                             );
-                            return new_game_state;
+                            new_game_state
                         }
                     }
                 } else {
@@ -712,9 +703,8 @@ impl Iterator for Card {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct Deck(Vec<Card>);
 
-impl Deck {
-    /// Creates a new, full, sorted Deck (i.e. it is NOT shuffled)
-    pub fn new() -> Deck {
+impl Default for Deck {
+    fn default() -> Self {
         let mut cards = Vec::with_capacity(56);
 
         for card in Card::start_iter() {
@@ -722,6 +712,13 @@ impl Deck {
         }
 
         Deck(cards)
+    }
+}
+
+impl Deck {
+    /// Creates a new, full, sorted Deck (i.e. it is NOT shuffled)
+    pub fn new() -> Deck {
+        Deck::default()
     }
 
     pub fn shuffle(&mut self) -> &mut Self {
@@ -745,9 +742,8 @@ impl Deck {
         let mut cards = Vec::with_capacity(number);
         for _ in 0..=number {
             let popped_card = self.0.pop();
-            match popped_card {
-                Some(popped_card) => cards.push(popped_card),
-                None => {}
+            if let Some(popped_card) = popped_card {
+                cards.push(popped_card);
             }
         }
 
@@ -841,6 +837,7 @@ pub struct RenameTeam {
     pub team_name: String,
 }
 
+/// Available options when a user either calls or declines Grand Tichu
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum CallGrandTichuRequest {
     Call,
@@ -891,7 +888,7 @@ pub enum STCMsg {
 
     /// Game state update
     /// Should only be None if the game completely ends and all users are removed
-    GameState(Option<PublicGameState>),
+    GameState(Box<Option<PublicGameState>>),
 
     /// The game owner has changed to be a different user.
     /// This can occur if the owner of the room leaves while still waiting in the lobby.

@@ -35,7 +35,7 @@ pub fn clean_up_display_name(display_name: &str) -> String {
 }
 
 pub fn clean_up_game_code(game_code: &str) -> String {
-    game_code.trim().to_uppercase().to_string()
+    game_code.trim().to_uppercase()
 }
 
 pub fn clean_up_team_name(team_name: &str) -> String {
@@ -46,11 +46,11 @@ pub fn clean_up_team_name(team_name: &str) -> String {
 pub fn validate_display_name(display_name: &str) -> Option<String> {
     let mut error = String::from("");
 
-    if clean_up_display_name(display_name).len() == 0 {
+    if clean_up_display_name(display_name).is_empty() {
         error = String::from("Display name is not long enough");
     }
 
-    if error.len() != 0 {
+    if !error.is_empty() {
         Some(error)
     } else {
         None
@@ -61,11 +61,11 @@ pub fn validate_display_name(display_name: &str) -> Option<String> {
 pub fn validate_game_code(game_code: &str) -> Option<String> {
     let mut error = String::from("");
 
-    if clean_up_display_name(game_code).len() == 0 {
+    if clean_up_display_name(game_code).is_empty() {
         error = String::from("Game code is not long enough");
     }
 
-    if error.len() != 0 {
+    if !error.is_empty() {
         Some(error)
     } else {
         None
@@ -75,11 +75,11 @@ pub fn validate_game_code(game_code: &str) -> Option<String> {
 pub fn validate_team_name(team_name: &str) -> Option<String> {
     let mut error = String::from("");
 
-    if clean_up_team_name(team_name).len() == 0 {
+    if clean_up_team_name(team_name).is_empty() {
         error = String::from("Team name must not be an empty string");
     }
 
-    if error.len() != 0 {
+    if !error.is_empty() {
         Some(error)
     } else {
         None
