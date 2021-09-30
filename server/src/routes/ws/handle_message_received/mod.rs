@@ -1,4 +1,5 @@
 mod call_grand_tichu;
+mod call_small_tichu;
 mod create_game;
 mod join_game_with_game_code;
 mod leave_game;
@@ -10,6 +11,7 @@ mod start_grand_tichu;
 mod test;
 
 use call_grand_tichu::call_grand_tichu;
+use call_small_tichu::call_small_tichu;
 use create_game::create_game;
 use join_game_with_game_code::join_game_with_game_code;
 use leave_game::leave_game;
@@ -94,6 +96,9 @@ pub async fn handle_message_received(
                 &game_codes,
             )
             .await;
+        }
+        CTSMsg::CallSmallTichu => {
+            call_small_tichu(&user_id, &connections, &games, &game_codes).await;
         }
         any_other_message => {
             eprintln!("Unexpected message received: {:?}", any_other_message);

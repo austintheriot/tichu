@@ -437,6 +437,36 @@ impl App {
         }
     }
 
+    fn view_debug_small_tichu_for_user(&self, user_id: &str) -> Html {
+        let small_tichu_call_status = match &self.state.game_state {
+            Some(game_state) => match &game_state.stage {
+                PublicGameStage::PublicGrandTichu(grand_tichu_state) => {
+                    match grand_tichu_state.small_tichus.iter().find(
+                        |user_id_with_tichu_call_status| {
+                            *user_id_with_tichu_call_status.user_id == *user_id
+                        },
+                    ) {
+                        Some(user_id_with_tichu_call_status) => {
+                            match user_id_with_tichu_call_status.tichu_call_status {
+                                TichuCallStatus::Undecided => "Undecided",
+                                TichuCallStatus::Called => "Called",
+                                TichuCallStatus::Declined => "Declined",
+                                TichuCallStatus::Achieved => "Achieved",
+                                TichuCallStatus::Failed => "Failed",
+                            }
+                        }
+                        None => "n/a",
+                    }
+                }
+                _ => "n/a",
+            },
+            None => "n/a",
+        };
+        html! {
+            <p> { &format!("Small Tichu Call Status for {} ----- ", user_id)} {small_tichu_call_status} { "\n" }</p>
+        }
+    }
+
     fn view_debug_all_participants_grand_tichu(&self) -> Html {
         match &self.state.game_state {
             Some(game_state) => html! {{
@@ -444,6 +474,18 @@ impl App {
                 .participants
                 .iter()
                 .map(|user| self.view_debug_grand_tichu_for_user(&user.user_id))
+            }},
+            None => html! {<> </>},
+        }
+    }
+
+    fn view_debug_all_participants_small_tichu(&self) -> Html {
+        match &self.state.game_state {
+            Some(game_state) => html! {{
+            for game_state
+                .participants
+                .iter()
+                .map(|user| self.view_debug_small_tichu_for_user(&user.user_id))
             }},
             None => html! {<> </>},
         }
@@ -470,6 +512,7 @@ impl App {
                 <p> { "Owner: " } { self.debug_owner() } </p>
                 <p> { "Teams: " } { self.debug_teams() } </p>
                 { self.view_debug_all_participants_grand_tichu() }
+                { self.view_debug_all_participants_small_tichu() }
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
                 <br />
                 <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{ "Send ping to server" }</button>
@@ -751,6 +794,7 @@ impl App {
                 STCMsg::UserMovedToTeamB(_) => {}
                 STCMsg::GameStageChanged(_) => {}
                 STCMsg::GrandTichuCalled(_, _) => {}
+                STCMsg::SmallTichuCalled(_) => {}
                 _ => warn!("Unexpected websocket message received {:#?}", data),
             },
         }
@@ -885,7 +929,8 @@ impl App {
                 true
             }
             CTSMsgInternal::CallSmallTichu => {
-                unimplemented!();
+                self._send_ws_message(&CTSMsg::CallSmallTichu);
+                false
             }
             _ => {
                 warn!("Tried to send unexpected message type {:?}", &msg_type);

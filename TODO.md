@@ -17,6 +17,8 @@ IDEAS:
 
 MUST HAVES:
 - Minimize .expect() errors (see example in call_grand_tichu.rs for better match expressions)
+- update Small tichu to be able to be called from states other than Grand Tichu once other stages are implemented
+- Search TODOs in codebase
 
 NICE TO HAVES:
 - Apply only Arc to HashMap, but apply Arc and Mutex to each individual game state, etc. that way users are not locked from reading from the hashmaps

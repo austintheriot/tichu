@@ -186,6 +186,7 @@ impl PrivateGameState {
             role: UserRole::Owner,
             tricks: vec![],
             hand: vec![],
+            has_played_first_card: false,
         };
         PrivateGameState {
             game_id: Uuid::new_v4().to_string(),
@@ -212,6 +213,7 @@ impl PrivateGameState {
             role: UserRole::Participant,
             tricks: vec![],
             hand: vec![],
+            has_played_first_card: false,
         };
         let mut new_participants = self.participants.clone();
         new_participants.push(participant);
@@ -288,6 +290,7 @@ impl PrivateGameState {
                 role: private_participant.role.clone(),
                 tricks: private_participant.tricks.clone(),
                 user_id: private_participant.user_id.clone(),
+                has_played_first_card: private_participant.has_played_first_card,
             };
             public_participants.push(public_participant);
 
@@ -588,6 +591,52 @@ impl PrivateGameState {
 
         new_game_state
     }
+
+    pub fn call_small_tichu(&self, user_id: &str) -> PrivateGameState {
+        let mut new_game_state = self.clone();
+
+        // game stage cannot be lobby, teams, or scoreboard
+        let small_tichus = match &mut new_game_state.stage {
+            PrivateGameStage::Lobby | PrivateGameStage::Teams(_) | PrivateGameStage::Scoreboard => {
+                eprintln!(
+                    "Can't call Small Tichu when game is not active. Ignoring request from user {}",
+                    user_id
+                );
+                return new_game_state;
+            }
+            PrivateGameStage::PrivateGrandTichu(grand_tichu_state) => {
+                &mut grand_tichu_state.small_tichus
+            }
+            // TODO: add other game stages here
+            _ => {
+                eprintln!("Can't call Small Tichu when game stage is not GrandTichu (TODO: update once other stages are implemented). Ignoring request from user {}", user_id);
+                return new_game_state;
+            }
+        };
+
+        let i = small_tichus
+            .iter()
+            .position(|user_call_status| *user_call_status.user_id == *user_id);
+        match i {
+            None => {
+                eprintln!("Couldn't find user's call status in call stage state. Ignoring request to call Small Tichu from user {}", user_id);
+                return new_game_state;
+            }
+            Some(i) => {
+                let user_call_status = &small_tichus[i];
+                if user_call_status.tichu_call_status != TichuCallStatus::Undecided {
+                    eprintln!("User is not in Undecided state about Small Tichu. Ignoring request to call Small Tichu from user {}", user_id);
+                    return new_game_state;
+                }
+                small_tichus[i] = UserIdWithTichuCallStatus {
+                    user_id: user_id.to_string(),
+                    tichu_call_status: TichuCallStatus::Called,
+                };
+            }
+        }
+
+        new_game_state
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -773,6 +822,7 @@ pub struct PublicUser {
     pub role: UserRole,
     pub display_name: String,
     pub tricks: Vec<Vec<Card>>,
+    pub has_played_first_card: bool,
 }
 
 /// Contains private user data, including the user's hand, etc.
@@ -783,6 +833,7 @@ pub struct PrivateUser {
     pub role: UserRole,
     pub display_name: String,
     pub tricks: Vec<Vec<Card>>,
+    pub has_played_first_card: bool,
     pub hand: Vec<Card>,
 }
 
@@ -903,7 +954,7 @@ pub enum STCMsg {
     /// completely left game--not coming back.
     /// For now, this can only occur in the lobby.
     UserLeft(String),
-    SmallTichuCalled,
+    SmallTichuCalled(String),
     GrandTichuCalled(String, CallGrandTichuRequest),
 
     /// deal first 9 cards
