@@ -287,6 +287,42 @@ impl App {
         )
     }
 
+    fn can_call_small_tichu(&self) -> bool {
+        // hasn't yet played a card
+        let has_played_first_card = if let Some(game_state) = &self.state.game_state {
+            game_state.current_user.has_played_first_card
+        } else {
+            false
+        };
+
+        // is undecided about small tichu
+        let (undecided_about_small_tichu, game_stage_is_active) =
+            if let Some(game_state) = &self.state.game_state {
+                if let PublicGameStage::PublicGrandTichu(public_grand_tichu) = &game_state.stage {
+                    if let Some(call_status) = (*public_grand_tichu).small_tichus.iter().find(
+                        |user_id_with_tich_call_status| {
+                            *user_id_with_tich_call_status.user_id == *self.state.user_id
+                        },
+                    ) {
+                        (
+                            matches!(call_status.tichu_call_status, TichuCallStatus::Undecided),
+                            true,
+                        )
+                    } else {
+                        (true, true)
+                    }
+                } else {
+                    // user undecided but game stage is not active (TODO: update)
+                    (true, false)
+                }
+            } else {
+                // user undecided but game stage is not active (TODO: update)
+                (true, false)
+            };
+
+        return !has_played_first_card && undecided_about_small_tichu && game_stage_is_active;
+    }
+
     fn is_team_stage(&self) -> bool {
         match &self.state.game_state {
             None => false,
@@ -705,6 +741,7 @@ impl App {
                 > { "Decline Grand Tichu" } </button>
                 <button
                     onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallSmallTichu)})
+                    disabled=!self.can_call_small_tichu()
                 > { "Call Small Tichu" } </button>
                 <p> { "Hand:" } </p>
                 { self.view_hand() }
