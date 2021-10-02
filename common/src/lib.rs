@@ -699,6 +699,7 @@ impl PrivateGameState {
 
     // occurs automatically after last Grand Tichu is either Called or Denied
     fn start_trade(&self) -> PrivateGameState {
+        eprintln!("Moving game stage from GrandTichu to to Trade");
         let mut new_game_state = self.clone();
 
         // must currently be in Grand Tichu stage
