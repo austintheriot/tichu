@@ -113,11 +113,58 @@ impl From<PrivateGrandTichu> for PublicGrandTichu {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct CardTrade {
+    from_user_id: String,
+    card: Card,
+    to_user_id: String,
+}
+
+/// Server state: includes sensitive information, such as the Deck & Trades
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct PrivateTrade {
+    pub small_tichus: [UserIdWithTichuCallStatus; 4],
+    pub grand_tichus: [UserIdWithTichuCallStatus; 4],
+    pub teams: ImmutableTeams,
+    pub deck: Deck,
+    pub trades: [Option<CardTrade>; 4],
+}
+
+impl From<PrivateTrade> for PublicTrade {
+    fn from(item: PrivateTrade) -> Self {
+        PublicTrade {
+            small_tichus: item.small_tichus.clone(),
+            grand_tichus: item.grand_tichus.clone(),
+            teams: item.teams.clone(),
+        }
+    }
+}
+
+impl From<PrivateGrandTichu> for PrivateTrade {
+    fn from(private_grand_tichu: PrivateGrandTichu) -> Self {
+        PrivateTrade {
+            deck: private_grand_tichu.deck.clone(),
+            grand_tichus: private_grand_tichu.grand_tichus.clone(),
+            small_tichus: private_grand_tichu.small_tichus.clone(),
+            teams: private_grand_tichu.teams.clone(),
+            trades: [None, None, None, None],
+        }
+    }
+}
+
+/// Client state: does NOT include sensitive information, such as the Deck & Trades
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct PublicTrade {
+    pub small_tichus: [UserIdWithTichuCallStatus; 4],
+    pub grand_tichus: [UserIdWithTichuCallStatus; 4],
+    pub teams: ImmutableTeams,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum PrivateGameStage {
     Lobby,
     Teams(MutableTeams),
-    PrivateGrandTichu(Box<PrivateGrandTichu>),
-    Trade,
+    GrandTichu(Box<PrivateGrandTichu>),
+    Trade(Box<PrivateTrade>),
     Game,
     Scoreboard,
 }
@@ -126,8 +173,8 @@ pub enum PrivateGameStage {
 pub enum PublicGameStage {
     Lobby,
     Teams(MutableTeams),
-    PublicGrandTichu(Box<PublicGrandTichu>),
-    Trade,
+    GrandTichu(Box<PublicGrandTichu>),
+    Trade(Box<PublicTrade>),
     Game,
     Scoreboard,
 }
@@ -137,10 +184,12 @@ impl From<PrivateGameStage> for PublicGameStage {
         match item {
             PrivateGameStage::Lobby => PublicGameStage::Lobby,
             PrivateGameStage::Teams(teams_state) => PublicGameStage::Teams(teams_state),
-            PrivateGameStage::PrivateGrandTichu(private_grand_tichu) => {
-                Self::PublicGrandTichu(Box::new((*private_grand_tichu).into()))
+            PrivateGameStage::GrandTichu(private_grand_tichu) => {
+                Self::GrandTichu(Box::new((*private_grand_tichu).into()))
             }
-            PrivateGameStage::Trade => PublicGameStage::Trade,
+            PrivateGameStage::Trade(private_trade) => {
+                Self::Trade(Box::new((*private_trade).into()))
+            }
             PrivateGameStage::Game => PublicGameStage::Game,
             PrivateGameStage::Scoreboard => PublicGameStage::Scoreboard,
         }
@@ -515,9 +564,8 @@ impl PrivateGameState {
                             };
 
                             // move into Grand Tichu stage
-                            new_game_state.stage = PrivateGameStage::PrivateGrandTichu(Box::new(
-                                grand_tichu_game_state,
-                            ));
+                            new_game_state.stage =
+                                PrivateGameStage::GrandTichu(Box::new(grand_tichu_game_state));
 
                             new_game_state
                         }
@@ -556,7 +604,7 @@ impl PrivateGameState {
 
         // game stage must be GrandTichu
         match &mut new_game_state.stage {
-            PrivateGameStage::PrivateGrandTichu(grand_tichu_state) => {
+            PrivateGameStage::GrandTichu(grand_tichu_state) => {
                 let i = grand_tichu_state
                     .grand_tichus
                     .iter()
@@ -580,6 +628,19 @@ impl PrivateGameState {
                                 CallGrandTichuRequest::Decline => TichuCallStatus::Declined,
                             },
                         };
+
+                        // if this is the 4th Grand Tichu called, move game stage to Trade stage
+                        let mut grand_tichus_called = 0u8;
+                        for grand_tichu in grand_tichus {
+                            if let TichuCallStatus::Called | TichuCallStatus::Declined =
+                                grand_tichu.tichu_call_status
+                            {
+                                grand_tichus_called += 1;
+                            }
+                        }
+                        if grand_tichus_called >= 4 {
+                            new_game_state = new_game_state.start_trade()
+                        }
                     }
                 }
             }
@@ -604,9 +665,7 @@ impl PrivateGameState {
                 );
                 return new_game_state;
             }
-            PrivateGameStage::PrivateGrandTichu(grand_tichu_state) => {
-                &mut grand_tichu_state.small_tichus
-            }
+            PrivateGameStage::GrandTichu(grand_tichu_state) => &mut grand_tichu_state.small_tichus,
             // TODO: add other game stages here
             _ => {
                 eprintln!("Can't call Small Tichu when game stage is not GrandTichu (TODO: update once other stages are implemented). Ignoring request from user {}", user_id);
@@ -635,6 +694,29 @@ impl PrivateGameState {
             }
         }
 
+        new_game_state
+    }
+
+    // occurs automatically after last Grand Tichu is either Called or Denied
+    fn start_trade(&self) -> PrivateGameState {
+        let mut new_game_state = self.clone();
+
+        // must currently be in Grand Tichu stage
+        if let PrivateGameStage::GrandTichu(mut grand_tichu) = new_game_state.stage {
+            // deal the rest of the 9 cards
+            for participant in new_game_state.participants.iter_mut() {
+                let mut drawn_cards = grand_tichu.deck.draw(9);
+                for _ in 0..drawn_cards.len() {
+                    let drawn_card = drawn_cards.pop().unwrap();
+                    participant.hand.push(drawn_card)
+                }
+            }
+
+            // move game stage to Trade game stage
+            new_game_state.stage = PrivateGameStage::Trade(Box::new((*grand_tichu).into()));
+        } else {
+            eprintln!("Can't start trade when not in Grand Tichu stage");
+        }
         new_game_state
     }
 }

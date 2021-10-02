@@ -27,7 +27,7 @@ pub async fn call_grand_tichu(
     };
 
     match &game_state.stage {
-        PrivateGameStage::PrivateGrandTichu(grand_tichu_state) => {
+        PrivateGameStage::GrandTichu(grand_tichu_state) => {
             // player must be undecided
             let i = grand_tichu_state
                 .grand_tichus
@@ -70,6 +70,18 @@ pub async fn call_grand_tichu(
         game_codes,
     )
     .await;
+
+    // if game stage changed to Trade, send GameStageChanged event
+    if let PrivateGameStage::Trade(_) = &new_game_state.stage {
+        send_ws_message::to_group(
+            &game_id,
+            STCMsg::GameStageChanged(new_game_state.stage.clone().into()),
+            connections,
+            games,
+            game_codes,
+        )
+        .await;
+    }
 
     // send updated game state
     send_ws_message::game_state_to_group(&game_id, &new_game_state, connections, games, game_codes)

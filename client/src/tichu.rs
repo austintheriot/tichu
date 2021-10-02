@@ -250,7 +250,7 @@ impl Component for App {
                         match game_state.stage {
                             PublicGameStage::Lobby => self.view_lobby(),
                             PublicGameStage::Teams(_) => self.view_teams(),
-                            PublicGameStage::PublicGrandTichu(_) => self.view_grand_tichu(),
+                            PublicGameStage::GrandTichu(_) => self.view_grand_tichu(),
                             _ => html!{ <> </> }
                         }
                     }
@@ -283,7 +283,7 @@ impl App {
     fn can_call_or_decline_grand_tichu(&self) -> bool {
         matches!(
             self.state.game_state.as_ref().unwrap().stage,
-            PublicGameStage::PublicGrandTichu(_)
+            PublicGameStage::GrandTichu(_)
         )
     }
 
@@ -298,7 +298,7 @@ impl App {
         // is undecided about small tichu
         let (undecided_about_small_tichu, game_stage_is_active) =
             if let Some(game_state) = &self.state.game_state {
-                if let PublicGameStage::PublicGrandTichu(public_grand_tichu) = &game_state.stage {
+                if let PublicGameStage::GrandTichu(public_grand_tichu) = &game_state.stage {
                     if let Some(call_status) = (*public_grand_tichu).small_tichus.iter().find(
                         |user_id_with_tich_call_status| {
                             *user_id_with_tich_call_status.user_id == *self.state.user_id
@@ -446,7 +446,7 @@ impl App {
     fn view_debug_grand_tichu_for_user(&self, user_id: &str) -> Html {
         let grand_tichu_call_status = match &self.state.game_state {
             Some(game_state) => match &game_state.stage {
-                PublicGameStage::PublicGrandTichu(grand_tichu_state) => {
+                PublicGameStage::GrandTichu(grand_tichu_state) => {
                     match grand_tichu_state.grand_tichus.iter().find(
                         |user_id_with_tichu_call_status| {
                             *user_id_with_tichu_call_status.user_id == *user_id
@@ -476,7 +476,7 @@ impl App {
     fn view_debug_small_tichu_for_user(&self, user_id: &str) -> Html {
         let small_tichu_call_status = match &self.state.game_state {
             Some(game_state) => match &game_state.stage {
-                PublicGameStage::PublicGrandTichu(grand_tichu_state) => {
+                PublicGameStage::GrandTichu(grand_tichu_state) => {
                     match grand_tichu_state.small_tichus.iter().find(
                         |user_id_with_tichu_call_status| {
                             *user_id_with_tichu_call_status.user_id == *user_id
