@@ -872,7 +872,7 @@ impl Deck {
         };
 
         let mut cards = Vec::with_capacity(number);
-        for _ in 0..=number {
+        for _ in 0..number {
             let popped_card = self.0.pop();
             if let Some(popped_card) = popped_card {
                 cards.push(popped_card);

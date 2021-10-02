@@ -22,7 +22,9 @@ MUST HAVES:
 - Search TODOs in codebase
 
 NICE TO HAVES:
+- Allow users to change their Grand Tichu call before the last person has called it
 - Show other users who have joined the game once a user has created / joined a room
+- Convert "Call Small Tichu" into a reusable Component
 - Apply only Arc to HashMap, but apply Arc and Mutex to each individual game state, etc. that way users are not locked from reading from the hashmaps
 - DRY up code around moving between Team A/B & renaming Team A/B
 - Implement info routes: get current state of server: Connections, GameState, GameCodes

@@ -6,7 +6,7 @@ use crate::types::CTSMsgInternal;
 use anyhow::Error;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
-    validate_team_name, CTSMsg, CallGrandTichuRequest, CreateGame, JoinGameWithGameCode,
+    validate_team_name, CTSMsg, CallGrandTichuRequest, Card, CreateGame, JoinGameWithGameCode,
     MutableTeam, PublicGameStage, PublicGameState, PublicUser, RenameTeam, STCMsg, TeamOption,
     TichuCallStatus, NO_USER_ID,
 };
@@ -45,6 +45,8 @@ struct State {
     display_name_input: String,
     team_a_name_input: String,
     team_b_name_input: String,
+
+    selected_card: Option<Card>,
 }
 
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
@@ -63,6 +65,7 @@ pub enum AppMsg {
     SetJoinRoomGameCodeInput(String),
     SetTeamANameInput(String),
     SetTeamBNameInput(String),
+    SetSelectedCard(usize),
 }
 
 const PING_INTERVAL_MS: u64 = 5000;
@@ -117,6 +120,7 @@ impl Component for App {
             is_alive: false,
             team_a_name_input: "".into(),
             team_b_name_input: "".into(),
+            selected_card: None,
         };
         Self {
             interval_task: None,
@@ -223,6 +227,27 @@ impl Component for App {
                 self.state.team_b_name_input = s;
                 true
             }
+            AppMsg::SetSelectedCard(i) => {
+                if !self.can_select_card() {
+                    warn!("Invalid state to set selected card");
+                    return false;
+                }
+                let selected_card = if let Some(game_state) = &self.state.game_state {
+                    game_state.current_user.hand.get(i)
+                } else {
+                    warn!(
+                        "Can't set selected card because there si currently no active game state"
+                    );
+                    return false;
+                };
+                if let Some(card) = selected_card {
+                    self.state.selected_card = Some(card.clone());
+                    true
+                } else {
+                    warn!("Selected card's index did not correspond to any card in the current user's hand.");
+                    false
+                }
+            }
         }
     }
 
@@ -239,11 +264,6 @@ impl Component for App {
     fn view(&self) -> Html {
         html! {
             <div>
-                { self.view_debug() }
-                <br />
-                <br />
-                <hr />
-                <br />
                 { match &self.state.game_state {
                     None => self.view_join(),
                     Some(game_state) => {
@@ -251,10 +271,16 @@ impl Component for App {
                             PublicGameStage::Lobby => self.view_lobby(),
                             PublicGameStage::Teams(_) => self.view_teams(),
                             PublicGameStage::GrandTichu(_) => self.view_grand_tichu(),
+                            PublicGameStage::Trade(_) => self.view_trade(),
                             _ => html!{ <> </> }
                         }
                     }
                 }}
+                <br />
+                <br />
+                <hr />
+                <br />
+                { self.view_debug() }
             </div>
         }
     }
@@ -368,7 +394,7 @@ impl App {
                 </ul>
             }
         } else {
-            html! { <></> }
+            html! {}
         }
     }
 
@@ -410,10 +436,10 @@ impl App {
                         </ul>
                     }
                 }
-                _ => html! { <></> },
+                _ => html! {},
             }
         } else {
-            html! { <></> }
+            html! {}
         }
     }
 
@@ -439,7 +465,7 @@ impl App {
                 }
             }
         } else {
-            html! { <></> }
+            html! {}
         }
     }
 
@@ -614,18 +640,24 @@ impl App {
     fn view_lobby(&self) -> Html {
         html! {
             <>
-            <h1> { "Lobby" } </h1>
-            <h2> { "Game Code: " } {
-                if let Some(game_state) = &self.state.game_state {
-                    &game_state.game_code
-                } else {
-                    ""
+                <h1> { "Lobby" } </h1>
+                <h2> { "Game Code: " } {
+                    if let Some(game_state) = &self.state.game_state {
+                        &game_state.game_code
+                    } else {
+                        ""
+                    }
                 }
-            } </h2>
+                </h2>
+                <h3> {"Joined:"} </h3>
+                <br />
+                { self.view_participants() }
                 <button
-                onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::LeaveGame)})
-                disabled=!self.can_leave_game()
-                >{ "Leave game" }</button>
+                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::LeaveGame)})
+                    disabled=!self.can_leave_game()
+                    >
+                    { "Leave game" }
+                </button>
             </>
         }
     }
@@ -714,17 +746,31 @@ impl App {
                 sorted_hand.sort();
                 html! {
                     <ul>
-                        { for sorted_hand.iter().map(|card| {
+                        { for sorted_hand.iter().enumerate().map(|(i, card)| {
                             html!{
-                                <li> { &format!("{:#?}", card) } </li>
+                                <li>
+                                    <button
+                                        disabled=!self.can_select_card()
+                                        onclick=self.link.callback(move |_| {AppMsg::SetSelectedCard(i)})
+                                        >
+                                        { &format!("{:#?}", card) }
+                                    </button>
+                                 </li>
                             }
                         })}
                     </ul>
                 }
             }
-            None => html! {
-                <></>
-            },
+            None => html! {},
+        }
+    }
+
+    fn call_small_tichu_button(&self) -> Html {
+        html! {
+            <button
+            onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallSmallTichu)})
+            disabled=!self.can_call_small_tichu()
+            > { "Call Small Tichu" } </button>
         }
     }
 
@@ -740,11 +786,59 @@ impl App {
                     onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Decline))})
                     disabled=!self.can_call_or_decline_grand_tichu()
                 > { "Decline Grand Tichu" } </button>
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallSmallTichu)})
-                    disabled=!self.can_call_small_tichu()
-                > { "Call Small Tichu" } </button>
+                { self.call_small_tichu_button() }
                 <p> { "Hand:" } </p>
+                { self.view_hand() }
+            </>
+        }
+    }
+
+    fn can_select_card(&self) -> bool {
+        matches!(
+            self.state.game_state.as_ref().unwrap().stage,
+            PublicGameStage::Trade(_)
+        )
+    }
+
+    fn view_selected_card(&self) -> Html {
+        match &self.state.selected_card {
+            Some(card) => {
+                html! {
+                    <p> {"Selected Card: "}{&format!("{:#?}", card)}</p>
+                }
+            }
+            None => html! {},
+        }
+    }
+
+    fn view_trade(&self) -> Html {
+        html! {
+            <>
+                <h1> {"Trade"} </h1>
+                <br />
+                <button
+                    type="submit"
+                    >
+                    {"Submit"}
+                </button>
+                <br />
+                <br />
+                { self.call_small_tichu_button() }
+                <br />
+                <br />
+                <button>
+                    {"Send to opponent 1"}
+                </button>
+                <button>
+                    {"Send to teammate"}
+                </button>
+                <button>
+                    {"Send to opponent 2"}
+                </button>
+                <br />
+                <br />
+                { self.view_selected_card() }
+                <br />
                 { self.view_hand() }
             </>
         }
