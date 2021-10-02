@@ -7,8 +7,8 @@ use anyhow::Error;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
     validate_team_name, CTSMsg, CallGrandTichuRequest, Card, CreateGame, JoinGameWithGameCode,
-    MutableTeam, PublicGameStage, PublicGameState, PublicUser, RenameTeam, STCMsg, TeamOption,
-    TichuCallStatus, NO_USER_ID,
+    MutableTeam, PrivateUser, PublicGameStage, PublicGameState, PublicUser, RenameTeam, STCMsg,
+    TeamOption, TichuCallStatus, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -47,6 +47,9 @@ struct State {
     team_b_name_input: String,
 
     selected_card: Option<Card>,
+    trade_to_opponent1: Option<Card>,
+    trade_to_teammate: Option<Card>,
+    trade_to_opponent2: Option<Card>,
 }
 
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
@@ -66,6 +69,13 @@ pub enum AppMsg {
     SetTeamANameInput(String),
     SetTeamBNameInput(String),
     SetSelectedCard(usize),
+
+    SetTradeToOpponent1,
+    RemoveTradeToOpponent1,
+    SetTradeToTeammate,
+    RemoveTradeToTeammate,
+    SetTradeToOpponent2,
+    RemoveTradeToOpponent2,
 }
 
 const PING_INTERVAL_MS: u64 = 5000;
@@ -121,6 +131,9 @@ impl Component for App {
             team_a_name_input: "".into(),
             team_b_name_input: "".into(),
             selected_card: None,
+            trade_to_opponent1: None,
+            trade_to_teammate: None,
+            trade_to_opponent2: None,
         };
         Self {
             interval_task: None,
@@ -232,21 +245,89 @@ impl Component for App {
                     warn!("Invalid state to set selected card");
                     return false;
                 }
-                let selected_card = if let Some(game_state) = &self.state.game_state {
-                    game_state.current_user.hand.get(i)
+
+                let card_from_hand = if let Some(game_state) = &self.state.game_state {
+                    if let Some(card) = game_state.current_user.hand.get(i) {
+                        card.clone()
+                    } else {
+                        warn!("Couldn't find index {:?} in current users hand", i);
+                        return false;
+                    }
                 } else {
-                    warn!(
-                        "Can't set selected card because there si currently no active game state"
-                    );
+                    warn!("Can't SetSelectedCard because current game_state is None");
                     return false;
                 };
-                if let Some(card) = selected_card {
-                    self.state.selected_card = Some(card.clone());
-                    true
-                } else {
-                    warn!("Selected card's index did not correspond to any card in the current user's hand.");
-                    false
+
+                if self.is_card_is_set_to_trade(&card_from_hand) {
+                    warn!("Can't set selected card since card is already set to trade");
+                    return false;
                 }
+
+                self.state.selected_card.replace(card_from_hand);
+                true
+            }
+            AppMsg::SetTradeToOpponent1 => {
+                if !self.can_set_trade() {
+                    warn!("Invalid state to set trade to opponent 1");
+                    return false;
+                }
+                if let Some(selected_card) = &self.state.selected_card {
+                    if self.is_card_is_set_to_trade(selected_card) {
+                        warn!("Can't set trade to opponent 1 since card is already set to trade");
+                        return false;
+                    }
+                }
+                self.state.trade_to_opponent1 = self.state.selected_card.take();
+                true
+            }
+            AppMsg::RemoveTradeToOpponent1 => {
+                self.state.trade_to_opponent1 = None;
+                if let Some(game_state) = &mut self.state.game_state {
+                    game_state.current_user.hand.sort();
+                }
+                true
+            }
+            AppMsg::SetTradeToTeammate => {
+                if !self.can_set_trade() {
+                    warn!("Invalid state to set trade to teammate");
+                    return false;
+                }
+                if let Some(selected_card) = &self.state.selected_card {
+                    if self.is_card_is_set_to_trade(selected_card) {
+                        warn!("Can't set trade teammate since card is already set to trade");
+                        return false;
+                    }
+                }
+                self.state.trade_to_teammate = self.state.selected_card.take();
+                true
+            }
+            AppMsg::RemoveTradeToTeammate => {
+                self.state.trade_to_teammate = None;
+                if let Some(game_state) = &mut self.state.game_state {
+                    game_state.current_user.hand.sort();
+                }
+                true
+            }
+            AppMsg::SetTradeToOpponent2 => {
+                if !self.can_set_trade() {
+                    warn!("Invalid state to set trade to opponent 2");
+                    return false;
+                }
+                if let Some(selected_card) = &self.state.selected_card {
+                    if self.is_card_is_set_to_trade(selected_card) {
+                        warn!("Can't set trade opponent 2 since card is already set to trade");
+                        return false;
+                    }
+                }
+                self.state.trade_to_opponent2 = self.state.selected_card.take();
+                true
+            }
+            AppMsg::RemoveTradeToOpponent2 => {
+                self.state.trade_to_opponent2 = None;
+                if let Some(game_state) = &mut self.state.game_state {
+                    game_state.current_user.hand.sort();
+                }
+                true
             }
         }
     }
@@ -739,14 +820,50 @@ impl App {
         }
     }
 
+    fn is_card_is_set_to_trade(&self, card: &Card) -> bool {
+        let card_is_set_to_trade_opponent1 =
+            if let Some(card_to_trade) = &self.state.trade_to_opponent1 {
+                *card_to_trade == *card
+            } else {
+                false
+            };
+
+        let card_is_set_to_trade_teammate =
+            if let Some(card_to_trade) = &self.state.trade_to_teammate {
+                *card_to_trade == *card
+            } else {
+                false
+            };
+
+        let card_is_set_to_trade_opponent2 =
+            if let Some(card_to_trade) = &self.state.trade_to_opponent2 {
+                *card_to_trade == *card
+            } else {
+                false
+            };
+
+        card_is_set_to_trade_opponent1
+            || card_is_set_to_trade_teammate
+            || card_is_set_to_trade_opponent2
+    }
+
     fn view_hand(&self) -> Html {
-        match &self.state.game_state {
-            Some(game_state) => {
-                let mut sorted_hand = game_state.current_user.hand.clone();
-                sorted_hand.sort();
-                html! {
-                    <ul>
-                        { for sorted_hand.iter().enumerate().map(|(i, card)| {
+        if let Some(game_state) = &self.state.game_state {
+            html! {
+                <ul>
+                    { for game_state.current_user.hand.iter().enumerate().map(|(i, card)| {
+                        // do not render card if the stage is Trade and it is currently selected
+                        // OR if it has been selected for trade with opponent
+                        let card_is_selected = if let Some(selected_card) = &self.state.selected_card {
+                            *selected_card == *card
+                        } else {
+                            false
+                        };
+                        let card_is_set_to_trade = self.is_card_is_set_to_trade(card);
+                        let stage_is_trade = self.stage_is_trade();
+                        if (card_is_selected || card_is_set_to_trade) && stage_is_trade {
+                            html!{}
+                        } else {
                             html!{
                                 <li>
                                     <button
@@ -757,11 +874,12 @@ impl App {
                                     </button>
                                  </li>
                             }
-                        })}
-                    </ul>
-                }
+                        }
+                    })}
+                </ul>
             }
-            None => html! {},
+        } else {
+            html! {}
         }
     }
 
@@ -774,10 +892,41 @@ impl App {
         }
     }
 
+    fn view_grand_tichu_status_for_current_user(&self) -> Html {
+        let grand_tichu_call_status = match &self.state.game_state {
+            Some(game_state) => match &game_state.stage {
+                PublicGameStage::GrandTichu(grand_tichu_state) => {
+                    match grand_tichu_state.grand_tichus.iter().find(
+                        |user_id_with_tichu_call_status| {
+                            *user_id_with_tichu_call_status.user_id == *self.state.user_id
+                        },
+                    ) {
+                        Some(user_id_with_tichu_call_status) => {
+                            match user_id_with_tichu_call_status.tichu_call_status {
+                                TichuCallStatus::Undecided => "Undecided",
+                                TichuCallStatus::Called => "Called",
+                                TichuCallStatus::Declined => "Declined",
+                                TichuCallStatus::Achieved => "Achieved",
+                                TichuCallStatus::Failed => "Failed",
+                            }
+                        }
+                        None => "n/a",
+                    }
+                }
+                _ => "n/a",
+            },
+            None => "n/a",
+        };
+        html! {
+            <p> { "Grand Tichu Call Status: " } {grand_tichu_call_status} { "\n" }</p>
+        }
+    }
+
     fn view_grand_tichu(&self) -> Html {
         html! {
             <>
                 <h1> { "Grand Tichu" } </h1>
+                { self.view_grand_tichu_status_for_current_user() }
                 <button
                     onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Call))})
                     disabled=!self.can_call_or_decline_grand_tichu()
@@ -793,11 +942,15 @@ impl App {
         }
     }
 
-    fn can_select_card(&self) -> bool {
+    fn stage_is_trade(&self) -> bool {
         matches!(
             self.state.game_state.as_ref().unwrap().stage,
             PublicGameStage::Trade(_)
         )
+    }
+
+    fn can_select_card(&self) -> bool {
+        self.stage_is_trade()
     }
 
     fn view_selected_card(&self) -> Html {
@@ -811,10 +964,71 @@ impl App {
         }
     }
 
+    fn can_set_trade(&self) -> bool {
+        matches!(&self.state.selected_card, Some(_))
+    }
+
+    fn view_trade_to_opponent1(&self) -> Html {
+        if let Some(card) = &self.state.trade_to_opponent1 {
+            html! {
+              <>
+                <p> { &format!("Trade to opponent 1: {:?}", card)} </p>
+                <button
+                    onclick=&self.link.callback(|_| { AppMsg::RemoveTradeToOpponent1 })
+                    >
+                    {"Remove"}
+                </button>
+              </>
+            }
+        } else {
+            html! {}
+        }
+    }
+
+    fn view_trade_to_teammate(&self) -> Html {
+        if let Some(card) = &self.state.trade_to_teammate {
+            html! {
+              <>
+                <p> { &format!("Trade to teammate: {:?}", card)} </p>
+                <button
+                    onclick=&self.link.callback(|_| { AppMsg::RemoveTradeToTeammate })
+                    >
+                    {"Remove"}
+                </button>
+              </>
+            }
+        } else {
+            html! {}
+        }
+    }
+
+    fn view_trade_to_opponent2(&self) -> Html {
+        if let Some(card) = &self.state.trade_to_opponent2 {
+            html! {
+              <>
+                <p> { &format!("Trade to opponent 2: {:?}", card)} </p>
+                <button
+                    onclick=&self.link.callback(|_| { AppMsg::RemoveTradeToOpponent2 })
+                    >
+                    {"Remove"}
+                </button>
+              </>
+            }
+        } else {
+            html! {}
+        }
+    }
+
     fn view_trade(&self) -> Html {
         html! {
             <>
                 <h1> {"Trade"} </h1>
+                <br />
+                { self.view_trade_to_opponent1() }
+                <br />
+                { self.view_trade_to_teammate() }
+                <br />
+                { self.view_trade_to_opponent2() }
                 <br />
                 <button
                     type="submit"
@@ -826,13 +1040,22 @@ impl App {
                 { self.call_small_tichu_button() }
                 <br />
                 <br />
-                <button>
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SetTradeToOpponent1})
+                    disabled=!self.can_set_trade()
+                    >
                     {"Send to opponent 1"}
                 </button>
-                <button>
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SetTradeToTeammate})
+                    disabled=!self.can_set_trade()
+                    >
                     {"Send to teammate"}
                 </button>
-                <button>
+                <button
+                    onclick=self.link.callback(|_| {AppMsg::SetTradeToOpponent2})
+                    disabled=!self.can_set_trade()
+                    >
                     {"Send to opponent 2"}
                 </button>
                 <br />
@@ -885,10 +1108,10 @@ impl App {
                         }
                     }
 
-                    // save display name input to state/localStorage
                     match &*new_game_state {
                         None => {}
                         Some(new_game_state) => {
+                            // save display name input to state/localStorage
                             self.link.send_message(AppMsg::SetDisplayName(
                                 (*new_game_state.current_user.display_name).to_string(),
                             ));
