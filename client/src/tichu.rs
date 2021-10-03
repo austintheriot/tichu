@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use crate::types::CTSMsgInternal;
+use crate::types::{CTSMsgInternal, TradeToPerson};
 use anyhow::Error;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
@@ -70,12 +70,8 @@ pub enum AppMsg {
     SetTeamBNameInput(String),
     SetSelectedCard(usize),
 
-    SetTradeToOpponent1,
-    RemoveTradeToOpponent1,
-    SetTradeToTeammate,
-    RemoveTradeToTeammate,
-    SetTradeToOpponent2,
-    RemoveTradeToOpponent2,
+    SetTrade(TradeToPerson),
+    RemoveTrade(TradeToPerson),
 }
 
 const PING_INTERVAL_MS: u64 = 5000;
@@ -266,67 +262,55 @@ impl Component for App {
                 self.state.selected_card.replace(card_from_hand);
                 true
             }
-            AppMsg::SetTradeToOpponent1 => {
+            AppMsg::SetTrade(trade_to_person) => {
                 if !self.can_set_trade() {
                     warn!("Invalid state to set trade to opponent 1");
                     return false;
                 }
                 if let Some(selected_card) = &self.state.selected_card {
                     if self.is_card_is_set_to_trade(selected_card) {
-                        warn!("Can't set trade to opponent 1 since card is already set to trade");
+                        warn!(
+                            "Can't set trade to {:?} since card is already set to trade",
+                            trade_to_person
+                        );
                         return false;
                     }
                 }
-                self.state.trade_to_opponent1 = self.state.selected_card.take();
-                true
-            }
-            AppMsg::RemoveTradeToOpponent1 => {
-                self.state.trade_to_opponent1 = None;
-                if let Some(game_state) = &mut self.state.game_state {
-                    game_state.current_user.hand.sort();
-                }
-                true
-            }
-            AppMsg::SetTradeToTeammate => {
-                if !self.can_set_trade() {
-                    warn!("Invalid state to set trade to teammate");
-                    return false;
-                }
-                if let Some(selected_card) = &self.state.selected_card {
-                    if self.is_card_is_set_to_trade(selected_card) {
-                        warn!("Can't set trade teammate since card is already set to trade");
-                        return false;
+                match &trade_to_person {
+                    TradeToPerson::Opponent1 => {
+                        self.state.trade_to_opponent1 = self.state.selected_card.take();
+                    }
+                    TradeToPerson::Teammate => {
+                        self.state.trade_to_teammate = self.state.selected_card.take();
+                    }
+                    TradeToPerson::Opponent2 => {
+                        self.state.trade_to_opponent2 = self.state.selected_card.take();
                     }
                 }
-                self.state.trade_to_teammate = self.state.selected_card.take();
-                true
-            }
-            AppMsg::RemoveTradeToTeammate => {
-                self.state.trade_to_teammate = None;
+
                 if let Some(game_state) = &mut self.state.game_state {
                     game_state.current_user.hand.sort();
                 }
+
                 true
             }
-            AppMsg::SetTradeToOpponent2 => {
-                if !self.can_set_trade() {
-                    warn!("Invalid state to set trade to opponent 2");
-                    return false;
-                }
-                if let Some(selected_card) = &self.state.selected_card {
-                    if self.is_card_is_set_to_trade(selected_card) {
-                        warn!("Can't set trade opponent 2 since card is already set to trade");
-                        return false;
+            AppMsg::RemoveTrade(trade_to_person) => {
+                match &trade_to_person {
+                    TradeToPerson::Opponent1 => {
+                        self.state.trade_to_opponent1 = None;
+                    }
+                    TradeToPerson::Teammate => {
+                        self.state.trade_to_teammate = None;
+                    }
+                    TradeToPerson::Opponent2 => {
+                        self.state.trade_to_opponent2 = None;
                     }
                 }
-                self.state.trade_to_opponent2 = self.state.selected_card.take();
-                true
-            }
-            AppMsg::RemoveTradeToOpponent2 => {
-                self.state.trade_to_opponent2 = None;
+
                 if let Some(game_state) = &mut self.state.game_state {
                     game_state.current_user.hand.sort();
                 }
+
                 true
             }
         }
@@ -388,10 +372,18 @@ impl App {
     }
 
     fn can_call_or_decline_grand_tichu(&self) -> bool {
-        matches!(
-            self.state.game_state.as_ref().unwrap().stage,
-            PublicGameStage::GrandTichu(_)
-        )
+        if let Some(game_state) = &self.state.game_state {
+            if let PublicGameStage::GrandTichu(grand_tichu_stage) = &game_state.stage {
+                grand_tichu_stage.grand_tichus.iter().any(|call_status| {
+                    *call_status.user_id == self.state.user_id
+                        && matches!(call_status.tichu_call_status, TichuCallStatus::Undecided)
+                })
+            } else {
+                false
+            }
+        } else {
+            false
+        }
     }
 
     fn can_call_small_tichu(&self) -> bool {
@@ -968,97 +960,80 @@ impl App {
         matches!(&self.state.selected_card, Some(_))
     }
 
-    fn view_trade_to_opponent1(&self) -> Html {
-        if let Some(card) = &self.state.trade_to_opponent1 {
-            html! {
-              <>
-                <p> { &format!("Trade to opponent 1: {:?}", card)} </p>
-                <button
-                    onclick=&self.link.callback(|_| { AppMsg::RemoveTradeToOpponent1 })
-                    >
-                    {"Remove"}
-                </button>
-              </>
-            }
-        } else {
-            html! {}
+    fn can_remove_trade(&self, trade_to_person: &TradeToPerson) -> bool {
+        match trade_to_person {
+            TradeToPerson::Opponent1 => &self.state.trade_to_opponent1,
+            TradeToPerson::Teammate => &self.state.trade_to_teammate,
+            TradeToPerson::Opponent2 => &self.state.trade_to_opponent2,
         }
+        .is_some()
     }
 
-    fn view_trade_to_teammate(&self) -> Html {
-        if let Some(card) = &self.state.trade_to_teammate {
-            html! {
-              <>
-                <p> { &format!("Trade to teammate: {:?}", card)} </p>
-                <button
-                    onclick=&self.link.callback(|_| { AppMsg::RemoveTradeToTeammate })
-                    >
-                    {"Remove"}
-                </button>
-              </>
-            }
-        } else {
-            html! {}
-        }
-    }
+    fn view_trade_to_person(&self, trade_to_person: TradeToPerson) -> Html {
+        let trade_to_person_state = match &trade_to_person {
+            TradeToPerson::Opponent1 => &self.state.trade_to_opponent1,
+            TradeToPerson::Teammate => &self.state.trade_to_teammate,
+            TradeToPerson::Opponent2 => &self.state.trade_to_opponent2,
+        };
 
-    fn view_trade_to_opponent2(&self) -> Html {
-        if let Some(card) = &self.state.trade_to_opponent2 {
-            html! {
-              <>
-                <p> { &format!("Trade to opponent 2: {:?}", card)} </p>
-                <button
-                    onclick=&self.link.callback(|_| { AppMsg::RemoveTradeToOpponent2 })
+        let trade_to_person_name = match &trade_to_person {
+            TradeToPerson::Opponent1 => "Opponent 1",
+            TradeToPerson::Teammate => "Teammate",
+            TradeToPerson::Opponent2 => "Opponent 2",
+        };
+
+        return html! {
+          <>
+            <p> { &format!("Trade to {}: {}", trade_to_person_name, match trade_to_person_state {
+                    Some(card) => format!("{:?}", card),
+                    None => "None".to_string(),
+                })}
+            </p>
+            {if self.state.selected_card.is_none() {
+                html!{
+                    <button
+                        disabled=!self.can_remove_trade(&trade_to_person)
+                        onclick=self.link.callback(move |_| { AppMsg::RemoveTrade(trade_to_person.clone()) })
                     >
-                    {"Remove"}
-                </button>
-              </>
-            }
-        } else {
-            html! {}
-        }
+                    { "Remove" }
+                    </button>
+                }
+            } else {
+                html!{
+                    <button
+                        onclick=self.link.callback(move |_| { AppMsg::SetTrade(trade_to_person.clone()) })
+                        >
+                    {if trade_to_person_state.is_some() {
+                        "Replace".to_string()
+                    } else {
+                        format!("Send to {}", trade_to_person_name)
+                    }}
+                    </button>
+                }
+            }}
+          </>
+        };
     }
 
     fn view_trade(&self) -> Html {
         html! {
             <>
                 <h1> {"Trade"} </h1>
-                <br />
-                { self.view_trade_to_opponent1() }
-                <br />
-                { self.view_trade_to_teammate() }
-                <br />
-                { self.view_trade_to_opponent2() }
-                <br />
                 <button
                     type="submit"
                     >
                     {"Submit"}
                 </button>
                 <br />
+                { self.view_trade_to_person(TradeToPerson::Opponent1) }
+                <br />
+                { self.view_trade_to_person(TradeToPerson::Teammate) }
+                <br />
+                { self.view_trade_to_person(TradeToPerson::Opponent2) }
+                <br />
+                <br />
                 <br />
                 { self.call_small_tichu_button() }
-                <br />
-                <br />
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SetTradeToOpponent1})
-                    disabled=!self.can_set_trade()
-                    >
-                    {"Send to opponent 1"}
-                </button>
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SetTradeToTeammate})
-                    disabled=!self.can_set_trade()
-                    >
-                    {"Send to teammate"}
-                </button>
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SetTradeToOpponent2})
-                    disabled=!self.can_set_trade()
-                    >
-                    {"Send to opponent 2"}
-                </button>
-                <br />
                 <br />
                 { self.view_selected_card() }
                 <br />

@@ -697,15 +697,15 @@ impl PrivateGameState {
         new_game_state
     }
 
-    // occurs automatically after last Grand Tichu is either Called or Denied
-    fn start_trade(&self) -> PrivateGameState {
+    /// Start trade occurs automatically after last Grand Tichu is either Called or Denied
+    /// Mutates self rather than cloning game state, since it only occurs in conjunction with CallGrandTichu
+    fn start_trade(mut self) -> Self {
         eprintln!("Moving game stage from GrandTichu to to Trade");
-        let mut new_game_state = self.clone();
 
         // must currently be in Grand Tichu stage
-        if let PrivateGameStage::GrandTichu(mut grand_tichu) = new_game_state.stage {
+        if let PrivateGameStage::GrandTichu(mut grand_tichu) = self.stage {
             // deal the rest of the 9 cards
-            for participant in new_game_state.participants.iter_mut() {
+            for participant in self.participants.iter_mut() {
                 let mut drawn_cards = grand_tichu.deck.draw(9);
                 for _ in 0..drawn_cards.len() {
                     let drawn_card = drawn_cards.pop().unwrap();
@@ -714,11 +714,11 @@ impl PrivateGameState {
             }
 
             // move game stage to Trade game stage
-            new_game_state.stage = PrivateGameStage::Trade(Box::new((*grand_tichu).into()));
+            self.stage = PrivateGameStage::Trade(Box::new((*grand_tichu).into()));
         } else {
             eprintln!("Can't start trade when not in Grand Tichu stage");
         }
-        new_game_state
+        self
     }
 }
 

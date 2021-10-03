@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// This type reflects the common::CTSMsg, except with all data values tripped,
 /// since the data values are formulated in the send_ws_message message
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CTSMsgInternal {
     JoinGameWithGameCode,
     JoinRandomGame,
@@ -23,4 +23,11 @@ pub enum CTSMsgInternal {
     Ping,
     Pong,
     Test,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TradeToPerson {
+    Opponent1,
+    Teammate,
+    Opponent2,
 }
