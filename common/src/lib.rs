@@ -950,7 +950,7 @@ pub struct ChooseTeamMessage {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct SubmitTrade {
+pub struct SingleTrade {
     pub trade_to: String,
     pub card: Card,
 }
@@ -999,7 +999,7 @@ pub enum CTSMsg {
     CallGrandTichu(CallGrandTichuRequest),
     CallSmallTichu,
 
-    SubmitTrade(SubmitTrade),
+    SubmitTrade([SingleTrade; 3]),
     PlayCards(PlayCard),
     GiveDragon(GiveDragon),
 
