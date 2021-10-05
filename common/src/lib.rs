@@ -114,9 +114,15 @@ impl From<PrivateGrandTichu> for PublicGrandTichu {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct CardTrade {
-    from_user_id: String,
-    card: Card,
-    to_user_id: String,
+    pub from_user_id: String,
+    pub card: Card,
+    pub to_user_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct UserIdWithTradeStatus {
+    pub user_id: String,
+    pub traded: bool,
 }
 
 /// Server state: includes sensitive information, such as the Deck & Trades
@@ -126,15 +132,25 @@ pub struct PrivateTrade {
     pub grand_tichus: [UserIdWithTichuCallStatus; 4],
     pub teams: ImmutableTeams,
     pub deck: Deck,
-    pub trades: [Option<CardTrade>; 4],
+    pub trades: [Option<SubmitTrade>; 4],
 }
 
 impl From<PrivateTrade> for PublicTrade {
-    fn from(item: PrivateTrade) -> Self {
+    fn from(private_trade: PrivateTrade) -> Self {
+        // saves public trades as user_ids of those who have successfully submitted their trades
+        let mut submitted_trades = Vec::new();
+        for trade in private_trade.trades {
+            if let Some(trade) = trade {
+                let from_user_id = &trade[0].from_user_id;
+                submitted_trades.push(from_user_id.clone())
+            }
+        }
+
         PublicTrade {
-            small_tichus: item.small_tichus.clone(),
-            grand_tichus: item.grand_tichus.clone(),
-            teams: item.teams.clone(),
+            small_tichus: private_trade.small_tichus.clone(),
+            grand_tichus: private_trade.grand_tichus.clone(),
+            teams: private_trade.teams.clone(),
+            submitted_trades,
         }
     }
 }
@@ -157,6 +173,7 @@ pub struct PublicTrade {
     pub small_tichus: [UserIdWithTichuCallStatus; 4],
     pub grand_tichus: [UserIdWithTichuCallStatus; 4],
     pub teams: ImmutableTeams,
+    pub submitted_trades: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -720,6 +737,72 @@ impl PrivateGameState {
         }
         self
     }
+
+    pub fn submit_trade(&self, user_id: &str, submit_trade: &SubmitTrade) -> PrivateGameState {
+        let mut new_game_state = self.clone();
+
+        // Must be Trade stage
+        if let PrivateGameStage::Trade(trade_stage) = &mut new_game_state.stage {
+            let user = new_game_state
+                .participants
+                .iter()
+                .find(|user| *user.user_id == *user_id);
+
+            if let Some(user) = user {
+                for trade in submit_trade {
+                    // User must actually have those cards in their hand
+                    if !user.hand.iter().any(|card| *card == trade.card) {
+                        eprintln!("Couldn't accept traded submitted by user {} because user does {:?}, which they are trying to trade", user_id, trade.card);
+                        return new_game_state;
+                    }
+
+                    // Trade must not be to self
+                    if trade.to_user_id == user_id {
+                        eprintln!("Couldn't accept traded submitted by user {} because user is trying to trade to self", user_id);
+                        return new_game_state;
+                    }
+
+                    // Trade must be to a valid participant who is on a team
+                    let mut recipient_found_in_teams = false;
+                    for team in &trade_stage.teams {
+                        for id in team.user_ids.iter() {
+                            if *id == *trade.to_user_id {
+                                recipient_found_in_teams = true;
+                            }
+                        }
+                    }
+                    if !recipient_found_in_teams {
+                        eprintln!("Couldn't accept traded submitted by user {} because the person the user is trying to trade to was not found in the teams", user_id);
+                        return new_game_state;
+                    }
+                }
+
+                // Save the user's trade for later
+                let free_index = trade_stage
+                    .trades
+                    .iter()
+                    .position(|card_trade| card_trade.is_none());
+                if let Some(free_index) = free_index {
+                    trade_stage.trades[free_index] = Some(submit_trade.clone());
+                } else {
+                    eprintln!("Couldn't accept traded submitted by user {} because no free index was found to save to in the Trade state `trades` array", user_id);
+                    return new_game_state;
+                }
+
+                // Once all trades have been received, actually trade the cards and move to Game
+                new_game_state
+            } else {
+                eprintln!("Couldn't accept traded submitted by user {} because user not found in participants", user_id);
+                return new_game_state;
+            }
+        } else {
+            eprintln!(
+                "Couldn't accept traded submitted by user {} because Game Stage is not Trade",
+                user_id
+            );
+            return new_game_state;
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -931,18 +1014,14 @@ pub struct ChooseTeamMessage {
     pub team_id: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct SingleTrade {
-    pub trade_to: String,
-    pub card: Card,
-}
-
 /// Available options when a user either calls or declines Grand Tichu
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum CallGrandTichuRequest {
     Call,
     Decline,
 }
+
+pub type SubmitTrade = [CardTrade; 3];
 
 /// Client to Server Websocket Messages
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -981,7 +1060,7 @@ pub enum CTSMsg {
 
     CallSmallTichu,
 
-    SubmitTrade([SingleTrade; 3]),
+    SubmitTrade(SubmitTrade),
 
     PlayCards {
         cards: Vec<Card>,
@@ -1032,7 +1111,7 @@ pub enum STCMsg {
 
     /// Deal last 5 cards.
     /// Player with the Mah Jong leads.
-    CardsTraded,
+    TradeSubmitted(String),
 
     /// after all submitted
     CardsPlayed,

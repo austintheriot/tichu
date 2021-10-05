@@ -6,9 +6,8 @@ use crate::types::{CTSMsgInternal, TradeToPerson};
 use anyhow::Error;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
-    validate_team_name, CTSMsg, CallGrandTichuRequest, Card, MutableTeam, PrivateUser,
-    PublicGameStage, PublicGameState, PublicUser, STCMsg, SingleTrade, TeamOption, TichuCallStatus,
-    NO_USER_ID,
+    validate_team_name, CTSMsg, CallGrandTichuRequest, Card, CardTrade, MutableTeam, PrivateUser,
+    PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamOption, TichuCallStatus, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -1031,10 +1030,26 @@ impl App {
         };
     }
 
+    fn has_submitted_trade(&self) -> bool {
+        if let Some(game_state) = &self.state.game_state {
+            if let PublicGameStage::Trade(trade_state) = &game_state.stage {
+                trade_state
+                    .submitted_trades
+                    .iter()
+                    .any(|user_id| *user_id == *self.state.user_id)
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
     fn view_trade(&self) -> Html {
         html! {
             <>
                 <h1> {"Trade"} </h1>
+                <p> { &format!("Has submitted trade: {:?}", self.has_submitted_trade())} </p>
                 <button
                     onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::SubmitTrade)})
                     disabled=!self.can_submit_trade()
@@ -1327,17 +1342,20 @@ impl App {
 
                 // create SubmitTrade body data
                 let submit_trade = [
-                    SingleTrade {
-                        trade_to: opponent1_user_id,
+                    CardTrade {
+                        to_user_id: opponent1_user_id,
                         card: self.state.trade_to_opponent1.as_ref().unwrap().clone(),
+                        from_user_id: self.state.user_id.clone(),
                     },
-                    SingleTrade {
-                        trade_to: teammate_user_id.to_string(),
+                    CardTrade {
+                        to_user_id: teammate_user_id.to_string(),
                         card: self.state.trade_to_teammate.as_ref().unwrap().clone(),
+                        from_user_id: self.state.user_id.clone(),
                     },
-                    SingleTrade {
-                        trade_to: opponent2_user_id,
+                    CardTrade {
+                        to_user_id: opponent2_user_id,
                         card: self.state.trade_to_opponent2.as_ref().unwrap().clone(),
+                        from_user_id: self.state.user_id.clone(),
                     },
                 ];
 

@@ -8,6 +8,7 @@ mod ping;
 mod pong;
 mod rename_team;
 mod start_grand_tichu;
+mod submit_trade;
 mod test;
 
 use call_grand_tichu::call_grand_tichu;
@@ -20,6 +21,7 @@ use ping::ping;
 use pong::pong;
 use rename_team::rename_team;
 use start_grand_tichu::start_grand_tichu;
+use submit_trade::submit_trade;
 use test::test;
 
 use super::send_ws_message;
@@ -92,6 +94,9 @@ pub async fn handle_message_received(
         }
         CTSMsg::CallSmallTichu => {
             call_small_tichu(&user_id, &connections, &games, &game_codes).await;
+        }
+        CTSMsg::SubmitTrade(trade_array) => {
+            submit_trade(trade_array, &user_id, &connections, &games, &game_codes).await;
         }
         any_other_message => {
             eprintln!("Unexpected message received: {:?}", any_other_message);
