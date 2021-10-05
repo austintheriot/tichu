@@ -927,24 +927,6 @@ pub enum User {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct CreateGame {
-    pub user_id: String,
-    pub display_name: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct JoinGameWithGameCode {
-    pub user_id: String,
-    pub display_name: String,
-    pub game_code: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct JoinRandomGame {
-    pub user_id: String,
-    pub display_name: String,
-}
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct ChooseTeamMessage {
     pub team_id: String,
 }
@@ -953,22 +935,6 @@ pub struct ChooseTeamMessage {
 pub struct SingleTrade {
     pub trade_to: String,
     pub card: Card,
-}
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct PlayCard {
-    pub cards: Vec<Card>,
-    pub wished_for: Option<Card>,
-    pub give_dragon_to: Option<String>,
-}
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct GiveDragon {
-    pub user_id: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct RenameTeam {
-    pub team_option: TeamOption,
-    pub team_name: String,
 }
 
 /// Available options when a user either calls or declines Grand Tichu
@@ -982,43 +948,64 @@ pub enum CallGrandTichuRequest {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum CTSMsg {
     /// Join a pre-existing game as the participant
-    JoinGameWithGameCode(JoinGameWithGameCode),
-    JoinRandomGame(JoinRandomGame),
+    JoinGameWithGameCode {
+        user_id: String,
+        display_name: String,
+        game_code: String,
+    },
+
+    JoinRandomGame {
+        user_id: String,
+        display_name: String,
+    },
 
     /// Create game as the owner
-    CreateGame(CreateGame),
+    CreateGame {
+        user_id: String,
+        display_name: String,
+    },
 
     /// User can only explicitly leave game when in the lobby
     LeaveGame,
     MoveToTeam(TeamOption),
-    RenameTeam(RenameTeam),
+
+    RenameTeam {
+        team_option: TeamOption,
+        team_name: String,
+    },
 
     /// Move from Teams stage to Grand Tichu stage
     StartGrandTichu,
 
     CallGrandTichu(CallGrandTichuRequest),
+
     CallSmallTichu,
 
     SubmitTrade([SingleTrade; 3]),
-    PlayCards(PlayCard),
-    GiveDragon(GiveDragon),
+
+    PlayCards {
+        cards: Vec<Card>,
+        wished_for: Option<Card>,
+        give_dragon_to: Option<String>,
+    },
+
+    GiveDragon {
+        user_id: String,
+    },
 
     Ping,
     Pong,
     Test(String),
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct GameCreated {
-    pub game_id: String,
-    pub game_code: String,
-}
-
 /// Server to Client Websocket Messages
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum STCMsg {
     UserIdAssigned(String),
-    GameCreated(GameCreated),
+    GameCreated {
+        game_id: String,
+        game_code: String,
+    },
 
     /// Game state update
     /// Should only be None if the game completely ends and all users are removed

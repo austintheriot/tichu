@@ -24,7 +24,7 @@ use test::test;
 
 use super::send_ws_message;
 use crate::{Connections, GameCodes, Games};
-use common::{CTSMsg, RenameTeam, STCMsg};
+use common::{CTSMsg, STCMsg};
 use warp::ws::Message;
 
 pub async fn handle_message_received(
@@ -51,17 +51,11 @@ pub async fn handle_message_received(
         CTSMsg::Pong => {
             pong(&user_id, &connections).await;
         }
-        CTSMsg::CreateGame(create_game_data) => {
-            create_game(create_game_data, connections, &games, &game_codes).await;
+        CTSMsg::CreateGame { .. } => {
+            create_game(msg, connections, &games, &game_codes).await;
         }
-        CTSMsg::JoinGameWithGameCode(join_game_with_game_code_data) => {
-            join_game_with_game_code(
-                join_game_with_game_code_data,
-                connections,
-                games,
-                game_codes,
-            )
-            .await;
+        CTSMsg::JoinGameWithGameCode { .. } => {
+            join_game_with_game_code(msg, connections, games, game_codes).await;
         }
         CTSMsg::LeaveGame => {
             leave_game(&user_id, &connections, &games, &game_codes).await;
@@ -69,11 +63,10 @@ pub async fn handle_message_received(
         CTSMsg::MoveToTeam(team_option) => {
             move_to_team(&team_option, &user_id, &connections, &games, &game_codes).await;
         }
-        CTSMsg::RenameTeam(rename_team_data) => {
-            let RenameTeam {
-                team_name: new_team_name,
-                team_option,
-            } = rename_team_data;
+        CTSMsg::RenameTeam {
+            team_name: new_team_name,
+            team_option,
+        } => {
             rename_team(
                 &team_option,
                 new_team_name,

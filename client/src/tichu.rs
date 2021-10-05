@@ -6,9 +6,9 @@ use crate::types::{CTSMsgInternal, TradeToPerson};
 use anyhow::Error;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
-    validate_team_name, CTSMsg, CallGrandTichuRequest, Card, CreateGame, JoinGameWithGameCode,
-    MutableTeam, PrivateUser, PublicGameStage, PublicGameState, PublicUser, RenameTeam, STCMsg,
-    SingleTrade, TeamOption, TichuCallStatus, NO_USER_ID,
+    validate_team_name, CTSMsg, CallGrandTichuRequest, Card, MutableTeam, PrivateUser,
+    PublicGameStage, PublicGameState, PublicUser, STCMsg, SingleTrade, TeamOption, TichuCallStatus,
+    NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -1132,7 +1132,7 @@ impl App {
                         .send_message(AppMsg::SetTeamBNameInput(new_team_b_name));
                 }
                 STCMsg::Test(_) => {}
-                STCMsg::GameCreated(_) => {}
+                STCMsg::GameCreated { .. } => {}
                 STCMsg::UserJoined(_) => {}
                 STCMsg::UserDisconnected(_) => {}
                 STCMsg::UserReconnected(_) => {}
@@ -1188,12 +1188,11 @@ impl App {
                     return false;
                 }
 
-                let create_game = CreateGame {
+                let msg = CTSMsg::CreateGame {
                     user_id: self.state.user_id.clone(),
                     display_name: self.state.display_name_input.clone(),
                 };
 
-                let msg = CTSMsg::CreateGame(create_game);
                 self._send_ws_message(&msg);
                 false
             }
@@ -1202,13 +1201,12 @@ impl App {
                     return false;
                 }
 
-                let join_game_with_game_code = JoinGameWithGameCode {
+                let msg = CTSMsg::JoinGameWithGameCode {
                     game_code: self.state.join_room_game_code_input.clone().to_uppercase(),
                     display_name: self.state.display_name_input.clone(),
                     user_id: self.state.user_id.clone(),
                 };
 
-                let msg = CTSMsg::JoinGameWithGameCode(join_game_with_game_code);
                 self._send_ws_message(&msg);
                 false
             }
@@ -1253,10 +1251,10 @@ impl App {
                     return false;
                 }
 
-                self._send_ws_message(&CTSMsg::RenameTeam(RenameTeam {
+                self._send_ws_message(&CTSMsg::RenameTeam {
                     team_name: team_name_input_clone,
                     team_option,
-                }));
+                });
 
                 false
             }
