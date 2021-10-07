@@ -1,5 +1,5 @@
 use crate::{routes::ws::send_ws_message, Connections, GameCodes, Games};
-use common::{PrivateGameStage, STCMsg, SubmitTrade, TichuCallStatus};
+use common::{PrivateGameStage, STCMsg, SubmitTrade};
 
 pub async fn submit_trade(
     trade_array: SubmitTrade,

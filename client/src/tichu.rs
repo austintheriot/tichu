@@ -1,16 +1,15 @@
-use std::rc::Rc;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
-
 use crate::types::{CTSMsgInternal, TradeToPerson};
 use anyhow::Error;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
-    validate_team_name, CTSMsg, CallGrandTichuRequest, Card, CardTrade, MutableTeam, PrivateUser,
+    validate_team_name, CTSMsg, CallGrandTichuRequest, Card, CardTrade, MutableTeam,
     PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamOption, TichuCallStatus, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use yew::format::{Binary, Json};
 use yew::prelude::*;
 use yew::services::interval::IntervalTask;
