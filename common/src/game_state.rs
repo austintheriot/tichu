@@ -7,8 +7,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-/// Game state that only the server knows about.
-/// This includes every user's cards, what is in the rest of the deck, etc.
+/// The primary game state for every game of Tichu stored on the server.
+///
+/// This is game state state that only the server knows about, and it
+/// includes every user's cards, all cards in the deck, etc.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct PrivateGameState {
     pub game_id: String,
@@ -23,6 +25,7 @@ pub struct PrivateGameState {
 }
 
 impl PrivateGameState {
+    /// Initializes a new, default PrivateGameState
     pub fn new(
         owner_id: String,
         owner_display_name: String,
@@ -45,6 +48,7 @@ impl PrivateGameState {
         }
     }
 
+    /// Adds a user to the game.
     pub fn add_user(&self, user_id: String, display_name: String) -> PrivateGameState {
         let current_participants = self.participants.len();
         let game_has_max_participants = current_participants == 4;
@@ -98,6 +102,7 @@ impl PrivateGameState {
         new_game_state
     }
 
+    /// Removes a uer from the game.
     pub fn remove_user(&self, user_id: &str) -> PrivateGameState {
         let mut new_participants = self.participants.clone();
 
@@ -110,6 +115,7 @@ impl PrivateGameState {
         new_game_state
     }
 
+    /// Reassigns ownership of the game to a different user.
     pub fn reassign_owner(&self) -> PrivateGameState {
         // clone old game state and update only what's necessary
         let mut new_game_state = self.clone();
@@ -133,13 +139,7 @@ impl PrivateGameState {
         let mut public_participants: Vec<PublicUser> = Vec::with_capacity(4);
         let mut current_user = None;
         for private_participant in self.participants.iter() {
-            let public_participant = PublicUser {
-                display_name: private_participant.display_name.clone(),
-                role: private_participant.role.clone(),
-                tricks: private_participant.tricks.clone(),
-                user_id: private_participant.user_id.clone(),
-                has_played_first_card: private_participant.has_played_first_card,
-            };
+            let public_participant: PublicUser = private_participant.into();
             public_participants.push(public_participant);
 
             if private_participant.user_id == current_user_id {
@@ -164,6 +164,7 @@ impl PrivateGameState {
         Some(public_game_state)
     }
 
+    /// Moves a user into a specific team.
     pub fn move_to_team(
         &self,
         team_to_move_to: &TeamOption,
@@ -205,6 +206,10 @@ impl PrivateGameState {
         }
     }
 
+    /// Renames a team
+    ///
+    /// Can be requested by any user who is currently on the team they
+    /// are trying to rename.
     pub fn rename_team(
         &self,
         team_to_rename: &TeamOption,
@@ -394,6 +399,9 @@ impl PrivateGameState {
         }
     }
 
+    /// Saves a users Grand Tichu choice
+    ///
+    /// User can either Call or Decline
     pub fn call_grand_tichu(
         &self,
         call_grand_tichu_request: &CallGrandTichuRequest,
@@ -452,6 +460,9 @@ impl PrivateGameState {
         new_game_state
     }
 
+    /// Saves user's Small Tichu choice
+    ///
+    /// User can only CALL small tichu. Cannot decline.
     pub fn call_small_tichu(&self, user_id: &str) -> PrivateGameState {
         let mut new_game_state = self.clone();
 
@@ -520,6 +531,9 @@ impl PrivateGameState {
         self
     }
 
+    /// Saves a user's trade choice.
+    ///
+    /// These trades are actually committed/enacted once all users have submitted their trades.
     pub fn submit_trade(&self, user_id: &str, submit_trade: &SubmitTrade) -> PrivateGameState {
         let mut new_game_state = self.clone();
 

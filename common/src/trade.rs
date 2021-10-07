@@ -31,6 +31,7 @@ impl From<PrivateTrade> for PublicTrade {
     }
 }
 
+/// Transition server state from Grand Tichu stage to Trade stage
 impl From<PrivateGrandTichu> for PrivateTrade {
     fn from(private_grand_tichu: PrivateGrandTichu) -> Self {
         PrivateTrade {
@@ -49,14 +50,10 @@ pub struct PublicTrade {
     pub small_tichus: [UserIdWithTichuCallStatus; 4],
     pub grand_tichus: [UserIdWithTichuCallStatus; 4],
     pub teams: ImmutableTeams,
-    pub submitted_trades: Vec<String>,
-}
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct Trade {
-    from: String,
-    to: String,
-    card: Card,
+    /// If a user_id is present here, it indicates that the user
+    /// has successfully submitted a trade.
+    pub submitted_trades: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -66,10 +63,7 @@ pub struct CardTrade {
     pub to_user_id: String,
 }
 
+/// This is the format that the client uses to submit a card trade
+/// to the server in the Trade stage. One CardTrade for each of the other
+/// participants: Opponent 1, Teammate, and Opponent 2.
 pub type SubmitTrade = [CardTrade; 3];
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct UserIdWithTradeStatus {
-    pub user_id: String,
-    pub traded: bool,
-}

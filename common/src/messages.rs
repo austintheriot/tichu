@@ -3,7 +3,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-/// Server to Client Websocket Messages
+/// All possible Server-to-Client Websocket Messages
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum STCMsg {
     UserIdAssigned(String),
@@ -65,7 +65,7 @@ pub enum STCMsg {
     UserReconnected(String),
 }
 
-/// Client to Server Websocket Messages
+/// All possible Client-to-Server Websocket Messages
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum CTSMsg {
     /// Join a pre-existing game as the participant

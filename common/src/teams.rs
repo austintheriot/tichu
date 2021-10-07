@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+/// Users can freely move in/out of this team type, since the
+/// user_ids is a flexible Vec type.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct MutableTeam {
     pub id: String,
@@ -8,6 +10,8 @@ pub struct MutableTeam {
     pub score: i32,
 }
 
+/// Users cannot be easily moved in/out of ImmutableTeams, because each
+/// user_ids is a fixed-length array.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct ImmutableTeam {
     pub id: String,
@@ -34,17 +38,16 @@ impl TryFrom<MutableTeam> for ImmutableTeam {
     }
 }
 
+/// Fixed-size array of 2 MutableTeam structs.
 pub type MutableTeams = [MutableTeam; 2];
 
+/// Fixed-size array of 2 ImmutableTeam structs.
 pub type ImmutableTeams = [ImmutableTeam; 2];
 
+/// Useful for specifying which team an action is intended to be carried out on.
+/// i.e. Moving teams, renaming teams, etc.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum TeamOption {
     TeamA,
     TeamB,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct ChooseTeamMessage {
-    pub team_id: String,
 }

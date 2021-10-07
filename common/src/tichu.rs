@@ -52,7 +52,12 @@ impl From<PrivateGrandTichu> for PublicGrandTichu {
     }
 }
 
-/// Available options when a user either calls or declines Grand Tichu
+/// Available options when a user either calls or declines Grand Tichu.
+///
+/// Only Grand Tichu requires a specification of Call/Decline.
+/// Small Tichu does not require the option to Decline, because Small Tichu can be
+/// called freely before the user's first turn and doesn't require a pause in
+/// game play to check what the user wants to do.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum CallGrandTichuRequest {
     Call,

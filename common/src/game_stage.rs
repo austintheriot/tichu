@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{MutableTeams, PrivateGrandTichu, PrivateTrade, PublicGrandTichu, PublicTrade};
 
+/// Server state that holds all stage-specific state and is PRIVATE.
+/// i.e. it contains detailed information about the deck, users' hands, etc.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum PrivateGameStage {
     Lobby,
@@ -12,6 +14,9 @@ pub enum PrivateGameStage {
     Scoreboard,
 }
 
+/// Client state that holds all stage-specific state and is PUBLIC.
+/// i.e. it does NOT contain detailed information about the deck, but does
+/// contain private information about the current client's hand.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum PublicGameStage {
     Lobby,
