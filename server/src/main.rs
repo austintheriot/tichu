@@ -1,5 +1,6 @@
 // #![deny(warnings)]
 #![feature(never_type)]
+#![feature(format_args_capture)]
 extern crate common;
 mod errors;
 mod routes;

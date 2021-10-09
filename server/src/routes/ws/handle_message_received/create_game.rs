@@ -27,7 +27,7 @@ pub async fn create_game(
         // user already associated with a game, no action needed
         if let Some(game_id) = &connection.game_id {
             eprintln!(
-                "Can't create game for user: user is already associated with a game: {}",
+                "create_game: Can't create game for user: user is already associated with a game: {}",
                 game_id
             );
             return;

@@ -24,9 +24,14 @@ pub async fn game_state_to_group(
         let msg = Message::binary(msg);
 
         let read_connections = connections.read().await;
-        let ws = read_connections
-            .get(&participant.user_id)
-            .expect(USER_ID_NOT_IN_MAP);
+        let ws = match read_connections.get(&participant.user_id) {
+            Some(participant_connection) => participant_connection,
+            // participant not found in Connections map
+            None => {
+                eprintln!("Can't send game state to user {}, because user was not found in Connections HahsMap", participant.user_id);
+                continue;
+            }
+        };
         if let Err(_disconnected) = ws.tx.send(msg.clone()) {
             eprintln!("User is disconnected. Couldn't send message {:?}", &msg);
         } else {
@@ -49,9 +54,14 @@ pub async fn to_group(
     let game = read_games.get(game_id).expect(GAME_ID_NOT_IN_MAP);
     for participant in game.participants.iter() {
         let read_connections = connections.read().await;
-        let ws = read_connections
-            .get(&participant.user_id)
-            .expect(USER_ID_NOT_IN_MAP);
+        let ws = match read_connections.get(&participant.user_id) {
+            Some(participant_connection) => participant_connection,
+            // participant not found in Connections map
+            None => {
+                eprintln!("Can't send game state to user {}, because user was not found in Connections HahsMap", participant.user_id);
+                continue;
+            }
+        };
         if let Err(_disconnected) = ws.tx.send(msg.clone()) {
             eprintln!("User is disconnected. Couldn't send message {:?}", &msg);
         } else {

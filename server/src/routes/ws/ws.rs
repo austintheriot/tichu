@@ -223,7 +223,7 @@ pub async fn handle_message_received(
             // user already associated with a game, no action needed
             if let Some(game_id) = &connection.game_id {
                 eprintln!(
-                    "Can't create game for user: user is already associated with a game: {}",
+                    "handle_message_received: Can't create game for user: user is already associated with a game: {}",
                     game_id
                 );
                 return;

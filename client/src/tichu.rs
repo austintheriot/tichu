@@ -680,7 +680,6 @@ impl App {
                     <br />
                     <button
                         type="submit"
-                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)})
                         disabled=!self.can_join_game()
                         >{ "Join game" }</button>
                 </form>
@@ -700,7 +699,6 @@ impl App {
                     <br />
                     <button
                         type="submit"
-                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)})
                         disabled=!self.can_create_game()
                         >{ "Create game" }</button>
                 </form>

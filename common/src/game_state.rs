@@ -158,7 +158,7 @@ impl PrivateGameState {
             owner_id: self.owner_id.clone(),
             stage: self.stage.clone().into(),
             participants: public_participants,
-            current_user: current_user.expect("Current user not found in participants"),
+            current_user: current_user.unwrap(),
         };
 
         Some(public_game_state)

@@ -63,7 +63,9 @@ pub fn validate_game_code(game_code: &str) -> Option<String> {
 
     if clean_up_display_name(game_code).is_empty() {
         error = String::from("Game code is not long enough");
-    }
+    } else if game_code.to_uppercase() != game_code {
+        error = String::from("Game code is not all uppercase");
+    };
 
     if !error.is_empty() {
         Some(error)
