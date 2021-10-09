@@ -101,9 +101,18 @@ impl Component for App {
         let user_id = if let Json(Ok(restored_user_id)) = storage.restore(USER_ID_STORAGE_KEY) {
             restored_user_id
         } else {
+            String::new()
+        };
+
+        // default to NO_USER_ID stand-in if string is empty
+        let user_id = if user_id.trim().is_empty() {
             storage.store(USER_ID_STORAGE_KEY, Json(&NO_USER_ID));
             String::from(NO_USER_ID)
+        } else {
+            user_id
         };
+
+        info!("user_id is {}", user_id);
 
         let display_name =
             if let Json(Ok(restored_display_name)) = storage.restore(DISPLAY_NAME_STORAGE_KEY) {

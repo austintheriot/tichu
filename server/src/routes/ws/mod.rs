@@ -26,7 +26,7 @@ pub async fn handle_ws_upgrade(
     games: Games,
     game_codes: GameCodes,
 ) {
-    eprintln!("User connected! Original user_id = {}", user_id);
+    eprintln!("User {user_id} connected!");
 
     let (mut user_ws_tx, mut user_ws_rx) = ws.split();
     // use a channel to send messages to our websocket sink (sender)
@@ -72,15 +72,16 @@ pub async fn handle_ws_upgrade(
     let mut new_user_id_assigned = false;
     let mut game_id = None;
 
-    // user either has no user_id, or does not have user_id that is currently saved in memory
-    let user_id = if user_id == NO_USER_ID || !is_a_returning_user {
+    // only reassign user_ids if the user hasn't claimed one yet
+    // they can use whichever one they provide as long as it is unique
+    let user_id = if user_id == NO_USER_ID {
         new_user_id_assigned = true;
-        Uuid::new_v4().to_string()
+        let new_user_id = Uuid::new_v4().to_string();
+        eprintln!("User {user_id} received new user_id: {new_user_id}");
+        new_user_id
     } else {
         user_id
     };
-
-    eprintln!("Final user_id = {}", user_id);
 
     // get associated game_id from returning users
     if is_a_returning_user {

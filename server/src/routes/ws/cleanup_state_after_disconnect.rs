@@ -1,11 +1,8 @@
 use super::send_ws_message;
-use crate::{
-    errors::{GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
-    Connections, GameCodes, Games,
-};
+use crate::{errors::USER_ID_NOT_IN_MAP, Connections, GameCodes, Games};
 use common::{PrivateGameStage, STCMsg};
 
-const FUNCTION_NAME: &str = "{FUNCTION_NAME}: ";
+const FUNCTION_NAME: &str = "cleanup_state_after_disconnect";
 
 /// When a user disconnects, clean up their connection state and any game state their associated with.
 pub async fn cleanup_state_after_disconnect(
@@ -128,7 +125,7 @@ pub async fn cleanup_state_after_disconnect(
             .await;
         } else {
             // no other users left in game and user is not in lobby: only mark this user as disconnected
-            eprintln!("Marking user {} as not connected", user_id);
+            eprintln!("{FUNCTION_NAME} Marking user {} as not connected", user_id);
             write_connections
                 .get_mut(user_id)
                 .expect(USER_ID_NOT_IN_MAP)
