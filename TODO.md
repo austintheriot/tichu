@@ -17,8 +17,6 @@ IDEAS:
 
 TODO:
 - Server:
-  - Validate SubmitTrade in websocket message (Share validations with PrivateGameState)
-    - Conditionally send websocket messages based on results
   - Move Cards and move GameStage to game once all trades have been submitted 
 
 MUST HAVES:
@@ -28,6 +26,9 @@ MUST HAVES:
 - Search TODOs in codebase
 
 NICE TO HAVES:
+- Validate in handle_ws_message OR in game_state methods, but NOT BOTH --- OR share methods for determining if that action can be taken
+- Validate SubmitTrade in websocket message (Share validations with PrivateGameState)
+    - Conditionally send websocket messages based on results
 - Allow users to change their Grand Tichu call before the last person has called it
 - Show other users who have joined the game once a user has created / joined a room
 - Convert "Call Small Tichu" into a reusable Component
