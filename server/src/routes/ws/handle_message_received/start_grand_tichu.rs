@@ -5,6 +5,8 @@ use crate::{
 };
 use common::{PrivateGameStage, STCMsg};
 
+const FUNCTION_NAME: &str = "start_grand_tichu";
+
 pub async fn start_grand_tichu(
     user_id: &str,
     connections: &Connections,
@@ -20,7 +22,7 @@ pub async fn start_grand_tichu(
 
     let game_id_clone = match &game_id_clone {
         None => {
-            eprintln!("User {} can't start game since they are not associated with any game. Ignoring request", user_id);
+            eprintln!("{FUNCTION_NAME}: User {} can't start game since they are not associated with any game. Ignoring request", user_id);
             return;
         }
         Some(game_id_clone) => game_id_clone,
@@ -34,7 +36,7 @@ pub async fn start_grand_tichu(
     let teams_state = match &game_state.stage {
         PrivateGameStage::Teams(teams_state) => teams_state,
         _ => {
-            eprintln!("User {} can't start game because current game stage is not teams. Ignoring request", user_id);
+            eprintln!("{FUNCTION_NAME}: User {} can't start game because current game stage is not teams. Ignoring request", user_id);
             return;
         }
     };
@@ -42,7 +44,7 @@ pub async fn start_grand_tichu(
     // teams must be 2v2
     if teams_state[0].user_ids.len() != 2 || teams_state[1].user_ids.len() != 2 {
         eprintln!(
-            "User {} can't start game because teams are not even 2v2. Ignoring request",
+            "{FUNCTION_NAME}: User {} can't start game because teams are not even 2v2. Ignoring request",
             user_id
         );
         return;
@@ -53,6 +55,11 @@ pub async fn start_grand_tichu(
     *game_state = new_game_state.clone();
 
     drop(write_games);
+
+    eprintln!(
+        "{FUNCTION_NAME}: User {} successfully started Grand Tichu",
+        user_id
+    );
 
     // send PrivateGameStage change event to Grand Tichu
     send_ws_message::to_group(

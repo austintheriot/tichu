@@ -5,6 +5,8 @@ use crate::{
 };
 use common::{PrivateGameStage, STCMsg, TeamOption};
 
+const FUNCTION_NAME: &str = "move_to_team";
+
 pub async fn move_to_team(
     team_to_move_to: &TeamOption,
     user_id: &str,
@@ -23,10 +25,7 @@ pub async fn move_to_team(
     let game_id_clone = match game_id_clone {
         // user is not associated with a game, do nothing
         None => {
-            eprintln!(
-                "User {} is not associated with a game. Ignoring request",
-                &user_id
-            );
+            eprintln!("{FUNCTION_NAME}: User {user_id} can't move to team {:#?} because the user is not associated with a game", team_to_move_to);
             return;
         }
         Some(game_id_clone) => game_id_clone,
@@ -45,8 +44,8 @@ pub async fn move_to_team(
                 .any(|participant_id| **participant_id == *user_id)
             {
                 eprintln!(
-                    "User {} is already on team {:?}. Ignoring request",
-                    &user_id, &team_to_move_to
+                    "{FUNCTION_NAME}: User {} can't move to to team {:?} because is already on team {:?}. Ignoring request",
+                    user_id, team_to_move_to, team_to_move_to
                 );
                 return;
             }
@@ -54,14 +53,17 @@ pub async fn move_to_team(
         // current stage is not Teams, do nothing
         _ => {
             eprintln!(
-                "Current stage is not Teams. Ignoring request to move user {} to team {:?}.",
+                "{FUNCTION_NAME}: User {} can't move to to team {:?} because current game stage is not Teams",
                 &user_id, &team_to_move_to
             );
             return;
         }
     }
 
-    eprintln!("Moving user {} to team A", &user_id);
+    eprintln!(
+        "{FUNCTION_NAME}: User {} successfully moved to team {:?}",
+        user_id, team_to_move_to
+    );
 
     // update game state
     let new_game_state = prev_game_state.move_to_team(team_to_move_to, user_id);

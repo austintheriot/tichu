@@ -6,6 +6,8 @@ use crate::{
     Connections, GameCodes, Games,
 };
 
+const FUNCTION_NAME: &str = "rename_team";
+
 pub async fn rename_team(
     team_to_rename: &TeamOption,
     new_team_name: String,
@@ -26,7 +28,7 @@ pub async fn rename_team(
         // user is not associated with a game, do nothing
         None => {
             eprintln!(
-                "User {} is not associated with a game. Ignoring request to rename {:?}",
+                "{FUNCTION_NAME}: User {} is not associated with a game. Ignoring request to rename {:?}",
                 &user_id, &team_to_rename,
             );
             return;
@@ -47,7 +49,7 @@ pub async fn rename_team(
                 .any(|participant_id| **participant_id == *user_id)
             {
                 eprintln!(
-                    "User {} is not on the team they want to rename ({:?}). Ignoring request to rename team",
+                    "{FUNCTION_NAME}: User {} is not on the team they want to rename ({:?}). Ignoring request to rename team",
                     &user_id,
                     &team_to_rename,
                 );
@@ -57,17 +59,12 @@ pub async fn rename_team(
         // current stage is not Teams, do nothing
         _ => {
             eprintln!(
-                "Current stage is not Teams. Ignoring request from user {} to rename team {:?}",
+                "{FUNCTION_NAME}: Current stage is not Teams. Ignoring request from user {} to rename team {:?}",
                 &user_id, &team_to_rename,
             );
             return;
         }
     }
-
-    eprintln!(
-        "User {} is renaming team {:?} to {}",
-        &user_id, &team_to_rename, &new_team_name
-    );
 
     // update game state
     let new_game_state = prev_game_state.rename_team(team_to_rename, user_id, &new_team_name);
@@ -75,6 +72,11 @@ pub async fn rename_team(
         .get_mut(&game_id_clone)
         .expect(GAME_ID_NOT_IN_MAP) = new_game_state.clone();
     drop(write_games);
+
+    eprintln!(
+        "{FUNCTION_NAME}: User {} successfully renamed team {:?} to {}",
+        &user_id, &team_to_rename, &new_team_name
+    );
 
     let team_renamed_event = match team_to_rename {
         TeamOption::TeamA => STCMsg::TeamARenamed(new_team_name),

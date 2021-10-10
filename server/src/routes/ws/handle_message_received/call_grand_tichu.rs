@@ -1,6 +1,8 @@
 use crate::{routes::ws::send_ws_message, Connections, GameCodes, Games};
 use common::{CallGrandTichuRequest, PrivateGameStage, STCMsg, TichuCallStatus};
 
+const FUNCTION_NAME: &str = "call_grand_tichu";
+
 pub async fn call_grand_tichu(
     call_grand_tichu_request: &CallGrandTichuRequest,
     user_id: &str,
@@ -13,17 +15,26 @@ pub async fn call_grand_tichu(
 
     let user = match read_connections.get(user_id) {
         Some(user) => user,
-        None => return,
+        None => {
+            eprintln!("{FUNCTION_NAME}: User {user_id} can't call Grand Tichu, because their user_id could not be found in the Connections HashMap");
+            return;
+        }
     };
 
     let game_id = match user.game_id.clone() {
         Some(game_id) => game_id,
-        None => return,
+        None => {
+            eprintln!("{FUNCTION_NAME}: User {user_id} can't call Grand Tichu, because the user is not associated with a game_id");
+            return;
+        }
     };
 
     let game_state = match write_games.get_mut(&game_id) {
         Some(game_state) => game_state,
-        None => return,
+        None => {
+            eprintln!("{FUNCTION_NAME}: User {user_id} can't call Grand Tichu, because the game_id that they are associated with could not be found in the Games HashMap");
+            return;
+        }
     };
 
     match &game_state.stage {
@@ -35,14 +46,14 @@ pub async fn call_grand_tichu(
                 .position(|user_call_status| *user_call_status.user_id == *user_id);
             match i {
                 None => {
-                    eprintln!("Couldn't find user's call status in GrandTichu call stage. Ignoring request to call Grand Tichu from user {}", user_id);
+                    eprintln!("{FUNCTION_NAME}: User {user_id} can't call Grand Tichu their call status in GrandTichu call stage couldn't be found");
                     return;
                 }
                 Some(i) => {
                     if grand_tichu_state.grand_tichus[i].tichu_call_status
                         != TichuCallStatus::Undecided
                     {
-                        eprintln!("User has already declared or declined Grand Tichu. Ignoring request to call Grand Tichu from user {}", user_id);
+                        eprintln!("{FUNCTION_NAME}: User {user_id} can't call Grand Tichu because they have already declared or declined Grand Tichu");
                         return;
                     }
                 }
@@ -50,7 +61,7 @@ pub async fn call_grand_tichu(
         }
         // game stage must be GrandTichu
         _ => {
-            eprintln!("Must be in GrandTichu game stage to call Grand tichu. Ignoring request to call Grand Tichu from user {}", user_id);
+            eprintln!("{FUNCTION_NAME}: User {user_id} can't call Grand Tichu because they are not in the Grand Tichu game stage");
             return;
         }
     }
@@ -60,6 +71,11 @@ pub async fn call_grand_tichu(
     *game_state = new_game_state.clone();
 
     drop(write_games);
+
+    eprintln!(
+        "User {user_id} successfully called Grand Tichu as {:#?}",
+        call_grand_tichu_request
+    );
 
     // send GrandTichuCalled
     send_ws_message::to_group(

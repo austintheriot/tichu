@@ -2,6 +2,8 @@ use super::send_ws_message;
 use crate::{errors::USER_ID_NOT_IN_MAP, Connections, GameCodes, Games};
 use common::{validate_display_name, CTSMsg, PrivateGameState, STCMsg};
 
+const FUNCTION_NAME: &str = "create_game";
+
 pub async fn create_game(
     create_game_data: CTSMsg,
     connections: Connections,
@@ -15,6 +17,7 @@ pub async fn create_game(
     {
         // bad inputs from client, ignore request
         if validate_display_name(&display_name).is_some() {
+            eprintln!("{FUNCTION_NAME}: User {user_id} can't create game because they do not have a valid display name");
             return;
         }
 
@@ -26,10 +29,7 @@ pub async fn create_game(
 
         // user already associated with a game, no action needed
         if let Some(game_id) = &connection.game_id {
-            eprintln!(
-                "create_game: Can't create game for user: user is already associated with a game: {}",
-                game_id
-            );
+            eprintln!("{FUNCTION_NAME}: Can't create game for user because user is already associated with a game");
             return;
         }
 
@@ -59,7 +59,11 @@ pub async fn create_game(
 
         // send updated new game state to owner only
         // --no need to iterate through participants, since it's a new game
-        eprintln!("New game successfully created! {:#?}", &game_state);
+        eprintln!(
+            "{FUNCTION_NAME}: New game successfully created by user {}",
+            user_id
+        );
+
         // Game Created event
         send_ws_message::to_user(&user_id, game_created, &connections).await;
 

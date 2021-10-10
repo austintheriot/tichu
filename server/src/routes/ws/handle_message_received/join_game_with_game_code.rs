@@ -1,8 +1,9 @@
-use common::{validate_display_name, validate_game_code, CTSMsg, PrivateGameStage, STCMsg};
-
 use crate::{
     errors::USER_ID_NOT_IN_MAP, routes::ws::send_ws_message, Connections, GameCodes, Games,
 };
+use common::{validate_display_name, validate_game_code, CTSMsg, PrivateGameStage, STCMsg};
+
+const FUNCTION_NAME: &str = "join_game_with_game_code";
 
 pub async fn join_game_with_game_code(
     join_game_with_game_code_data: CTSMsg,
@@ -20,6 +21,7 @@ pub async fn join_game_with_game_code(
         if validate_display_name(&display_name).is_some()
             || validate_game_code(&game_code).is_some()
         {
+            eprintln!("{FUNCTION_NAME}: User {user_id} can't join game with game code because they submitted an invalid display name or game code");
             return;
         }
 
@@ -32,10 +34,10 @@ pub async fn join_game_with_game_code(
         // user already associated with a game, no action needed
         if let Some(game_id) = &connection.game_id {
             eprintln!(
-    "Can't Join game with game code for user {}: user is already associated with a game: {}",
-    user_id,
-    game_id
-  );
+                "{FUNCTION_NAME}: Can't Join game with game code for user {}: user is already associated with a game: {}",
+                user_id,
+                game_id
+            );
             return;
         }
 
@@ -44,7 +46,9 @@ pub async fn join_game_with_game_code(
         let game_id = read_game_codes.get(&game_code.to_uppercase());
         let cloned_gamed_id = match game_id {
             None => {
-                eprintln!("User supplied incorrect game_code: ignoring request to join");
+                eprintln!(
+                    "{FUNCTION_NAME}: User supplied incorrect game_code: ignoring request to join"
+                );
                 return;
             }
             Some(game_id) => game_id.clone(),
@@ -59,7 +63,7 @@ pub async fn join_game_with_game_code(
         // Verify that there are not already 4 users in the game
         if game_state_clone.participants.len() == 4 {
             eprintln!(
-                "There are already 4 users in game {}: ignoring request to join from user {}",
+                "{FUNCTION_NAME}: There are already 4 users in game {}: ignoring request to join from user {}",
                 cloned_gamed_id, user_id
             );
             return;
@@ -82,7 +86,7 @@ pub async fn join_game_with_game_code(
         drop(write_games);
         drop(write_connections);
 
-        eprintln!("User successfully joined game! {:#?}", &new_game_state);
+        eprintln!("{FUNCTION_NAME}: User {} successfully joined game", user_id);
 
         // Send updates to user
         // User Joined event

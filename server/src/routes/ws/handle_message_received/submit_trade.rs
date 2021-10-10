@@ -1,6 +1,8 @@
 use crate::{routes::ws::send_ws_message, Connections, GameCodes, Games};
 use common::{PrivateGameStage, STCMsg, SubmitTrade};
 
+const FUNCTION_NAME: &str = "submit_trade";
+
 pub async fn submit_trade(
     trade_array: SubmitTrade,
     user_id: &str,
@@ -13,17 +15,26 @@ pub async fn submit_trade(
 
     let user = match read_connections.get(user_id) {
         Some(user) => user,
-        None => return,
+        None => {
+            eprintln!("{FUNCTION_NAME}: User {} can't submit trade, because their user_id could not be found in the Connections HashMap", user_id);
+            return;
+        }
     };
 
     let game_id = match user.game_id.clone() {
         Some(game_id) => game_id,
-        None => return,
+        None => {
+            eprintln!("{FUNCTION_NAME}: User {} can't submit trade, because they are not associated with a game_id", user_id);
+            return;
+        }
     };
 
     let game_state = match write_games.get_mut(&game_id) {
         Some(game_state) => game_state,
-        None => return,
+        None => {
+            eprintln!("{FUNCTION_NAME}: User {} can't submit trade, because the game they are associated with could not be found in the Games HashMap", user_id);
+            return;
+        }
     };
 
     // update game state
@@ -31,6 +42,11 @@ pub async fn submit_trade(
     *game_state = new_game_state.clone();
 
     drop(write_games);
+
+    eprintln!(
+        "{FUNCTION_NAME}: User {} successfully submitted trade",
+        user_id
+    );
 
     // send Trade submitted
     send_ws_message::to_group(
