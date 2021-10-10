@@ -67,6 +67,7 @@ pub enum AppMsg {
     SetTeamANameInput(String),
     SetTeamBNameInput(String),
     SetSelectedCard(usize),
+    RemoveSelectedCard,
 
     SetTrade(TradeToPerson),
     RemoveTrade(TradeToPerson),
@@ -269,9 +270,13 @@ impl Component for App {
                 self.state.selected_card.replace(card_from_hand);
                 true
             }
+            AppMsg::RemoveSelectedCard => {
+                self.state.selected_card = None;
+                true
+            }
             AppMsg::SetTrade(trade_to_person) => {
                 if !self.can_set_trade() {
-                    warn!("Invalid state to set trade to opponent 1");
+                    warn!("Invalid state to set trade to {:?}", trade_to_person);
                     return false;
                 }
                 if let Some(selected_card) = &self.state.selected_card {
@@ -1056,25 +1061,35 @@ impl App {
             <>
                 <h1> {"Trade"} </h1>
                 <p> { &format!("Has submitted trade: {:?}", self.has_submitted_trade())} </p>
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::SubmitTrade)})
-                    disabled=!self.can_submit_trade()
-                    type="submit"
-                    >
-                    {"Submit"}
-                </button>
-                <br />
-                { self.view_trade_to_person(TradeToPerson::Opponent1) }
-                <br />
-                { self.view_trade_to_person(TradeToPerson::Teammate) }
-                <br />
-                { self.view_trade_to_person(TradeToPerson::Opponent2) }
-                <br />
-                <br />
-                <br />
+                {if !self.has_submitted_trade() {
+                    html!{
+                        <>
+                            <button
+                            onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::SubmitTrade)})
+                            disabled=!self.can_submit_trade()
+                            type="submit"
+                            >
+                            {"Submit"}
+                            </button>
+                            <br />
+                            { self.view_trade_to_person(TradeToPerson::Opponent1) }
+                            <br />
+                            { self.view_trade_to_person(TradeToPerson::Teammate) }
+                            <br />
+                            { self.view_trade_to_person(TradeToPerson::Opponent2) }
+                            <br />
+                            { self.view_selected_card() }
+                            <br />
+                            <br />
+                            <br />
+                        </>
+                    }
+                } else {
+                    html!{
+                        <p> {"Waiting for others to trade..."} </p>
+                    }
+                }}
                 { self.call_small_tichu_button() }
-                <br />
-                { self.view_selected_card() }
                 <br />
                 { self.view_hand() }
             </>
@@ -1104,11 +1119,13 @@ impl App {
                     self.link.send_message(AppMsg::SetUserId(s));
                 }
                 STCMsg::GameState(new_game_state) => {
+                    let new_game_state = *new_game_state;
+
                     // if team names are empty, update team name inputs to reflect state
                     if self.state.team_a_name_input.is_empty()
                         || self.state.team_b_name_input.is_empty()
                     {
-                        if let Some(new_game_state) = &*new_game_state {
+                        if let Some(new_game_state) = &new_game_state {
                             if let PublicGameStage::Teams(teams_state) = &new_game_state.stage {
                                 self.link.send_message_batch(vec![
                                     AppMsg::SetTeamANameInput(
@@ -1122,15 +1139,20 @@ impl App {
                         }
                     }
 
-                    match &*new_game_state {
-                        None => {}
-                        Some(new_game_state) => {
-                            // save display name input to state/localStorage
-                            self.link.send_message(AppMsg::SetDisplayName(
-                                (*new_game_state.current_user.display_name).to_string(),
-                            ));
-                        }
-                    }
+                    // move into block and back out for mutability (TODO: clean up later)
+                    let new_game_state = if let Some(mut new_game_state) = new_game_state {
+                        // save display name input to state/localStorage
+                        self.link.send_message(AppMsg::SetDisplayName(
+                            (*new_game_state.current_user.display_name).to_string(),
+                        ));
+
+                        // sort current user's hand
+                        new_game_state.current_user.hand.sort();
+
+                        Box::new(Some(new_game_state))
+                    } else {
+                        Box::new(new_game_state)
+                    };
 
                     self.state.game_state = *new_game_state;
                     should_rerender = true;
@@ -1164,6 +1186,7 @@ impl App {
                 STCMsg::GameStageChanged(_) => {}
                 STCMsg::GrandTichuCalled(_, _) => {}
                 STCMsg::SmallTichuCalled(_) => {}
+                STCMsg::TradeSubmitted(_) => {}
                 _ => warn!("Unexpected websocket message received {:#?}", data),
             },
         }
@@ -1345,6 +1368,14 @@ impl App {
                         warn!("Can't submit trade since current game state is None");
                         return false;
                     };
+
+                // clear selected card / trade state
+                self.link.send_message_batch(vec![
+                    AppMsg::RemoveSelectedCard,
+                    AppMsg::RemoveTrade(TradeToPerson::Opponent1),
+                    AppMsg::RemoveTrade(TradeToPerson::Teammate),
+                    AppMsg::RemoveTrade(TradeToPerson::Opponent2),
+                ]);
 
                 // create SubmitTrade body data
                 let submit_trade = [

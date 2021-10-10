@@ -1,10 +1,11 @@
 use crate::{
-    get_new_game_code, user::UserRole, CallGrandTichuRequest, Deck, ImmutableTeam, MutableTeam,
-    PrivateGameStage, PrivateGrandTichu, PrivateUser, PublicGameStage, PublicUser, SubmitTrade,
-    TeamOption, TichuCallStatus, UserIdWithTichuCallStatus,
+    get_new_game_code, user::UserRole, CallGrandTichuRequest, Card, Deck, ImmutableTeam,
+    MutableTeam, PrivateGameStage, PrivateGrandTichu, PrivateUser, PublicGameStage, PublicUser,
+    SubmitTrade, TeamOption, TichuCallStatus, UserIdWithTichuCallStatus,
+    NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{borrow::BorrowMut, collections::HashMap, env::current_exe};
 use uuid::Uuid;
 
 /// The primary game state for every game of Tichu stored on the server.
@@ -147,10 +148,15 @@ impl PrivateGameState {
             }
         }
 
-        if current_user.is_none() {
+        let mut current_user = if let Some(current_user) = current_user {
+            current_user
+        } else {
             eprintln!("Can't convert PrivateGameState to PublicGameState, because current user does not exist in list of participants");
             return None;
-        }
+        };
+
+        // sort users hand just in case
+        current_user.hand.sort();
 
         let public_game_state = PublicGameState {
             game_id: self.game_id.clone(),
@@ -158,7 +164,7 @@ impl PrivateGameState {
             owner_id: self.owner_id.clone(),
             stage: self.stage.clone().into(),
             participants: public_participants,
-            current_user: current_user.unwrap(),
+            current_user,
         };
 
         Some(public_game_state)
@@ -274,7 +280,7 @@ impl PrivateGameState {
                                 .participants
                                 .iter_mut()
                                 .for_each(|participant| {
-                                    let mut cards = deck.draw(9);
+                                    let mut cards = deck.draw(NUM_CARDS_BEFORE_GRAND_TICHU);
                                     cards.sort();
                                     for card in cards.into_iter() {
                                         participant.hand.push(card);
@@ -514,9 +520,9 @@ impl PrivateGameState {
 
         // must currently be in Grand Tichu stage
         if let PrivateGameStage::GrandTichu(mut grand_tichu) = self.stage {
-            // deal the rest of the 9 cards
+            // deal the rest of the cards to each player
             for participant in self.participants.iter_mut() {
-                let mut drawn_cards = grand_tichu.deck.draw(9);
+                let mut drawn_cards = grand_tichu.deck.draw(NUM_CARDS_AFTER_GRAND_TICHU);
                 for _ in 0..drawn_cards.len() {
                     let drawn_card = drawn_cards.pop().unwrap();
                     participant.hand.push(drawn_card)
@@ -539,58 +545,68 @@ impl PrivateGameState {
 
         // Must be Trade stage
         if let PrivateGameStage::Trade(trade_stage) = &mut new_game_state.stage {
-            let user = new_game_state
+            let i = new_game_state
                 .participants
                 .iter()
-                .find(|user| *user.user_id == *user_id);
+                .position(|user| *user.user_id == *user_id);
 
-            if let Some(user) = user {
-                for trade in submit_trade {
-                    // User must actually have those cards in their hand
-                    if !user.hand.iter().any(|card| *card == trade.card) {
-                        eprintln!("Couldn't accept traded submitted by user {} because user does {:?}, which they are trying to trade", user_id, trade.card);
-                        return new_game_state;
-                    }
+            let user = if let Some(i) = i {
+                &mut new_game_state.participants[i]
+            } else {
+                eprintln!("Couldn't accept traded submitted by user {user_id} because user could not be found in participants");
+                return new_game_state;
+            };
 
-                    // Trade must not be to self
-                    if trade.to_user_id == user_id {
-                        eprintln!("Couldn't accept traded submitted by user {} because user is trying to trade to self", user_id);
-                        return new_game_state;
-                    }
-
-                    // Trade must be to a valid participant who is on a team
-                    let mut recipient_found_in_teams = false;
-                    for team in &trade_stage.teams {
-                        for id in team.user_ids.iter() {
-                            if *id == *trade.to_user_id {
-                                recipient_found_in_teams = true;
-                            }
-                        }
-                    }
-                    if !recipient_found_in_teams {
-                        eprintln!("Couldn't accept traded submitted by user {} because the person the user is trying to trade to was not found in the teams", user_id);
-                        return new_game_state;
-                    }
-                }
-
-                // Save the user's trade for later
-                let free_index = trade_stage
-                    .trades
-                    .iter()
-                    .position(|card_trade| card_trade.is_none());
-                if let Some(free_index) = free_index {
-                    trade_stage.trades[free_index] = Some(submit_trade.clone());
-                } else {
-                    eprintln!("Couldn't accept traded submitted by user {} because no free index was found to save to in the Trade state `trades` array", user_id);
+            for trade in submit_trade {
+                // User must actually have those cards in their hand
+                if !user.hand.iter().any(|card| *card == trade.card) {
+                    eprintln!("Couldn't accept traded submitted by user {} because user does {:?}, which they are trying to trade", user_id, trade.card);
                     return new_game_state;
                 }
 
-                // Once all trades have been received, actually trade the cards and move to Game
-                new_game_state
+                // Trade must not be to self
+                if trade.to_user_id == user_id {
+                    eprintln!("Couldn't accept traded submitted by user {} because user is trying to trade to self", user_id);
+                    return new_game_state;
+                }
+
+                // Trade must be to a valid participant who is on a team
+                let mut recipient_found_in_teams = false;
+                for team in &trade_stage.teams {
+                    for id in team.user_ids.iter() {
+                        if *id == *trade.to_user_id {
+                            recipient_found_in_teams = true;
+                        }
+                    }
+                }
+                if !recipient_found_in_teams {
+                    eprintln!("Couldn't accept traded submitted by user {} because the person the user is trying to trade to was not found in the teams", user_id);
+                    return new_game_state;
+                }
+            }
+
+            // Save the user's trade for later
+            let free_index = trade_stage
+                .trades
+                .iter()
+                .position(|card_trade| card_trade.is_none());
+            if let Some(free_index) = free_index {
+                trade_stage.trades[free_index] = Some(submit_trade.clone());
             } else {
-                eprintln!("Couldn't accept traded submitted by user {} because user not found in participants", user_id);
+                eprintln!("Couldn't accept traded submitted by user {} because no free index was found to save to in the Trade state `trades` array", user_id);
                 return new_game_state;
             }
+
+            // Remove traded cards from user's hand
+            for trade in submit_trade {
+                let i = user.hand.iter().position(|card| *card == trade.card);
+                if let Some(i) = i {
+                    user.hand.remove(i);
+                }
+            }
+
+            // Once all trades have been received, actually trade the cards and move to Game
+            new_game_state
         } else {
             eprintln!(
                 "Couldn't accept traded submitted by user {} because Game Stage is not Trade",

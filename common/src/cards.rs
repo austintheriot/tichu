@@ -5,6 +5,12 @@ use rand::prelude::SliceRandom;
 use rand::rngs::SmallRng;
 use serde::{Deserialize, Serialize};
 
+pub const NUM_PLAYERS: usize = 4;
+pub const TOTAL_CARDS: usize = 56;
+pub const NUM_CARDS_BEFORE_GRAND_TICHU: usize = 9;
+pub const NUM_CARDS_AFTER_GRAND_TICHU: usize =
+    TOTAL_CARDS / NUM_PLAYERS - NUM_CARDS_BEFORE_GRAND_TICHU;
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum CardValue {
     Start,
