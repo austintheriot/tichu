@@ -406,30 +406,57 @@ impl App {
             false
         };
 
-        // is undecided about small tichu
-        let (undecided_about_small_tichu, game_stage_is_active) =
-            if let Some(game_state) = &self.state.game_state {
-                if let PublicGameStage::GrandTichu(public_grand_tichu) = &game_state.stage {
+        let game_stage_is_active = if let Some(game_state) = &self.state.game_state {
+            match &game_state.stage {
+                PublicGameStage::GrandTichu(_) => true,
+                PublicGameStage::Trade(_) => true,
+                PublicGameStage::Game => true,
+                _ => false,
+            }
+        } else {
+            false
+        };
+
+        // TODO: DRY this code up
+        let undecided_about_small_tichu = if let Some(game_state) = &self.state.game_state {
+            match &game_state.stage {
+                PublicGameStage::GrandTichu(public_grand_tichu) => {
                     if let Some(call_status) = (*public_grand_tichu).small_tichus.iter().find(
-                        |user_id_with_tich_call_status| {
-                            *user_id_with_tich_call_status.user_id == *self.state.user_id
+                        |user_id_with_tichu_call_status| {
+                            *user_id_with_tichu_call_status.user_id == *self.state.user_id
                         },
                     ) {
-                        (
-                            matches!(call_status.tichu_call_status, TichuCallStatus::Undecided),
-                            true,
-                        )
+                        matches!(call_status.tichu_call_status, TichuCallStatus::Undecided)
                     } else {
-                        (true, true)
+                        // user's call status not found, therefore undecided
+                        true
                     }
-                } else {
-                    // user undecided but game stage is not active (TODO: update)
-                    (true, false)
                 }
-            } else {
-                // user undecided but game stage is not active (TODO: update)
-                (true, false)
-            };
+                PublicGameStage::Trade(trade) => {
+                    if let Some(call_status) =
+                        (*trade)
+                            .small_tichus
+                            .iter()
+                            .find(|user_id_with_tichu_call_status| {
+                                *user_id_with_tichu_call_status.user_id == *self.state.user_id
+                            })
+                    {
+                        matches!(call_status.tichu_call_status, TichuCallStatus::Undecided)
+                    } else {
+                        // user's call status not found, therefore undecided
+                        true
+                    }
+                }
+                PublicGameStage::Game => {
+                    // TODO: implement user is undecided about Grand Tichu here
+                    unimplemented!();
+                }
+                _ => false,
+            }
+        } else {
+            // GameState is None, therefore user is Undecided
+            true
+        };
 
         !has_played_first_card && undecided_about_small_tichu && game_stage_is_active
     }
@@ -555,6 +582,7 @@ impl App {
     }
 
     fn view_debug_grand_tichu_for_user(&self, user_id: &str) -> Html {
+        // TODO: dry this out
         let grand_tichu_call_status = match &self.state.game_state {
             Some(game_state) => match &game_state.stage {
                 PublicGameStage::GrandTichu(grand_tichu_state) => {
@@ -575,6 +603,28 @@ impl App {
                         None => "n/a",
                     }
                 }
+                PublicGameStage::Trade(trade) => {
+                    match trade
+                        .grand_tichus
+                        .iter()
+                        .find(|user_id_with_tichu_call_status| {
+                            *user_id_with_tichu_call_status.user_id == *user_id
+                        }) {
+                        Some(user_id_with_tichu_call_status) => {
+                            match user_id_with_tichu_call_status.tichu_call_status {
+                                TichuCallStatus::Undecided => "Undecided",
+                                TichuCallStatus::Called => "Called",
+                                TichuCallStatus::Declined => "Declined",
+                                TichuCallStatus::Achieved => "Achieved",
+                                TichuCallStatus::Failed => "Failed",
+                            }
+                        }
+                        None => "n/a",
+                    }
+                }
+                PublicGameStage::Game => {
+                    unimplemented!();
+                }
                 _ => "n/a",
             },
             None => "n/a",
@@ -586,6 +636,7 @@ impl App {
 
     fn view_debug_small_tichu_for_user(&self, user_id: &str) -> Html {
         let small_tichu_call_status = match &self.state.game_state {
+            // TODO: DRY this out
             Some(game_state) => match &game_state.stage {
                 PublicGameStage::GrandTichu(grand_tichu_state) => {
                     match grand_tichu_state.small_tichus.iter().find(
@@ -604,6 +655,28 @@ impl App {
                         }
                         None => "n/a",
                     }
+                }
+                PublicGameStage::Trade(trade) => {
+                    match trade
+                        .small_tichus
+                        .iter()
+                        .find(|user_id_with_tichu_call_status| {
+                            *user_id_with_tichu_call_status.user_id == *user_id
+                        }) {
+                        Some(user_id_with_tichu_call_status) => {
+                            match user_id_with_tichu_call_status.tichu_call_status {
+                                TichuCallStatus::Undecided => "Undecided",
+                                TichuCallStatus::Called => "Called",
+                                TichuCallStatus::Declined => "Declined",
+                                TichuCallStatus::Achieved => "Achieved",
+                                TichuCallStatus::Failed => "Failed",
+                            }
+                        }
+                        None => "n/a",
+                    }
+                }
+                PublicGameStage::Game => {
+                    unimplemented!();
                 }
                 _ => "n/a",
             },
