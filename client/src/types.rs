@@ -24,10 +24,3 @@ pub enum CTSMsgInternal {
     Pong,
     Test,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum TradeToPerson {
-    Opponent1,
-    Teammate,
-    Opponent2,
-}

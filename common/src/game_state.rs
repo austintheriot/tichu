@@ -1,11 +1,11 @@
 use crate::{
-    get_new_game_code, user::UserRole, CallGrandTichuRequest, Card, Deck, ImmutableTeam,
-    MutableTeam, PrivateGameStage, PrivateGrandTichu, PrivateUser, PublicGameStage, PublicUser,
-    SubmitTrade, TeamOption, TichuCallStatus, UserIdWithTichuCallStatus,
-    NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
+    get_new_game_code, user::UserRole, CallGrandTichuRequest, Deck, GetSmallTichu, ImmutableTeam,
+    MutableTeam, PrivateGameStage, PrivateGrandTichu, PrivateUser, PublicGameStage,
+    PublicOtherPlayers, PublicUser, SubmitTrade, TeamOption, TichuCallStatus,
+    UserIdWithTichuCallStatus, NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
-use std::{borrow::BorrowMut, collections::HashMap, env::current_exe};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 /// The primary game state for every game of Tichu stored on the server.
@@ -481,12 +481,11 @@ impl PrivateGameState {
                 );
                 return new_game_state;
             }
-            PrivateGameStage::GrandTichu(grand_tichu_state) => &mut grand_tichu_state.small_tichus,
-            PrivateGameStage::Trade(trade) => &mut trade.small_tichus,
-            PrivateGameStage::Game => {
-                // TODO: add Game stage here
-                unimplemented!();
+            PrivateGameStage::GrandTichu(grand_tichu_state) => {
+                grand_tichu_state.get_small_tichu_mut()
             }
+            PrivateGameStage::Trade(trade) => trade.get_small_tichu_mut(),
+            PrivateGameStage::Play(play) => play.get_small_tichu_mut(),
             _ => {
                 eprintln!("Can't call Small Tichu when game stage is not an active game stage. Ignoring request from user {}", user_id);
                 return new_game_state;
@@ -610,6 +609,38 @@ impl PrivateGameState {
             }
 
             // Once all trades have been received, actually trade the cards and move to Game
+            let mut submitted_trades: u8 = 0;
+            for trade in trade_stage.trades.iter() {
+                if trade.is_some() {
+                    submitted_trades += 1;
+                }
+            }
+            if submitted_trades >= 4 {
+                if let PrivateGameStage::Trade(private_trade) = &new_game_state.stage {
+                    // actually trade the cards
+                    for trade in &private_trade.trades {
+                        if let Some(trade) = trade {
+                            for card in trade {
+                                let i =
+                                    new_game_state.participants.iter().position(|private_user| {
+                                        *private_user.user_id == card.to_user_id
+                                    });
+                                if let Some(i) = i {
+                                    new_game_state.participants[i].hand.push(card.card.clone());
+                                } else {
+                                    eprintln!(
+                                        "Game state error: Couldn't find user to trade card to"
+                                    );
+                                }
+                            }
+                        }
+                    }
+
+                    new_game_state.stage =
+                        PrivateGameStage::Play(Box::new((**private_trade).clone().into()));
+                }
+            }
+
             new_game_state
         } else {
             eprintln!(
@@ -631,4 +662,86 @@ pub struct PublicGameState {
 
     // unique to PublicGameState:
     pub current_user: PrivateUser,
+}
+
+impl PublicGameState {
+    /// (Current Team, Opposing Team)
+    pub fn get_trade_and_play_teams(&self) -> (Option<&ImmutableTeam>, Option<&ImmutableTeam>) {
+        match &self.stage {
+            PublicGameStage::Trade(trade) => {
+                let current_team = trade.teams.iter().find(|team| {
+                    team.user_ids
+                        .iter()
+                        .any(|user_id| *user_id == self.current_user.user_id)
+                });
+
+                let opposing_team = if let Some(current_team) = current_team {
+                    trade.teams.iter().find(|team| *team.id != current_team.id)
+                } else {
+                    None
+                };
+
+                eprintln!("{:#?} {:#?}", current_team, opposing_team);
+
+                (current_team, opposing_team)
+            }
+            PublicGameStage::Play(play) => {
+                let current_team = play.teams.iter().find(|team| {
+                    team.user_ids
+                        .iter()
+                        .any(|user_id| *user_id == self.current_user.user_id)
+                });
+
+                let opposing_team = if let Some(current_team) = current_team {
+                    play.teams.iter().find(|team| *team.id != current_team.id)
+                } else {
+                    None
+                };
+
+                eprintln!("{:#?} {:#?}", current_team, opposing_team);
+
+                (current_team, opposing_team)
+            }
+            _ => (None, None),
+        }
+    }
+
+    pub fn get_other_players(&self) -> Option<PublicOtherPlayers> {
+        let teams = self.get_trade_and_play_teams();
+
+        if let (Some(current_team), Some(opposing_team)) = teams {
+            Some(PublicOtherPlayers {
+                opponent_1: {
+                    let user_id = &opposing_team.user_ids[0];
+                    self.participants
+                        .iter()
+                        .find(|user| (*user.user_id == *user_id))
+                        .unwrap()
+                        .clone()
+                },
+                teammate: {
+                    let user_id = current_team
+                        .user_ids
+                        .iter()
+                        .find(|user_id| **user_id != *self.current_user.user_id)
+                        .unwrap();
+                    self.participants
+                        .iter()
+                        .find(|user| (*user.user_id == *user_id))
+                        .unwrap()
+                        .clone()
+                },
+                opponent_2: {
+                    let user_id = &opposing_team.user_ids[1];
+                    self.participants
+                        .iter()
+                        .find(|user| (*user.user_id == *user_id))
+                        .unwrap()
+                        .clone()
+                },
+            })
+        } else {
+            None
+        }
+    }
 }

@@ -25,21 +25,33 @@ pub struct UserIdWithTichuCallStatus {
     pub tichu_call_status: TichuCallStatus,
 }
 
-/// Client state: does NOT include sensitive information, such as the Deck
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct PublicGrandTichu {
-    pub small_tichus: [UserIdWithTichuCallStatus; 4],
-    pub grand_tichus: [UserIdWithTichuCallStatus; 4],
-    pub teams: ImmutableTeams,
-}
+pub type SmallTichuArray = [UserIdWithTichuCallStatus; 4];
 
 /// Server state: includes sensitive information, such as the Deck
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct PrivateGrandTichu {
-    pub small_tichus: [UserIdWithTichuCallStatus; 4],
-    pub grand_tichus: [UserIdWithTichuCallStatus; 4],
+    pub small_tichus: SmallTichuArray,
+    pub grand_tichus: SmallTichuArray,
     pub teams: ImmutableTeams,
     pub deck: Deck,
+}
+
+impl GetSmallTichu for PrivateGrandTichu {
+    fn get_small_tichu(&self) -> &SmallTichuArray {
+        &self.small_tichus
+    }
+
+    fn get_small_tichu_mut(&mut self) -> &mut SmallTichuArray {
+        &mut self.small_tichus
+    }
+}
+
+/// Client state: does NOT include sensitive information, such as the Deck
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct PublicGrandTichu {
+    pub small_tichus: SmallTichuArray,
+    pub grand_tichus: SmallTichuArray,
+    pub teams: ImmutableTeams,
 }
 
 impl From<PrivateGrandTichu> for PublicGrandTichu {
@@ -49,6 +61,15 @@ impl From<PrivateGrandTichu> for PublicGrandTichu {
             small_tichus: item.small_tichus.clone(),
             teams: item.teams,
         }
+    }
+}
+
+impl GetSmallTichu for PublicGrandTichu {
+    fn get_small_tichu(&self) -> &SmallTichuArray {
+        &self.small_tichus
+    }
+    fn get_small_tichu_mut(&mut self) -> &mut SmallTichuArray {
+        &mut self.small_tichus
     }
 }
 
@@ -62,4 +83,9 @@ impl From<PrivateGrandTichu> for PublicGrandTichu {
 pub enum CallGrandTichuRequest {
     Call,
     Decline,
+}
+
+pub trait GetSmallTichu {
+    fn get_small_tichu(&self) -> &SmallTichuArray;
+    fn get_small_tichu_mut(&mut self) -> &mut SmallTichuArray;
 }

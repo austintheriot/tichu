@@ -47,10 +47,7 @@ pub async fn call_small_tichu(
         }
         PrivateGameStage::GrandTichu(grand_tichu_state) => &mut grand_tichu_state.small_tichus,
         PrivateGameStage::Trade(trade) => &mut trade.small_tichus,
-        PrivateGameStage::Game => {
-            // TODO: add Game stage here
-            unimplemented!()
-        }
+        PrivateGameStage::Play(play) => &mut play.small_tichus,
         _ => {
             eprintln!("{FUNCTION_NAME}: Can't call Small Tichu when game stage is not an active game stage. Ignoring request from user {}", user_id);
             return;

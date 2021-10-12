@@ -1,9 +1,10 @@
-use crate::types::{CTSMsgInternal, TradeToPerson};
+use crate::types::CTSMsgInternal;
 use anyhow::Error;
 use common::{
     clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
     validate_team_name, CTSMsg, CallGrandTichuRequest, Card, CardTrade, MutableTeam,
-    PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamOption, TichuCallStatus, NO_USER_ID,
+    OtherPlayerOption, PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamOption,
+    TichuCallStatus, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -69,8 +70,8 @@ pub enum AppMsg {
     SetSelectedCard(usize),
     RemoveSelectedCard,
 
-    SetTrade(TradeToPerson),
-    RemoveTrade(TradeToPerson),
+    SetTrade(OtherPlayerOption),
+    RemoveTrade(OtherPlayerOption),
 }
 
 const PING_INTERVAL_MS: u64 = 5000;
@@ -89,7 +90,7 @@ lazy_static! {
     /// Wrapped in an Arc<Mutex> to at least mitigate some data race possibilities.
     static ref APP_REFERENCE: StaticMut<*mut App> = StaticMut {
         ptr: Arc::new(Mutex::new(None)),
-    };
+};
 }
 
 impl Component for App {
@@ -289,13 +290,13 @@ impl Component for App {
                     }
                 }
                 match &trade_to_person {
-                    TradeToPerson::Opponent1 => {
+                    OtherPlayerOption::Opponent1 => {
                         self.state.trade_to_opponent1 = self.state.selected_card.take();
                     }
-                    TradeToPerson::Teammate => {
+                    OtherPlayerOption::Teammate => {
                         self.state.trade_to_teammate = self.state.selected_card.take();
                     }
-                    TradeToPerson::Opponent2 => {
+                    OtherPlayerOption::Opponent2 => {
                         self.state.trade_to_opponent2 = self.state.selected_card.take();
                     }
                 }
@@ -308,13 +309,13 @@ impl Component for App {
             }
             AppMsg::RemoveTrade(trade_to_person) => {
                 match &trade_to_person {
-                    TradeToPerson::Opponent1 => {
+                    OtherPlayerOption::Opponent1 => {
                         self.state.trade_to_opponent1 = None;
                     }
-                    TradeToPerson::Teammate => {
+                    OtherPlayerOption::Teammate => {
                         self.state.trade_to_teammate = None;
                     }
-                    TradeToPerson::Opponent2 => {
+                    OtherPlayerOption::Opponent2 => {
                         self.state.trade_to_opponent2 = None;
                     }
                 }
@@ -340,25 +341,26 @@ impl Component for App {
 
     fn view(&self) -> Html {
         html! {
-            <div>
-                { match &self.state.game_state {
-                    None => self.view_join(),
-                    Some(game_state) => {
-                        match game_state.stage {
-                            PublicGameStage::Lobby => self.view_lobby(),
-                            PublicGameStage::Teams(_) => self.view_teams(),
-                            PublicGameStage::GrandTichu(_) => self.view_grand_tichu(),
-                            PublicGameStage::Trade(_) => self.view_trade(),
-                            _ => html!{ <> </> }
+                <div>
+                    {match &self.state.game_state {
+                        None => self.view_join(),
+                        Some(game_state) => {
+                            match game_state.stage {
+                                PublicGameStage::Lobby => self.view_lobby(),
+                                PublicGameStage::Teams(_) => self.view_teams(),
+                                PublicGameStage::GrandTichu(_) => self.view_grand_tichu(),
+                                PublicGameStage::Trade(_) => self.view_trade(),
+                                PublicGameStage::Play(_) => self.view_play(),
+                                _ => html!{<> </>}
                         }
                     }
                 }}
-                <br />
-                <br />
-                <hr />
-                <br />
-                { self.view_debug() }
-            </div>
+                    <br />
+                    <br />
+                    <hr />
+                    <br />
+                    {self.view_debug()}
+                </div>
         }
     }
 }
@@ -407,12 +409,7 @@ impl App {
         };
 
         let game_stage_is_active = if let Some(game_state) = &self.state.game_state {
-            match &game_state.stage {
-                PublicGameStage::GrandTichu(_) => true,
-                PublicGameStage::Trade(_) => true,
-                PublicGameStage::Game => true,
-                _ => false,
-            }
+            game_state.stage.is_active()
         } else {
             false
         };
@@ -447,9 +444,20 @@ impl App {
                         true
                     }
                 }
-                PublicGameStage::Game => {
-                    // TODO: implement user is undecided about Grand Tichu here
-                    unimplemented!();
+                PublicGameStage::Play(play) => {
+                    if let Some(call_status) =
+                        (*play)
+                            .small_tichus
+                            .iter()
+                            .find(|user_id_with_tichu_call_status| {
+                                *user_id_with_tichu_call_status.user_id == *self.state.user_id
+                            })
+                    {
+                        matches!(call_status.tichu_call_status, TichuCallStatus::Undecided)
+                    } else {
+                        // user's call status not found, therefore undecided
+                        true
+                    }
                 }
                 _ => false,
             }
@@ -497,13 +505,13 @@ impl App {
     fn view_participants(&self) -> Html {
         if let Some(game_state) = &self.state.game_state {
             html! {
-                <ul>
-                { for game_state.participants.iter().map(|user| {
-                    html! {
-                        <li> { &user.display_name } </li>
+                    <ul>
+                    {for game_state.participants.iter().map(|user| {
+                        html! {
+                            <li> {&user.display_name} </li>
                     }
                 })}
-                </ul>
+                    </ul>
             }
         } else {
             html! {}
@@ -522,18 +530,18 @@ impl App {
 
     fn debug_team(&self, team: &MutableTeam) -> Html {
         html! {
-            <ul>
-                <li> { "Team Name: "} {{&team.team_name}} </li>
-                <li> { "Score: "} {{&team.score}} </li>
-                <li> { "Users: "} { for team.user_ids.iter().map(|id| {
-                    html!{
-                        <p> { match &self.get_participant_by_id(id) {
-                            Some(participant) => &participant.display_name,
-                            None => ""
+                <ul>
+                    <li> {"Team Name: "} {{&team.team_name}} </li>
+                    <li> {"Score: "} {{&team.score}} </li>
+                    <li> {"Users: "} {for team.user_ids.iter().map(|id| {
+                        html!{
+                            <p> {match &self.get_participant_by_id(id) {
+                                Some(participant) => &participant.display_name,
+                                None => ""
                         }} </p>
                     }
                 })} </li>
-            </ul>
+                </ul>
         }
     }
 
@@ -542,10 +550,10 @@ impl App {
             match &game_state.stage {
                 PublicGameStage::Teams(team_state) => {
                     html! {
-                        <ul>
-                            <li> {self.debug_team(&team_state[0])} </li>
-                            <li> {self.debug_team(&team_state[1])} </li>
-                        </ul>
+                            <ul>
+                                <li> {self.debug_team(&team_state[0])} </li>
+                                <li> {self.debug_team(&team_state[1])} </li>
+                            </ul>
                     }
                 }
                 _ => html! {},
@@ -565,14 +573,14 @@ impl App {
             match owner {
                 Some(owner) => {
                     html! {
-                        <ul>
-                            <li> { &owner.display_name } </li>
-                        </ul>
+                            <ul>
+                                <li> {&owner.display_name} </li>
+                            </ul>
                     }
                 }
                 None => {
                     html! {
-                        <> </>
+                            <> </>
                     }
                 }
             }
@@ -622,15 +630,31 @@ impl App {
                         None => "n/a",
                     }
                 }
-                PublicGameStage::Game => {
-                    unimplemented!();
+                PublicGameStage::Play(play) => {
+                    match play
+                        .grand_tichus
+                        .iter()
+                        .find(|user_id_with_tichu_call_status| {
+                            *user_id_with_tichu_call_status.user_id == *user_id
+                        }) {
+                        Some(user_id_with_tichu_call_status) => {
+                            match user_id_with_tichu_call_status.tichu_call_status {
+                                TichuCallStatus::Undecided => "Undecided",
+                                TichuCallStatus::Called => "Called",
+                                TichuCallStatus::Declined => "Declined",
+                                TichuCallStatus::Achieved => "Achieved",
+                                TichuCallStatus::Failed => "Failed",
+                            }
+                        }
+                        None => "n/a",
+                    }
                 }
                 _ => "n/a",
             },
             None => "n/a",
         };
         html! {
-            <p> { &format!("Grand Tichu Call Status for {} ----- ", user_id)} {grand_tichu_call_status} { "\n" }</p>
+                <p> {&format!("Grand Tichu Call Status for {} ----- ", user_id)} {grand_tichu_call_status} {"\n"}</p>
         }
     }
 
@@ -675,25 +699,41 @@ impl App {
                         None => "n/a",
                     }
                 }
-                PublicGameStage::Game => {
-                    unimplemented!();
+                PublicGameStage::Play(play) => {
+                    match play
+                        .small_tichus
+                        .iter()
+                        .find(|user_id_with_tichu_call_status| {
+                            *user_id_with_tichu_call_status.user_id == *user_id
+                        }) {
+                        Some(user_id_with_tichu_call_status) => {
+                            match user_id_with_tichu_call_status.tichu_call_status {
+                                TichuCallStatus::Undecided => "Undecided",
+                                TichuCallStatus::Called => "Called",
+                                TichuCallStatus::Declined => "Declined",
+                                TichuCallStatus::Achieved => "Achieved",
+                                TichuCallStatus::Failed => "Failed",
+                            }
+                        }
+                        None => "n/a",
+                    }
                 }
                 _ => "n/a",
             },
             None => "n/a",
         };
         html! {
-            <p> { &format!("Small Tichu Call Status for {} ----- ", user_id)} {small_tichu_call_status} { "\n" }</p>
+                <p> {&format!("Small Tichu Call Status for {} ----- ", user_id)} {small_tichu_call_status} {"\n"}</p>
         }
     }
 
     fn view_debug_all_participants_grand_tichu(&self) -> Html {
         match &self.state.game_state {
             Some(game_state) => html! {{
-            for game_state
-                .participants
-                .iter()
-                .map(|user| self.view_debug_grand_tichu_for_user(&user.user_id))
+                for game_state
+                    .participants
+                    .iter()
+                    .map(|user| self.view_debug_grand_tichu_for_user(&user.user_id))
             }},
             None => html! {<> </>},
         }
@@ -702,10 +742,10 @@ impl App {
     fn view_debug_all_participants_small_tichu(&self) -> Html {
         match &self.state.game_state {
             Some(game_state) => html! {{
-            for game_state
-                .participants
-                .iter()
-                .map(|user| self.view_debug_small_tichu_for_user(&user.user_id))
+                for game_state
+                    .participants
+                    .iter()
+                    .map(|user| self.view_debug_small_tichu_for_user(&user.user_id))
             }},
             None => html! {<> </>},
         }
@@ -713,108 +753,108 @@ impl App {
 
     fn view_debug(&self) -> Html {
         html! {
-            <>
-            <h1> { "Debug Info:" } </h1>
-                <p> { "Display Name: " } { &self.state.display_name }</p>
-                <p> { "User ID: " } { &self.state.user_id }</p>
-                <p>{ "Websocket Status: "}{ match &self.state.ws_connection_status {
-                    WSConnectionStatus::Connected => "Connected",
-                    WSConnectionStatus::NotConnected => "Not Connected"
-                } } </p>
-                <p> { "Game Code: " } {
-                    if let Some(game_state) = &self.state.game_state {
-                        &game_state.game_code
+                <>
+                <h1> {"Debug Info:"} </h1>
+                    <p> {"Display Name: "} {&self.state.display_name}</p>
+                    <p> {"User ID: "} {&self.state.user_id}</p>
+                    <p>{"Websocket Status: "}{match &self.state.ws_connection_status {
+                        WSConnectionStatus::Connected => "Connected",
+                        WSConnectionStatus::NotConnected => "Not Connected"
+                }} </p>
+                    <p> {"Game Code: "} {
+                        if let Some(game_state) = &self.state.game_state {
+                            &game_state.game_code
                     } else {
-                        ""
+                            ""
                     }}
-                </p>
-                <p> { "Participants: " } { self.view_participants() } </p>
-                <p> { "Owner: " } { self.debug_owner() } </p>
-                <p> { "Teams: " } { self.debug_teams() } </p>
-                { self.view_debug_all_participants_grand_tichu() }
-                <br />
-                { self.view_debug_all_participants_small_tichu() }
-                <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{ "Send test message to server" }</button>
-                <br />
-                <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{ "Send ping to server" }</button>
-            </>
+                    </p>
+                    <p> {"Participants: "} {self.view_participants()} </p>
+                    <p> {"Owner: "} {self.debug_owner()} </p>
+                    <p> {"Teams: "} {self.debug_teams()} </p>
+                    {self.view_debug_all_participants_grand_tichu()}
+                    <br />
+                    {self.view_debug_all_participants_small_tichu()}
+                    <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{"Send test message to server"}</button>
+                    <br />
+                    <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{"Send ping to server"}</button>
+                </>
         }
     }
 
     fn view_join(&self) -> Html {
         html! {
-            <>
-            <h1> { "Tichu" } </h1>
-                <form onsubmit=self.link.callback(|e: FocusEvent| {
-                    e.prevent_default();
-                    AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)
+                <>
+                <h1> {"Tichu"} </h1>
+                    <form onsubmit=self.link.callback(|e: FocusEvent| {
+                        e.prevent_default();
+                        AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)
                 })>
-                    <label for="join-room-display-name-input"> { "Display Name" } </label>
+                        <label for="join-room-display-name-input"> {"Display Name"} </label>
+                        <br />
+                        <input
+                            id="join-room-display-name-input"
+                            type="text"
+                            value=self.state.display_name_input.clone()
+                            oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
+                        <br />
+                        <label for="join-room-game-code-input"> {"Game Code"} </label>
+                        <br />
+                        <input
+                            id="join-room-game-code-input"
+                            type="text"
+                            value=self.state.join_room_game_code_input.clone()
+                            oninput=self.link.callback(|e: InputData| AppMsg::SetJoinRoomGameCodeInput(e.value))/>
+                        <br />
+                        <button
+                            type="submit"
+                            disabled=!self.can_join_game()
+                            >{"Join game"}</button>
+                    </form>
                     <br />
-                    <input
-                        id="join-room-display-name-input"
-                        type="text"
-                        value=self.state.display_name_input.clone()
-                        oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
                     <br />
-                    <label for="join-room-game-code-input"> { "Game Code" } </label>
-                    <br />
-                    <input
-                        id="join-room-game-code-input"
-                        type="text"
-                        value=self.state.join_room_game_code_input.clone()
-                        oninput=self.link.callback(|e: InputData| AppMsg::SetJoinRoomGameCodeInput(e.value))/>
-                    <br />
-                    <button
-                        type="submit"
-                        disabled=!self.can_join_game()
-                        >{ "Join game" }</button>
-                </form>
-                <br />
-                <br />
-                <form onsubmit=self.link.callback(|e: FocusEvent| {
-                    e.prevent_default();
-                    AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)
+                    <form onsubmit=self.link.callback(|e: FocusEvent| {
+                        e.prevent_default();
+                        AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)
                 })>
-                    <label for="join-room-display-name-input"> { "Display Name" } </label>
-                    <br />
-                    <input
-                        id="create-room-display-name-input"
-                        type="text"
-                        value=self.state.display_name_input.clone()
-                        oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
-                    <br />
-                    <button
-                        type="submit"
-                        disabled=!self.can_create_game()
-                        >{ "Create game" }</button>
-                </form>
-            </>
+                        <label for="join-room-display-name-input"> {"Display Name"} </label>
+                        <br />
+                        <input
+                            id="create-room-display-name-input"
+                            type="text"
+                            value=self.state.display_name_input.clone()
+                            oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
+                        <br />
+                        <button
+                            type="submit"
+                            disabled=!self.can_create_game()
+                            >{"Create game"}</button>
+                    </form>
+                </>
         }
     }
 
     fn view_lobby(&self) -> Html {
         html! {
-            <>
-                <h1> { "Lobby" } </h1>
-                <h2> { "Game Code: " } {
-                    if let Some(game_state) = &self.state.game_state {
-                        &game_state.game_code
+                <>
+                    <h1> {"Lobby"} </h1>
+                    <h2> {"Game Code: "} {
+                        if let Some(game_state) = &self.state.game_state {
+                            &game_state.game_code
                     } else {
-                        ""
+                            ""
                     }
                 }
-                </h2>
-                <h3> {"Joined:"} </h3>
-                <br />
-                { self.view_participants() }
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::LeaveGame)})
-                    disabled=!self.can_leave_game()
-                    >
-                    { "Leave game" }
-                </button>
-            </>
+                    </h2>
+                    <h3> {"Joined:"} </h3>
+                    <br />
+                    {self.view_participants()}
+                    <button
+                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::LeaveGame)})
+                        disabled=!self.can_leave_game()
+                        >
+                        {"Leave game"}
+                    </button>
+                </>
         }
     }
 
@@ -840,58 +880,58 @@ impl App {
 
     fn view_teams(&self) -> Html {
         html! {
-            <>
-            <h1> { "Teams" } </h1>
-                <label for="team-a-name-input"> { "Team A Name" } </label>
-                <br />
-                <form onsubmit=self.link.callback(|e: FocusEvent | {
-                    e.prevent_default();
-                    AppMsg::SendWSMsg(CTSMsgInternal::RenameTeam(TeamOption::TeamA))
+                <>
+                <h1> {"Teams"} </h1>
+                    <label for="team-a-name-input"> {"Team A Name"} </label>
+                    <br />
+                    <form onsubmit=self.link.callback(|e: FocusEvent | {
+                        e.prevent_default();
+                        AppMsg::SendWSMsg(CTSMsgInternal::RenameTeam(TeamOption::TeamA))
                 })>
-                    <label for="team-a-name-input">{ "Team Name" }</label>
-                    <input
-                        id="team-a-name-input"
-                        disabled=!self.is_team_stage() || self.is_on_team_b()
-                        type="text"
-                        value=self.state.team_a_name_input.clone()
-                        oninput=self.link.callback(|e: InputData| AppMsg::SetTeamANameInput(e.value))/>
-               </form>
-                <br />
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeam(TeamOption::TeamA))})
-                    disabled=!self.is_team_stage() || self.is_on_team_a()
-                    >{ "Move to Team A" }</button>
-                <br />
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeam(TeamOption::TeamB))})
-                    disabled=!self.is_team_stage() || self.is_on_team_b()
-                    >{ "Move to Team B" }</button>
-                <br />
-                <form onsubmit=self.link.callback(|e: FocusEvent | {
-                    e.prevent_default();
-                    AppMsg::SendWSMsg(CTSMsgInternal::RenameTeam(TeamOption::TeamB))
-                })>
-                    <label for="team-b-name-input">{ "Team Name" }</label>
-                    <input
-                        id="team-b-name-input"
-                        disabled=!self.is_team_stage() || self.is_on_team_a()
-                        type="text"
-                        value=self.state.team_b_name_input.clone()
-                        oninput=self.link.callback(|e: InputData| AppMsg::SetTeamBNameInput(e.value))/>
-               </form>
-               {if self.is_current_user_owner() {
-                  html!{
+                        <label for="team-a-name-input">{"Team Name"}</label>
+                        <input
+                            id="team-a-name-input"
+                            disabled=!self.is_team_stage() || self.is_on_team_b()
+                            type="text"
+                            value=self.state.team_a_name_input.clone()
+                            oninput=self.link.callback(|e: InputData| AppMsg::SetTeamANameInput(e.value))/>
+                   </form>
+                    <br />
                     <button
-                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::StartGrandTichu)})
-                        disabled=!self.can_start_game()
-                    > { "Start" } </button>
-                  }
-               } else {
-                   html!{
-                       <> </>
-                   }
-               }}
-            </>
+                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeam(TeamOption::TeamA))})
+                        disabled=!self.is_team_stage() || self.is_on_team_a()
+                        >{"Move to Team A"}</button>
+                    <br />
+                    <button
+                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeam(TeamOption::TeamB))})
+                        disabled=!self.is_team_stage() || self.is_on_team_b()
+                        >{"Move to Team B"}</button>
+                    <br />
+                    <form onsubmit=self.link.callback(|e: FocusEvent | {
+                        e.prevent_default();
+                        AppMsg::SendWSMsg(CTSMsgInternal::RenameTeam(TeamOption::TeamB))
+                })>
+                        <label for="team-b-name-input">{"Team Name"}</label>
+                        <input
+                            id="team-b-name-input"
+                            disabled=!self.is_team_stage() || self.is_on_team_a()
+                            type="text"
+                            value=self.state.team_b_name_input.clone()
+                            oninput=self.link.callback(|e: InputData| AppMsg::SetTeamBNameInput(e.value))/>
+                   </form>
+                   {if self.is_current_user_owner() {
+                      html!{
+                        <button
+                            onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::StartGrandTichu)})
+                            disabled=!self.can_start_game()
+                        > {"Start"} </button>
+                    }
+                } else {
+                       html!{
+                           <> </>
+                    }
+                }}
+                </>
         }
     }
 
@@ -925,33 +965,33 @@ impl App {
     fn view_hand(&self) -> Html {
         if let Some(game_state) = &self.state.game_state {
             html! {
-                <ul>
-                    { for game_state.current_user.hand.iter().enumerate().map(|(i, card)| {
-                        // do not render card if the stage is Trade and it is currently selected
-                        // OR if it has been selected for trade with opponent
-                        let card_is_selected = if let Some(selected_card) = &self.state.selected_card {
-                            *selected_card == *card
+                    <ul>
+                        {for game_state.current_user.hand.iter().enumerate().map(|(i, card)| {
+                            // do not render card if the stage is Trade and it is currently selected
+                            // OR if it has been selected for trade with opponent
+                            let card_is_selected = if let Some(selected_card) = &self.state.selected_card {
+                                *selected_card == *card
                         } else {
-                            false
+                                false
                         };
-                        let card_is_set_to_trade = self.is_card_is_set_to_trade(card);
-                        let stage_is_trade = self.stage_is_trade();
-                        if (card_is_selected || card_is_set_to_trade) && stage_is_trade {
-                            html!{}
+                            let card_is_set_to_trade = self.is_card_is_set_to_trade(card);
+                            let stage_is_trade = self.stage_is_trade();
+                            if (card_is_selected || card_is_set_to_trade) && stage_is_trade {
+                                html!{}
                         } else {
-                            html!{
-                                <li>
-                                    <button
-                                        disabled=!self.can_select_card()
-                                        onclick=self.link.callback(move |_| {AppMsg::SetSelectedCard(i)})
-                                        >
-                                        { &format!("{:#?}", card) }
-                                    </button>
-                                 </li>
+                                html!{
+                                    <li>
+                                        <button
+                                            disabled=!self.can_select_card()
+                                            onclick=self.link.callback(move |_| {AppMsg::SetSelectedCard(i)})
+                                            >
+                                            {&format!("{:#?}", card)}
+                                        </button>
+                                     </li>
                             }
                         }
                     })}
-                </ul>
+                    </ul>
             }
         } else {
             html! {}
@@ -960,10 +1000,10 @@ impl App {
 
     fn call_small_tichu_button(&self) -> Html {
         html! {
-            <button
-            onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallSmallTichu)})
-            disabled=!self.can_call_small_tichu()
-            > { "Call Small Tichu" } </button>
+                <button
+                onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallSmallTichu)})
+                disabled=!self.can_call_small_tichu()
+                > {"Call Small Tichu"} </button>
         }
     }
 
@@ -993,27 +1033,27 @@ impl App {
             None => "n/a",
         };
         html! {
-            <p> { "Grand Tichu Call Status: " } {grand_tichu_call_status} { "\n" }</p>
+                <p> {"Grand Tichu Call Status: "} {grand_tichu_call_status} {"\n"}</p>
         }
     }
 
     fn view_grand_tichu(&self) -> Html {
         html! {
-            <>
-                <h1> { "Grand Tichu" } </h1>
-                { self.view_grand_tichu_status_for_current_user() }
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Call))})
-                    disabled=!self.can_call_or_decline_grand_tichu()
-                > { "Call Grand Tichu" } </button>
-                <button
-                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Decline))})
-                    disabled=!self.can_call_or_decline_grand_tichu()
-                > { "Decline Grand Tichu" } </button>
-                { self.call_small_tichu_button() }
-                <p> { "Hand:" } </p>
-                { self.view_hand() }
-            </>
+                <>
+                    <h1> {"Grand Tichu"} </h1>
+                    {self.view_grand_tichu_status_for_current_user()}
+                    <button
+                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Call))})
+                        disabled=!self.can_call_or_decline_grand_tichu()
+                    > {"Call Grand Tichu"} </button>
+                    <button
+                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Decline))})
+                        disabled=!self.can_call_or_decline_grand_tichu()
+                    > {"Decline Grand Tichu"} </button>
+                    {self.call_small_tichu_button()}
+                    <p> {"Hand:"} </p>
+                    {self.view_hand()}
+                </>
         }
     }
 
@@ -1032,7 +1072,7 @@ impl App {
         match &self.state.selected_card {
             Some(card) => {
                 html! {
-                    <p> {"Selected Card: "}{&format!("{:#?}", card)}</p>
+                        <p> {"Selected Card: "}{&format!("{:#?}", card)}</p>
                 }
             }
             None => html! {},
@@ -1043,11 +1083,11 @@ impl App {
         matches!(&self.state.selected_card, Some(_))
     }
 
-    fn can_remove_trade(&self, trade_to_person: &TradeToPerson) -> bool {
+    fn can_remove_trade(&self, trade_to_person: &OtherPlayerOption) -> bool {
         match trade_to_person {
-            TradeToPerson::Opponent1 => &self.state.trade_to_opponent1,
-            TradeToPerson::Teammate => &self.state.trade_to_teammate,
-            TradeToPerson::Opponent2 => &self.state.trade_to_opponent2,
+            OtherPlayerOption::Opponent1 => &self.state.trade_to_opponent1,
+            OtherPlayerOption::Teammate => &self.state.trade_to_teammate,
+            OtherPlayerOption::Opponent2 => &self.state.trade_to_opponent2,
         }
         .is_some()
     }
@@ -1068,49 +1108,69 @@ impl App {
         }
     }
 
-    fn view_trade_to_person(&self, trade_to_person: TradeToPerson) -> Html {
+    fn view_trade_to_person(&self, trade_to_person: OtherPlayerOption) -> Html {
         let trade_to_person_state = match &trade_to_person {
-            TradeToPerson::Opponent1 => &self.state.trade_to_opponent1,
-            TradeToPerson::Teammate => &self.state.trade_to_teammate,
-            TradeToPerson::Opponent2 => &self.state.trade_to_opponent2,
+            OtherPlayerOption::Opponent1 => &self.state.trade_to_opponent1,
+            OtherPlayerOption::Teammate => &self.state.trade_to_teammate,
+            OtherPlayerOption::Opponent2 => &self.state.trade_to_opponent2,
         };
 
-        let trade_to_person_name = match &trade_to_person {
-            TradeToPerson::Opponent1 => "Opponent 1",
-            TradeToPerson::Teammate => "Teammate",
-            TradeToPerson::Opponent2 => "Opponent 2",
+        let trade_to_person_generic_name = match &trade_to_person {
+            OtherPlayerOption::Opponent1 => "Opponent 1",
+            OtherPlayerOption::Teammate => "Teammate",
+            OtherPlayerOption::Opponent2 => "Opponent 2",
+        };
+
+        let trade_to_person_display_name = {
+            let public_other_players = &self.state.game_state.as_ref().unwrap().get_other_players();
+            let display_name = if let Some(public_other_players) = public_other_players {
+                match &trade_to_person {
+                    OtherPlayerOption::Opponent1 => {
+                        public_other_players.opponent_1.display_name.clone()
+                    }
+                    OtherPlayerOption::Teammate => {
+                        public_other_players.teammate.display_name.clone()
+                    }
+                    OtherPlayerOption::Opponent2 => {
+                        public_other_players.opponent_2.display_name.clone()
+                    }
+                }
+            } else {
+                String::new()
+            };
+            display_name
         };
 
         return html! {
-          <>
-            <p> { &format!("Trade to {}: {}", trade_to_person_name, match trade_to_person_state {
-                    Some(card) => format!("{:?}", card),
-                    None => "None".to_string(),
+              <>
+                <p> {&format!("Trade to {}, {}: {}", trade_to_person_generic_name, trade_to_person_display_name, match trade_to_person_state {
+                        Some(card) => format!("{:?}", card),
+                        None => "None".to_string(),
                 })}
-            </p>
-            {if self.state.selected_card.is_none() {
-                html!{
-                    <button
-                        disabled=!self.can_remove_trade(&trade_to_person)
-                        onclick=self.link.callback(move |_| { AppMsg::RemoveTrade(trade_to_person.clone()) })
-                    >
-                    { "Remove" }
-                    </button>
+                </p>
+                {if self.state.selected_card.is_none() {
+                    html!{
+                        <button
+                            disabled=!self.can_remove_trade(&trade_to_person)
+                            onclick=self.link.callback(move |_| {AppMsg::RemoveTrade(trade_to_person.clone())})
+                        >
+                        {"Remove"}
+                        </button>
                 }
             } else {
-                html!{
-                    <button
-                        onclick=self.link.callback(move |_| { AppMsg::SetTrade(trade_to_person.clone()) })
-                        >
-                    {if trade_to_person_state.is_some() {
-                        "Replace".to_string()
+                    html!{
+                        <button
+                            onclick=self.link.callback(move |_| {AppMsg::SetTrade(trade_to_person.clone())})
+                            >
+                        {if trade_to_person_state.is_some() {
+                            "Replace".to_string()
                     } else {
-                        format!("Send to {}", trade_to_person_name)
+                            format!("Send to {}", trade_to_person_display_name)
                     }}
-                    </button>
+                        </button>
                 }
             }}
-          </>
+              </>
         };
     }
 
@@ -1131,41 +1191,50 @@ impl App {
 
     fn view_trade(&self) -> Html {
         html! {
-            <>
-                <h1> {"Trade"} </h1>
-                <p> { &format!("Has submitted trade: {:?}", self.has_submitted_trade())} </p>
-                {if !self.has_submitted_trade() {
-                    html!{
-                        <>
-                            <button
-                            onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::SubmitTrade)})
-                            disabled=!self.can_submit_trade()
-                            type="submit"
-                            >
-                            {"Submit"}
-                            </button>
-                            <br />
-                            { self.view_trade_to_person(TradeToPerson::Opponent1) }
-                            <br />
-                            { self.view_trade_to_person(TradeToPerson::Teammate) }
-                            <br />
-                            { self.view_trade_to_person(TradeToPerson::Opponent2) }
-                            <br />
-                            { self.view_selected_card() }
-                            <br />
-                            <br />
-                            <br />
-                        </>
+                <>
+                    <h1> {"Trade"} </h1>
+                    <p> {&format!("Has submitted trade: {:?}", self.has_submitted_trade())} </p>
+                    {if !self.has_submitted_trade() {
+                        html!{
+                            <>
+                                <button
+                                onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::SubmitTrade)})
+                                disabled=!self.can_submit_trade()
+                                type="submit"
+                                >
+                                {"Submit"}
+                                </button>
+                                <br />
+                                {self.view_trade_to_person(OtherPlayerOption::Opponent1)}
+                                <br />
+                                {self.view_trade_to_person(OtherPlayerOption::Teammate)}
+                                <br />
+                                {self.view_trade_to_person(OtherPlayerOption::Opponent2)}
+                                <br />
+                                {self.view_selected_card()}
+                                <br />
+                                <br />
+                                <br />
+                            </>
                     }
                 } else {
-                    html!{
-                        <p> {"Waiting for others to trade..."} </p>
+                        html!{
+                            <p> {"Waiting for others to trade..."} </p>
                     }
                 }}
-                { self.call_small_tichu_button() }
-                <br />
-                { self.view_hand() }
-            </>
+                    {self.call_small_tichu_button()}
+                    <br />
+                    {self.view_hand()}
+                </>
+        }
+    }
+
+    fn view_play(&self) -> Html {
+        html! {
+              <>
+                <h1> {"Play"} </h1>
+                {self.view_hand()}
+              </>
         }
     }
 
@@ -1445,9 +1514,9 @@ impl App {
                 // clear selected card / trade state
                 self.link.send_message_batch(vec![
                     AppMsg::RemoveSelectedCard,
-                    AppMsg::RemoveTrade(TradeToPerson::Opponent1),
-                    AppMsg::RemoveTrade(TradeToPerson::Teammate),
-                    AppMsg::RemoveTrade(TradeToPerson::Opponent2),
+                    AppMsg::RemoveTrade(OtherPlayerOption::Opponent1),
+                    AppMsg::RemoveTrade(OtherPlayerOption::Teammate),
+                    AppMsg::RemoveTrade(OtherPlayerOption::Opponent2),
                 ]);
 
                 // create SubmitTrade body data

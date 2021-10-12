@@ -15,10 +15,6 @@ IDEAS:
 
 --------------------------------------------------------------------------------------------
 
-TODO:
-- Server:
-  - Move Cards and move GameStage to game once all trades have been submitted 
-
 MUST HAVES:
 - Add client-side check before being able to call Grand Tichu
 - Minimize .expect() errors (see example in call_grand_tichu.rs for better match expressions)

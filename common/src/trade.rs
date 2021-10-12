@@ -1,11 +1,11 @@
-use crate::{Card, Deck, ImmutableTeams, PrivateGrandTichu, UserIdWithTichuCallStatus};
+use crate::{Card, Deck, GetSmallTichu, ImmutableTeams, PrivateGrandTichu, SmallTichuArray};
 use serde::{Deserialize, Serialize};
 
 /// Server state: includes sensitive information, such as the Deck & Trades
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct PrivateTrade {
-    pub small_tichus: [UserIdWithTichuCallStatus; 4],
-    pub grand_tichus: [UserIdWithTichuCallStatus; 4],
+    pub small_tichus: SmallTichuArray,
+    pub grand_tichus: SmallTichuArray,
     pub teams: ImmutableTeams,
     pub deck: Deck,
     pub trades: [Option<SubmitTrade>; 4],
@@ -44,16 +44,35 @@ impl From<PrivateGrandTichu> for PrivateTrade {
     }
 }
 
+impl GetSmallTichu for PrivateTrade {
+    fn get_small_tichu(&self) -> &SmallTichuArray {
+        &self.small_tichus
+    }
+
+    fn get_small_tichu_mut(&mut self) -> &mut SmallTichuArray {
+        &mut self.small_tichus
+    }
+}
+
 /// Client state: does NOT include sensitive information, such as the Deck & Trades
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct PublicTrade {
-    pub small_tichus: [UserIdWithTichuCallStatus; 4],
-    pub grand_tichus: [UserIdWithTichuCallStatus; 4],
+    pub small_tichus: SmallTichuArray,
+    pub grand_tichus: SmallTichuArray,
     pub teams: ImmutableTeams,
 
     /// If a user_id is present here, it indicates that the user
     /// has successfully submitted a trade.
     pub submitted_trades: Vec<String>,
+}
+
+impl GetSmallTichu for PublicTrade {
+    fn get_small_tichu(&self) -> &SmallTichuArray {
+        &self.small_tichus
+    }
+    fn get_small_tichu_mut(&mut self) -> &mut SmallTichuArray {
+        &mut self.small_tichus
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]

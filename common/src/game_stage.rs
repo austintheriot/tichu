@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{MutableTeams, PrivateGrandTichu, PrivateTrade, PublicGrandTichu, PublicTrade};
+use crate::{
+    MutableTeams, PrivateGrandTichu, PrivatePlay, PrivateTrade, PublicGrandTichu, PublicPlay,
+    PublicTrade,
+};
 
 /// Server state that holds all stage-specific state and is PRIVATE.
 /// i.e. it contains detailed information about the deck, users' hands, etc.
@@ -10,7 +13,7 @@ pub enum PrivateGameStage {
     Teams(MutableTeams),
     GrandTichu(Box<PrivateGrandTichu>),
     Trade(Box<PrivateTrade>),
-    Game,
+    Play(Box<PrivatePlay>),
     Scoreboard,
 }
 
@@ -23,7 +26,7 @@ pub enum PublicGameStage {
     Teams(MutableTeams),
     GrandTichu(Box<PublicGrandTichu>),
     Trade(Box<PublicTrade>),
-    Game,
+    Play(Box<PublicPlay>),
     Scoreboard,
 }
 
@@ -38,8 +41,19 @@ impl From<PrivateGameStage> for PublicGameStage {
             PrivateGameStage::Trade(private_trade) => {
                 Self::Trade(Box::new((*private_trade).into()))
             }
-            PrivateGameStage::Game => PublicGameStage::Game,
+            PrivateGameStage::Play(private_play) => Self::Play(Box::new((*private_play).into())),
             PrivateGameStage::Scoreboard => PublicGameStage::Scoreboard,
+        }
+    }
+}
+
+impl PublicGameStage {
+    pub fn is_active(&self) -> bool {
+        match &self {
+            PublicGameStage::GrandTichu(_) => true,
+            PublicGameStage::Trade(_) => true,
+            PublicGameStage::Play(_) => true,
+            _ => false,
         }
     }
 }

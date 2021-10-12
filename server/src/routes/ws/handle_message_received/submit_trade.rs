@@ -58,8 +58,11 @@ pub async fn submit_trade(
     )
     .await;
 
-    // if game stage changed to Game, send GameStageChanged event
-    if let PrivateGameStage::Game = &new_game_state.stage {
+    // if game stage changed to Play, send GameStageChanged event
+    if let PrivateGameStage::Play(_) = &new_game_state.stage {
+        eprintln!(
+            "{FUNCTION_NAME}: Final trade submitted. Game state moved to Play for game {game_id}"
+        );
         send_ws_message::to_group(
             &game_id,
             STCMsg::GameStageChanged(new_game_state.stage.clone().into()),

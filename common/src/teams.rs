@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::{PrivateUser, PublicUser};
+
 /// Users can freely move in/out of this team type, since the
 /// user_ids is a flexible Vec type.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -44,10 +46,32 @@ pub type MutableTeams = [MutableTeam; 2];
 /// Fixed-size array of 2 ImmutableTeam structs.
 pub type ImmutableTeams = [ImmutableTeam; 2];
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct PrivateOtherPlayers {
+    pub opponent_1: PrivateUser,
+    pub teammate: PrivateUser,
+    pub opponent_2: PrivateUser,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct PublicOtherPlayers {
+    pub opponent_1: PublicUser,
+    pub teammate: PublicUser,
+    pub opponent_2: PublicUser,
+}
+
 /// Useful for specifying which team an action is intended to be carried out on.
 /// i.e. Moving teams, renaming teams, etc.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum TeamOption {
     TeamA,
     TeamB,
+}
+
+/// Enum to distinguish between other players by their relationship to the current player
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub enum OtherPlayerOption {
+    Opponent1,
+    Teammate,
+    Opponent2,
 }
