@@ -973,14 +973,25 @@ impl App {
         self.stage_is_trade() && !self.has_submitted_trade()
     }
 
-    fn view_selected_card(&self) -> Html {
+    fn view_selected_card_button(&self) -> Html {
         match &self.state.selected_card {
             Some(card) => {
                 html! {
-                        <p>{"Selected Card: "}{&format!("{:#?}", card)}</p>
+                        <button
+                            onclick=self.link.callback(|_| {AppMsg::RemoveSelectedCard})
+                            disabled=self.state.selected_card.is_none()
+                            type="button">
+                            {&format!("Remove {:#?}", card)}
+                        </button>
                 }
             }
-            None => html! {},
+            None => html! {
+                <button
+                    disabled=true
+                    type="button">
+                    {"No card selected"}
+                </button>
+            },
         }
     }
 
@@ -1020,12 +1031,6 @@ impl App {
             OtherPlayerOption::Opponent2 => &self.state.trade_to_opponent2,
         };
 
-        let trade_to_person_generic_name = match &trade_to_person {
-            OtherPlayerOption::Opponent1 => "Opponent 1",
-            OtherPlayerOption::Teammate => "Teammate",
-            OtherPlayerOption::Opponent2 => "Opponent 2",
-        };
-
         let trade_to_person_display_name = {
             let public_other_players = &self.state.game_state.as_ref().unwrap().get_other_players();
             let display_name = if let Some(public_other_players) = public_other_players {
@@ -1048,33 +1053,29 @@ impl App {
 
         return html! {
               <>
-                <p>{&format!("Trade to {}, {}: {}", trade_to_person_generic_name, trade_to_person_display_name, match trade_to_person_state {
-                        Some(card) => format!("{:?}", card),
-                        None => "None".to_string(),
-                })}
-                </p>
                 {if self.state.selected_card.is_none() {
                     html!{
                         <button
                             disabled=!self.can_remove_trade(&trade_to_person)
                             onclick=self.link.callback(move |_| {AppMsg::RemoveTrade(trade_to_person.clone())})
                         >
-                        {"Remove"}
+                        {match trade_to_person_state {
+                            Some(card) => format!("Remove {:?} to {}", card, trade_to_person_display_name),
+                            None => format!("No trade selected for {}", trade_to_person_display_name),
+                        }}
                         </button>
-                }
-            } else {
-                    html!{
-                        <button
-                            onclick=self.link.callback(move |_| {AppMsg::SetTrade(trade_to_person.clone())})
-                            >
-                        {if trade_to_person_state.is_some() {
-                            "Replace".to_string()
-                    } else {
-                            format!("Send to {}", trade_to_person_display_name)
-                    }}
-                        </button>
-                }
-            }}
+                    }
+                } else {
+                        html!{
+                            <button onclick=self.link.callback(move |_| {AppMsg::SetTrade(trade_to_person.clone())})>
+                                {if trade_to_person_state.is_some() {
+                                    format!("Replace trade with {}", trade_to_person_display_name)
+                                } else {
+                                        format!("Send to {}", trade_to_person_display_name)
+                                }}
+                            </button>
+                    }
+                }}
               </>
         };
     }
@@ -1109,20 +1110,20 @@ impl App {
                                 {"Submit"}
                                 </button>
                                 <br />
+                                <br />
                                 {self.view_trade_to_person(OtherPlayerOption::Opponent1)}
                                 <br />
                                 {self.view_trade_to_person(OtherPlayerOption::Teammate)}
                                 <br />
                                 {self.view_trade_to_person(OtherPlayerOption::Opponent2)}
                                 <br />
-                                {self.view_selected_card()}
                                 <br />
-                                <button
-                                    onclick=self.link.callback(|_| {AppMsg::RemoveSelectedCard})
-                                    disabled=self.state.selected_card.is_none()
-                                    type="button">
-                                {"Remove Selected Card"}
-                                </button>
+                                <br />
+                                {self.call_small_tichu_button()}
+                                <br />
+                                <br />
+                                <br />
+                                {self.view_selected_card_button()}
                                 <br />
                                 <br />
                                 <br />
@@ -1133,8 +1134,6 @@ impl App {
                             <p>{"Waiting for others to trade..."}</p>
                     }
                 }}
-                    {self.call_small_tichu_button()}
-                    <br />
                     {self.view_hand()}
                 </>
         }

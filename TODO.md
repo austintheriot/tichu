@@ -39,3 +39,7 @@ OPTIONAL:
 - Mark is_alive as true anytime any message is sent from client??
 - Rethink use of Mutexes and RwLocks -- are interactions with state actually read-heavy or not?
 - Use parking_lot Mutexes and RwLocks?
+
+
+BUGS:
+- Server occasionally gets deadlocked when many users leave at once
