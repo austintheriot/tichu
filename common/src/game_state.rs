@@ -486,10 +486,6 @@ impl PrivateGameState {
             }
             PrivateGameStage::Trade(trade) => trade.get_small_tichu_mut(),
             PrivateGameStage::Play(play) => play.get_small_tichu_mut(),
-            _ => {
-                eprintln!("Can't call Small Tichu when game stage is not an active game stage. Ignoring request from user {}", user_id);
-                return new_game_state;
-            }
         };
 
         let i = small_tichus

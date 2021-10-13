@@ -37,7 +37,7 @@ pub async fn submit_trade(
         }
     };
 
-    // Must be Trade stage
+    // must be Trade stage
     if let PrivateGameStage::Trade(trade_stage) = &game_state.stage {
         let i = game_state
             .participants

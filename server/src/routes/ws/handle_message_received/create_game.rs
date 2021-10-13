@@ -28,7 +28,7 @@ pub async fn create_game(
             .expect(USER_ID_NOT_IN_MAP);
 
         // user already associated with a game, no action needed
-        if let Some(game_id) = &connection.game_id {
+        if let Some(_) = &connection.game_id {
             eprintln!("{FUNCTION_NAME}: Can't create game for user because user is already associated with a game");
             return;
         }

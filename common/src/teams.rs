@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{PrivateUser, PublicUser};
-
 /// Users can freely move in/out of this team type, since the
 /// user_ids is a flexible Vec type.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
