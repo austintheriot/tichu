@@ -344,7 +344,7 @@ impl Component for App {
                 <div>
                     {match &self.state.game_state {
                         None => self.view_join(),
-                        Some(game_state) => {
+                        Some(game_state) =>{
                             match game_state.stage {
                                 PublicGameStage::Lobby => self.view_lobby(),
                                 PublicGameStage::Teams(_) => self.view_teams(),
@@ -478,7 +478,7 @@ impl App {
                     <ul>
                     {for game_state.participants.iter().map(|user| {
                         html! {
-                            <li> {&user.display_name} </li>
+                            <li>{&user.display_name}</li>
                     }
                 })}
                     </ul>
@@ -501,16 +501,16 @@ impl App {
     fn debug_team(&self, team: &MutableTeam) -> Html {
         html! {
                 <ul>
-                    <li> {"Team Name: "} {{&team.team_name}} </li>
-                    <li> {"Score: "} {{&team.score}} </li>
-                    <li> {"Users: "} {for team.user_ids.iter().map(|id| {
+                    <li>{"Team Name: "} {{&team.team_name}}</li>
+                    <li>{"Score: "} {{&team.score}}</li>
+                    <li>{"Users: "} {for team.user_ids.iter().map(|id| {
                         html!{
-                            <p> {match &self.get_participant_by_id(id) {
+                            <p>{match &self.get_participant_by_id(id) {
                                 Some(participant) => &participant.display_name,
                                 None => ""
-                        }} </p>
+                        }}</p>
                     }
-                })} </li>
+                })}</li>
                 </ul>
         }
     }
@@ -521,8 +521,8 @@ impl App {
                 PublicGameStage::Teams(team_state) => {
                     html! {
                             <ul>
-                                <li> {self.debug_team(&team_state[0])} </li>
-                                <li> {self.debug_team(&team_state[1])} </li>
+                                <li>{self.debug_team(&team_state[0])}</li>
+                                <li>{self.debug_team(&team_state[1])}</li>
                             </ul>
                     }
                 }
@@ -544,7 +544,7 @@ impl App {
                 Some(owner) => {
                     html! {
                             <ul>
-                                <li> {&owner.display_name} </li>
+                                <li>{&owner.display_name}</li>
                             </ul>
                     }
                 }
@@ -559,7 +559,7 @@ impl App {
         }
     }
 
-    fn view_debug_grand_tichu_for_user(&self, user_id: &str) -> Html {
+    fn view_debug_grand_tichu_for_user(&self, user_id: &str, display_name: &str) -> Html {
         let grand_tichu_call_status = if let Some(game_state) = &self.state.game_state {
             let grand_tichus = match &game_state.stage {
                 PublicGameStage::GrandTichu(grand_tichu_state) => &grand_tichu_state.grand_tichus,
@@ -567,7 +567,7 @@ impl App {
                 PublicGameStage::Play(play) => &play.grand_tichus,
                 _ => {
                     return html! {
-                        <p> {&format!("Grand Tichu Call Status for {user_id} ----- n/a \n")}</p>
+                        <p>{&format!("Grand Tichu Call Status for {display_name}: n/a \n")}</p>
                     }
                 }
             };
@@ -590,11 +590,11 @@ impl App {
             "n/a"
         };
         html! {
-                <p> {&format!("Grand Tichu Call Status for {} ----- ", user_id)} {grand_tichu_call_status} {"\n"}</p>
+                <p>{&format!("Grand Tichu Call Status for {display_name}: {grand_tichu_call_status} \n")}</p>
         }
     }
 
-    fn view_debug_small_tichu_for_user(&self, user_id: &str) -> Html {
+    fn view_debug_small_tichu_for_user(&self, user_id: &str, display_name: &str) -> Html {
         let small_tichu_call_status = if let Some(game_state) = &self.state.game_state {
             let small_tichus = match &game_state.stage {
                 PublicGameStage::GrandTichu(grand_tichu_state) => &grand_tichu_state.small_tichus,
@@ -602,7 +602,7 @@ impl App {
                 PublicGameStage::Play(play) => &play.small_tichus,
                 _ => {
                     return html! {
-                        <p> {&format!("Small Tichu Call Status for {user_id} ----- n/a \n")}</p>
+                        <p>{&format!("Small Tichu Call Status for {display_name}: n/a \n")}</p>
                     }
                 }
             };
@@ -625,7 +625,7 @@ impl App {
             "n/a"
         };
         html! {
-                <p> {&format!("Small Tichu Call Status for {} ----- ", user_id)} {small_tichu_call_status} {"\n"}</p>
+                <p>{&format!("Small Tichu Call Status for {display_name}: {small_tichu_call_status}\n")}</p>
         }
     }
 
@@ -635,7 +635,7 @@ impl App {
                 for game_state
                     .participants
                     .iter()
-                    .map(|user| self.view_debug_grand_tichu_for_user(&user.user_id))
+                    .map(|user| self.view_debug_grand_tichu_for_user(&user.user_id, &user.display_name))
             }},
             None => html! {<> </>},
         }
@@ -647,7 +647,7 @@ impl App {
                 for game_state
                     .participants
                     .iter()
-                    .map(|user| self.view_debug_small_tichu_for_user(&user.user_id))
+                    .map(|user| self.view_debug_small_tichu_for_user(&user.user_id, &user.display_name))
             }},
             None => html! {<> </>},
         }
@@ -656,25 +656,27 @@ impl App {
     fn view_debug(&self) -> Html {
         html! {
                 <>
-                <h1> {"Debug Info:"} </h1>
-                    <p> {"Display Name: "} {&self.state.display_name}</p>
-                    <p> {"User ID: "} {&self.state.user_id}</p>
+                <h1>{"Debug Info:"}</h1>
+                    <p>{"Display Name: "} {&self.state.display_name}</p>
+                    <p>{"User ID: "} {&self.state.user_id}</p>
                     <p>{"Websocket Status: "}{match &self.state.ws_connection_status {
                         WSConnectionStatus::Connected => "Connected",
                         WSConnectionStatus::NotConnected => "Not Connected"
-                }} </p>
-                    <p> {"Game Code: "} {
+                }}</p>
+                    <p>{"Game Code: "} {
                         if let Some(game_state) = &self.state.game_state {
                             &game_state.game_code
                     } else {
                             ""
                     }}
                     </p>
-                    <p> {"Participants: "} {self.view_participants()} </p>
-                    <p> {"Owner: "} {self.debug_owner()} </p>
-                    <p> {"Teams: "} {self.debug_teams()} </p>
+                    <p>{"Participants: "} {self.view_participants()}</p>
+                    <p>{"Owner: "} {self.debug_owner()}</p>
+                    <p>{"Teams: "} {self.debug_teams()}</p>
+                    <h2>{"Grand Tichus: "}</h2>
                     {self.view_debug_all_participants_grand_tichu()}
                     <br />
+                    <h2>{"Small Tichus: "}</h2>
                     {self.view_debug_all_participants_small_tichu()}
                     <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{"Send test message to server"}</button>
                     <br />
@@ -686,12 +688,12 @@ impl App {
     fn view_join(&self) -> Html {
         html! {
                 <>
-                <h1> {"Tichu"} </h1>
+                <h1>{"Tichu"}</h1>
                     <form onsubmit=self.link.callback(|e: FocusEvent| {
                         e.prevent_default();
                         AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)
                 })>
-                        <label for="join-room-display-name-input"> {"Display Name"} </label>
+                        <label for="join-room-display-name-input">{"Display Name"}</label>
                         <br />
                         <input
                             id="join-room-display-name-input"
@@ -699,7 +701,7 @@ impl App {
                             value=self.state.display_name_input.clone()
                             oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
                         <br />
-                        <label for="join-room-game-code-input"> {"Game Code"} </label>
+                        <label for="join-room-game-code-input">{"Game Code"}</label>
                         <br />
                         <input
                             id="join-room-game-code-input"
@@ -718,7 +720,7 @@ impl App {
                         e.prevent_default();
                         AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)
                 })>
-                        <label for="join-room-display-name-input"> {"Display Name"} </label>
+                        <label for="join-room-display-name-input">{"Display Name"}</label>
                         <br />
                         <input
                             id="create-room-display-name-input"
@@ -738,8 +740,8 @@ impl App {
     fn view_lobby(&self) -> Html {
         html! {
                 <>
-                    <h1> {"Lobby"} </h1>
-                    <h2> {"Game Code: "} {
+                    <h1>{"Lobby"}</h1>
+                    <h2>{"Game Code: "} {
                         if let Some(game_state) = &self.state.game_state {
                             &game_state.game_code
                     } else {
@@ -747,7 +749,7 @@ impl App {
                     }
                 }
                     </h2>
-                    <h3> {"Joined:"} </h3>
+                    <h3>{"Joined:"}</h3>
                     <br />
                     {self.view_participants()}
                     <button
@@ -783,20 +785,20 @@ impl App {
     fn view_teams(&self) -> Html {
         html! {
                 <>
-                <h1> {"Teams"} </h1>
-                    <label for="team-a-name-input"> {"Team A Name"} </label>
+                <h1>{"Teams"}</h1>
+                    <label for="team-a-name-input">{"Team Name"}</label>
                     <br />
                     <form onsubmit=self.link.callback(|e: FocusEvent | {
                         e.prevent_default();
                         AppMsg::SendWSMsg(CTSMsgInternal::RenameTeam(TeamOption::TeamA))
                 })>
-                        <label for="team-a-name-input">{"Team Name"}</label>
-                        <input
-                            id="team-a-name-input"
-                            disabled=!self.is_team_stage() || self.is_on_team_b()
-                            type="text"
-                            value=self.state.team_a_name_input.clone()
-                            oninput=self.link.callback(|e: InputData| AppMsg::SetTeamANameInput(e.value))/>
+                    <label for="team-a-name-input">{"Team Name"}</label>
+                    <input
+                        id="team-a-name-input"
+                        disabled=!self.is_team_stage() || self.is_on_team_b()
+                        type="text"
+                        value=self.state.team_a_name_input.clone()
+                        oninput=self.link.callback(|e: InputData| AppMsg::SetTeamANameInput(e.value))/>
                    </form>
                     <br />
                     <button
@@ -808,6 +810,7 @@ impl App {
                         onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeam(TeamOption::TeamB))})
                         disabled=!self.is_team_stage() || self.is_on_team_b()
                         >{"Move to Team B"}</button>
+                    <br />
                     <br />
                     <form onsubmit=self.link.callback(|e: FocusEvent | {
                         e.prevent_default();
@@ -826,7 +829,7 @@ impl App {
                         <button
                             onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::StartGrandTichu)})
                             disabled=!self.can_start_game()
-                        > {"Start"} </button>
+                        >{"Start"}</button>
                     }
                 } else {
                        html!{
@@ -905,7 +908,7 @@ impl App {
                 <button
                 onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallSmallTichu)})
                 disabled=!self.can_call_small_tichu()
-                > {"Call Small Tichu"} </button>
+                >{"Call Small Tichu"}</button>
         }
     }
 
@@ -935,25 +938,25 @@ impl App {
             None => "n/a",
         };
         html! {
-                <p> {"Grand Tichu Call Status: "} {grand_tichu_call_status} {"\n"}</p>
+                <p>{"Grand Tichu Call Status: "} {grand_tichu_call_status} {"\n"}</p>
         }
     }
 
     fn view_grand_tichu(&self) -> Html {
         html! {
                 <>
-                    <h1> {"Grand Tichu"} </h1>
+                    <h1>{"Grand Tichu"}</h1>
                     {self.view_grand_tichu_status_for_current_user()}
                     <button
                         onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Call))})
                         disabled=!self.can_call_or_decline_grand_tichu()
-                    > {"Call Grand Tichu"} </button>
+                    >{"Call Grand Tichu"}</button>
                     <button
                         onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Decline))})
                         disabled=!self.can_call_or_decline_grand_tichu()
-                    > {"Decline Grand Tichu"} </button>
+                    >{"Decline Grand Tichu"}</button>
                     {self.call_small_tichu_button()}
-                    <p> {"Hand:"} </p>
+                    <p>{"Hand:"}</p>
                     {self.view_hand()}
                 </>
         }
@@ -967,14 +970,14 @@ impl App {
     }
 
     fn can_select_card(&self) -> bool {
-        self.stage_is_trade()
+        self.stage_is_trade() && !self.has_submitted_trade()
     }
 
     fn view_selected_card(&self) -> Html {
         match &self.state.selected_card {
             Some(card) => {
                 html! {
-                        <p> {"Selected Card: "}{&format!("{:#?}", card)}</p>
+                        <p>{"Selected Card: "}{&format!("{:#?}", card)}</p>
                 }
             }
             None => html! {},
@@ -1045,7 +1048,7 @@ impl App {
 
         return html! {
               <>
-                <p> {&format!("Trade to {}, {}: {}", trade_to_person_generic_name, trade_to_person_display_name, match trade_to_person_state {
+                <p>{&format!("Trade to {}, {}: {}", trade_to_person_generic_name, trade_to_person_display_name, match trade_to_person_state {
                         Some(card) => format!("{:?}", card),
                         None => "None".to_string(),
                 })}
@@ -1094,16 +1097,15 @@ impl App {
     fn view_trade(&self) -> Html {
         html! {
                 <>
-                    <h1> {"Trade"} </h1>
-                    <p> {&format!("Has submitted trade: {:?}", self.has_submitted_trade())} </p>
+                    <h1>{"Trade"}</h1>
+                    <p>{&format!("Has submitted trade: {:?}", self.has_submitted_trade())}</p>
                     {if !self.has_submitted_trade() {
                         html!{
                             <>
                                 <button
-                                onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::SubmitTrade)})
-                                disabled=!self.can_submit_trade()
-                                type="submit"
-                                >
+                                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::SubmitTrade)})
+                                    disabled=!self.can_submit_trade()
+                                    type="submit">
                                 {"Submit"}
                                 </button>
                                 <br />
@@ -1115,13 +1117,20 @@ impl App {
                                 <br />
                                 {self.view_selected_card()}
                                 <br />
+                                <button
+                                    onclick=self.link.callback(|_| {AppMsg::RemoveSelectedCard})
+                                    disabled=self.state.selected_card.is_none()
+                                    type="button">
+                                {"Remove Selected Card"}
+                                </button>
+                                <br />
                                 <br />
                                 <br />
                             </>
                     }
                 } else {
                         html!{
-                            <p> {"Waiting for others to trade..."} </p>
+                            <p>{"Waiting for others to trade..."}</p>
                     }
                 }}
                     {self.call_small_tichu_button()}
@@ -1134,7 +1143,7 @@ impl App {
     fn view_play(&self) -> Html {
         html! {
               <>
-                <h1> {"Play"} </h1>
+                <h1>{"Play"}</h1>
                 {self.view_hand()}
               </>
         }

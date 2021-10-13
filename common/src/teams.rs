@@ -47,17 +47,10 @@ pub type MutableTeams = [MutableTeam; 2];
 pub type ImmutableTeams = [ImmutableTeam; 2];
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct PrivateOtherPlayers {
-    pub opponent_1: PrivateUser,
-    pub teammate: PrivateUser,
-    pub opponent_2: PrivateUser,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct PublicOtherPlayers {
-    pub opponent_1: PublicUser,
-    pub teammate: PublicUser,
-    pub opponent_2: PublicUser,
+pub struct OtherPlayers<User> {
+    pub opponent_1: User,
+    pub teammate: User,
+    pub opponent_2: User,
 }
 
 /// Useful for specifying which team an action is intended to be carried out on.
@@ -74,4 +67,10 @@ pub enum OtherPlayerOption {
     Opponent1,
     Teammate,
     Opponent2,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct TeamCategories<Team> {
+    pub current_team: Option<Team>,
+    pub opposing_team: Option<Team>,
 }

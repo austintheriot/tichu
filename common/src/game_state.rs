@@ -1,7 +1,7 @@
 use crate::{
     get_new_game_code, user::UserRole, CallGrandTichuRequest, Deck, GetSmallTichu, ImmutableTeam,
-    MutableTeam, PrivateGameStage, PrivateGrandTichu, PrivateUser, PublicGameStage,
-    PublicOtherPlayers, PublicUser, SubmitTrade, TeamOption, TichuCallStatus,
+    MutableTeam, OtherPlayers, PrivateGameStage, PrivateGrandTichu, PrivateUser, PublicGameStage,
+    PublicUser, SubmitTrade, TeamCategories, TeamOption, TichuCallStatus,
     UserIdWithTichuCallStatus, NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
@@ -665,59 +665,78 @@ pub struct PublicGameState {
 }
 
 impl PublicGameState {
-    /// (Current Team, Opposing Team)
-    pub fn get_trade_and_play_teams(&self) -> (Option<&ImmutableTeam>, Option<&ImmutableTeam>) {
-        match &self.stage {
-            PublicGameStage::Trade(trade) => {
-                let current_team = trade.teams.iter().find(|team| {
-                    team.user_ids
-                        .iter()
-                        .any(|user_id| *user_id == self.current_user.user_id)
-                });
+    pub fn get_mutable_team_categories(&self) -> TeamCategories<&MutableTeam> {
+        if let PublicGameStage::Teams(mutable_teams) = &self.stage {
+            let current_team = mutable_teams.iter().find(|team| {
+                team.user_ids
+                    .iter()
+                    .any(|user_id| *user_id == self.current_user.user_id)
+            });
 
-                let opposing_team = if let Some(current_team) = current_team {
-                    trade.teams.iter().find(|team| *team.id != current_team.id)
-                } else {
-                    None
-                };
+            let opposing_team = if let Some(current_team) = current_team {
+                mutable_teams
+                    .iter()
+                    .find(|team| *team.id != current_team.id)
+            } else {
+                None
+            };
 
-                eprintln!("{:#?} {:#?}", current_team, opposing_team);
-
-                (current_team, opposing_team)
+            TeamCategories {
+                current_team,
+                opposing_team,
             }
-            PublicGameStage::Play(play) => {
-                let current_team = play.teams.iter().find(|team| {
-                    team.user_ids
-                        .iter()
-                        .any(|user_id| *user_id == self.current_user.user_id)
-                });
-
-                let opposing_team = if let Some(current_team) = current_team {
-                    play.teams.iter().find(|team| *team.id != current_team.id)
-                } else {
-                    None
-                };
-
-                eprintln!("{:#?} {:#?}", current_team, opposing_team);
-
-                (current_team, opposing_team)
+        } else {
+            TeamCategories {
+                current_team: None,
+                opposing_team: None,
             }
-            _ => (None, None),
         }
     }
 
-    pub fn get_other_players(&self) -> Option<PublicOtherPlayers> {
-        let teams = self.get_trade_and_play_teams();
+    pub fn get_immutable_team_categories(&self) -> TeamCategories<&ImmutableTeam> {
+        let immutable_teams = match &self.stage {
+            PublicGameStage::Trade(trade) => &trade.teams,
+            PublicGameStage::Play(play) => &play.teams,
+            _ => {
+                return TeamCategories {
+                    current_team: None,
+                    opposing_team: None,
+                }
+            }
+        };
 
-        if let (Some(current_team), Some(opposing_team)) = teams {
-            Some(PublicOtherPlayers {
+        let current_team = immutable_teams.iter().find(|team| {
+            team.user_ids
+                .iter()
+                .any(|user_id| *user_id == self.current_user.user_id)
+        });
+
+        let opposing_team = if let Some(current_team) = current_team {
+            immutable_teams
+                .iter()
+                .find(|team| *team.id != current_team.id)
+        } else {
+            None
+        };
+
+        TeamCategories {
+            current_team,
+            opposing_team,
+        }
+    }
+
+    pub fn get_other_players(&self) -> Option<OtherPlayers<PublicUser>> {
+        let team_categories = self.get_immutable_team_categories();
+
+        if let TeamCategories {
+            current_team: Some(current_team),
+            opposing_team: Some(opposing_team),
+        } = team_categories
+        {
+            Some(OtherPlayers::<PublicUser> {
                 opponent_1: {
                     let user_id = &opposing_team.user_ids[0];
-                    self.participants
-                        .iter()
-                        .find(|user| (*user.user_id == *user_id))
-                        .unwrap()
-                        .clone()
+                    self.get_user_by_user_id(user_id).unwrap().clone()
                 },
                 teammate: {
                     let user_id = current_team
@@ -725,23 +744,21 @@ impl PublicGameState {
                         .iter()
                         .find(|user_id| **user_id != *self.current_user.user_id)
                         .unwrap();
-                    self.participants
-                        .iter()
-                        .find(|user| (*user.user_id == *user_id))
-                        .unwrap()
-                        .clone()
+                    self.get_user_by_user_id(user_id).unwrap().clone()
                 },
                 opponent_2: {
                     let user_id = &opposing_team.user_ids[1];
-                    self.participants
-                        .iter()
-                        .find(|user| (*user.user_id == *user_id))
-                        .unwrap()
-                        .clone()
+                    self.get_user_by_user_id(user_id).unwrap().clone()
                 },
             })
         } else {
             None
         }
+    }
+
+    pub fn get_user_by_user_id(&self, user_id: &str) -> Option<&PublicUser> {
+        self.participants
+            .iter()
+            .find(|user| (*user.user_id == *user_id))
     }
 }
