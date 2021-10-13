@@ -37,6 +37,55 @@ pub async fn submit_trade(
         }
     };
 
+    // Must be Trade stage
+    if let PrivateGameStage::Trade(trade_stage) = &game_state.stage {
+        let i = game_state
+            .participants
+            .iter()
+            .position(|user| *user.user_id == *user_id);
+
+        let user = if let Some(i) = i {
+            &mut game_state.participants[i]
+        } else {
+            eprintln!("{FUNCTION_NAME}: couldn't accept traded submitted by user {user_id} because user could not be found in participants");
+            return;
+        };
+
+        for trade in &trade_array {
+            // User must actually have those cards in their hand
+            if !user.hand.iter().any(|card| *card == trade.card) {
+                eprintln!("{FUNCTION_NAME}: Couldn't accept traded submitted by user {} because user does {:?}, which they are trying to trade", user_id, trade.card);
+                return;
+            }
+
+            // Trade must not be to self
+            if trade.to_user_id == user_id {
+                eprintln!("{FUNCTION_NAME}: Couldn't accept traded submitted by user {} because user is trying to trade to self", user_id);
+                return;
+            }
+
+            // Trade must be to a valid participant who is on a team
+            let mut recipient_found_in_teams = false;
+            for team in &trade_stage.teams {
+                for id in team.user_ids.iter() {
+                    if *id == *trade.to_user_id {
+                        recipient_found_in_teams = true;
+                    }
+                }
+            }
+            if !recipient_found_in_teams {
+                eprintln!("{FUNCTION_NAME}: Couldn't accept traded submitted by user {} because the person the user is trying to trade to was not found in the teams", user_id);
+                return;
+            }
+        }
+    } else {
+        eprintln!(
+            "Couldn't accept traded submitted by user {} because Game Stage is not Trade",
+            user_id
+        );
+        return;
+    }
+
     // update game state
     let new_game_state = game_state.submit_trade(user_id, &trade_array);
     *game_state = new_game_state.clone();

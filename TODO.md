@@ -22,6 +22,7 @@ MUST HAVES:
 - Search TODOs in codebase
 
 NICE TO HAVES:
+- Return Result<PrivateGameState, String> for GameState results
 - Validate in handle_ws_message OR in game_state methods, but NOT BOTH --- OR share methods for determining if that action can be taken
 - Validate SubmitTrade in websocket message (Share validations with PrivateGameState)
     - Conditionally send websocket messages based on results
