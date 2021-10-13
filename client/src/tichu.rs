@@ -414,52 +414,22 @@ impl App {
             false
         };
 
-        // TODO: DRY this code up
         let undecided_about_small_tichu = if let Some(game_state) = &self.state.game_state {
-            match &game_state.stage {
-                PublicGameStage::GrandTichu(public_grand_tichu) => {
-                    if let Some(call_status) = (*public_grand_tichu).small_tichus.iter().find(
-                        |user_id_with_tichu_call_status| {
-                            *user_id_with_tichu_call_status.user_id == *self.state.user_id
-                        },
-                    ) {
-                        matches!(call_status.tichu_call_status, TichuCallStatus::Undecided)
-                    } else {
-                        // user's call status not found, therefore undecided
-                        true
-                    }
-                }
-                PublicGameStage::Trade(trade) => {
-                    if let Some(call_status) =
-                        (*trade)
-                            .small_tichus
-                            .iter()
-                            .find(|user_id_with_tichu_call_status| {
-                                *user_id_with_tichu_call_status.user_id == *self.state.user_id
-                            })
-                    {
-                        matches!(call_status.tichu_call_status, TichuCallStatus::Undecided)
-                    } else {
-                        // user's call status not found, therefore undecided
-                        true
-                    }
-                }
-                PublicGameStage::Play(play) => {
-                    if let Some(call_status) =
-                        (*play)
-                            .small_tichus
-                            .iter()
-                            .find(|user_id_with_tichu_call_status| {
-                                *user_id_with_tichu_call_status.user_id == *self.state.user_id
-                            })
-                    {
-                        matches!(call_status.tichu_call_status, TichuCallStatus::Undecided)
-                    } else {
-                        // user's call status not found, therefore undecided
-                        true
-                    }
-                }
-                _ => false,
+            let small_tichus = match &game_state.stage {
+                PublicGameStage::GrandTichu(public_grand_tichu) => &public_grand_tichu.small_tichus,
+                PublicGameStage::Trade(trade) => &trade.small_tichus,
+                PublicGameStage::Play(play) => &play.small_tichus,
+                // game is not active, therefore can't call small tichu
+                _ => return false,
+            };
+
+            if let Some(call_status) = small_tichus.iter().find(|user_id_with_tichu_call_status| {
+                *user_id_with_tichu_call_status.user_id == *self.state.user_id
+            }) {
+                matches!(call_status.tichu_call_status, TichuCallStatus::Undecided)
+            } else {
+                // user's call status not found, therefore undecided
+                true
             }
         } else {
             // GameState is None, therefore user is Undecided
@@ -590,68 +560,34 @@ impl App {
     }
 
     fn view_debug_grand_tichu_for_user(&self, user_id: &str) -> Html {
-        // TODO: dry this out
-        let grand_tichu_call_status = match &self.state.game_state {
-            Some(game_state) => match &game_state.stage {
-                PublicGameStage::GrandTichu(grand_tichu_state) => {
-                    match grand_tichu_state.grand_tichus.iter().find(
-                        |user_id_with_tichu_call_status| {
-                            *user_id_with_tichu_call_status.user_id == *user_id
-                        },
-                    ) {
-                        Some(user_id_with_tichu_call_status) => {
-                            match user_id_with_tichu_call_status.tichu_call_status {
-                                TichuCallStatus::Undecided => "Undecided",
-                                TichuCallStatus::Called => "Called",
-                                TichuCallStatus::Declined => "Declined",
-                                TichuCallStatus::Achieved => "Achieved",
-                                TichuCallStatus::Failed => "Failed",
-                            }
-                        }
-                        None => "n/a",
+        let grand_tichu_call_status = if let Some(game_state) = &self.state.game_state {
+            let grand_tichus = match &game_state.stage {
+                PublicGameStage::GrandTichu(grand_tichu_state) => &grand_tichu_state.grand_tichus,
+                PublicGameStage::Trade(trade) => &trade.grand_tichus,
+                PublicGameStage::Play(play) => &play.grand_tichus,
+                _ => {
+                    return html! {
+                        <p> {&format!("Grand Tichu Call Status for {user_id} ----- n/a \n")}</p>
                     }
                 }
-                PublicGameStage::Trade(trade) => {
-                    match trade
-                        .grand_tichus
-                        .iter()
-                        .find(|user_id_with_tichu_call_status| {
-                            *user_id_with_tichu_call_status.user_id == *user_id
-                        }) {
-                        Some(user_id_with_tichu_call_status) => {
-                            match user_id_with_tichu_call_status.tichu_call_status {
-                                TichuCallStatus::Undecided => "Undecided",
-                                TichuCallStatus::Called => "Called",
-                                TichuCallStatus::Declined => "Declined",
-                                TichuCallStatus::Achieved => "Achieved",
-                                TichuCallStatus::Failed => "Failed",
-                            }
-                        }
-                        None => "n/a",
+            };
+
+            match grand_tichus.iter().find(|user_id_with_tichu_call_status| {
+                *user_id_with_tichu_call_status.user_id == *user_id
+            }) {
+                Some(user_id_with_tichu_call_status) => {
+                    match user_id_with_tichu_call_status.tichu_call_status {
+                        TichuCallStatus::Undecided => "Undecided",
+                        TichuCallStatus::Called => "Called",
+                        TichuCallStatus::Declined => "Declined",
+                        TichuCallStatus::Achieved => "Achieved",
+                        TichuCallStatus::Failed => "Failed",
                     }
                 }
-                PublicGameStage::Play(play) => {
-                    match play
-                        .grand_tichus
-                        .iter()
-                        .find(|user_id_with_tichu_call_status| {
-                            *user_id_with_tichu_call_status.user_id == *user_id
-                        }) {
-                        Some(user_id_with_tichu_call_status) => {
-                            match user_id_with_tichu_call_status.tichu_call_status {
-                                TichuCallStatus::Undecided => "Undecided",
-                                TichuCallStatus::Called => "Called",
-                                TichuCallStatus::Declined => "Declined",
-                                TichuCallStatus::Achieved => "Achieved",
-                                TichuCallStatus::Failed => "Failed",
-                            }
-                        }
-                        None => "n/a",
-                    }
-                }
-                _ => "n/a",
-            },
-            None => "n/a",
+                None => "n/a",
+            }
+        } else {
+            "n/a"
         };
         html! {
                 <p> {&format!("Grand Tichu Call Status for {} ----- ", user_id)} {grand_tichu_call_status} {"\n"}</p>
@@ -659,68 +595,34 @@ impl App {
     }
 
     fn view_debug_small_tichu_for_user(&self, user_id: &str) -> Html {
-        let small_tichu_call_status = match &self.state.game_state {
-            // TODO: DRY this out
-            Some(game_state) => match &game_state.stage {
-                PublicGameStage::GrandTichu(grand_tichu_state) => {
-                    match grand_tichu_state.small_tichus.iter().find(
-                        |user_id_with_tichu_call_status| {
-                            *user_id_with_tichu_call_status.user_id == *user_id
-                        },
-                    ) {
-                        Some(user_id_with_tichu_call_status) => {
-                            match user_id_with_tichu_call_status.tichu_call_status {
-                                TichuCallStatus::Undecided => "Undecided",
-                                TichuCallStatus::Called => "Called",
-                                TichuCallStatus::Declined => "Declined",
-                                TichuCallStatus::Achieved => "Achieved",
-                                TichuCallStatus::Failed => "Failed",
-                            }
-                        }
-                        None => "n/a",
+        let small_tichu_call_status = if let Some(game_state) = &self.state.game_state {
+            let small_tichus = match &game_state.stage {
+                PublicGameStage::GrandTichu(grand_tichu_state) => &grand_tichu_state.small_tichus,
+                PublicGameStage::Trade(trade) => &trade.small_tichus,
+                PublicGameStage::Play(play) => &play.small_tichus,
+                _ => {
+                    return html! {
+                        <p> {&format!("Small Tichu Call Status for {user_id} ----- n/a \n")}</p>
                     }
                 }
-                PublicGameStage::Trade(trade) => {
-                    match trade
-                        .small_tichus
-                        .iter()
-                        .find(|user_id_with_tichu_call_status| {
-                            *user_id_with_tichu_call_status.user_id == *user_id
-                        }) {
-                        Some(user_id_with_tichu_call_status) => {
-                            match user_id_with_tichu_call_status.tichu_call_status {
-                                TichuCallStatus::Undecided => "Undecided",
-                                TichuCallStatus::Called => "Called",
-                                TichuCallStatus::Declined => "Declined",
-                                TichuCallStatus::Achieved => "Achieved",
-                                TichuCallStatus::Failed => "Failed",
-                            }
-                        }
-                        None => "n/a",
+            };
+
+            match small_tichus.iter().find(|user_id_with_tichu_call_status| {
+                *user_id_with_tichu_call_status.user_id == *user_id
+            }) {
+                Some(user_id_with_tichu_call_status) => {
+                    match user_id_with_tichu_call_status.tichu_call_status {
+                        TichuCallStatus::Undecided => "Undecided",
+                        TichuCallStatus::Called => "Called",
+                        TichuCallStatus::Declined => "Declined",
+                        TichuCallStatus::Achieved => "Achieved",
+                        TichuCallStatus::Failed => "Failed",
                     }
                 }
-                PublicGameStage::Play(play) => {
-                    match play
-                        .small_tichus
-                        .iter()
-                        .find(|user_id_with_tichu_call_status| {
-                            *user_id_with_tichu_call_status.user_id == *user_id
-                        }) {
-                        Some(user_id_with_tichu_call_status) => {
-                            match user_id_with_tichu_call_status.tichu_call_status {
-                                TichuCallStatus::Undecided => "Undecided",
-                                TichuCallStatus::Called => "Called",
-                                TichuCallStatus::Declined => "Declined",
-                                TichuCallStatus::Achieved => "Achieved",
-                                TichuCallStatus::Failed => "Failed",
-                            }
-                        }
-                        None => "n/a",
-                    }
-                }
-                _ => "n/a",
-            },
-            None => "n/a",
+                None => "n/a",
+            }
+        } else {
+            "n/a"
         };
         html! {
                 <p> {&format!("Small Tichu Call Status for {} ----- ", user_id)} {small_tichu_call_status} {"\n"}</p>
