@@ -13,7 +13,7 @@ pub const NUM_CARDS_AFTER_GRAND_TICHU: usize =
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum CardValue {
-    Start,
+    Noop,
     _2,
     _3,
     _4,
@@ -34,7 +34,7 @@ impl Iterator for CardValue {
 
     fn next(&mut self) -> Option<Self::Item> {
         let next_value = match &self {
-            CardValue::Start => Some(CardValue::_2),
+            CardValue::Noop => Some(CardValue::_2),
             CardValue::_2 => Some(CardValue::_3),
             CardValue::_3 => Some(CardValue::_4),
             CardValue::_4 => Some(CardValue::_5),
@@ -71,7 +71,17 @@ pub enum Card {
 
 impl Card {
     pub fn start_iter() -> Card {
-        Card::Sword(CardValue::Start)
+        Card::Sword(CardValue::Noop)
+    }
+
+    pub fn get_value(&self) -> Option<&CardValue> {
+        match self {
+            Card::Sword(card_value) => Some(card_value),
+            Card::Jade(card_value) => Some(card_value),
+            Card::Pagoda(card_value) => Some(card_value),
+            Card::Star(card_value) => Some(card_value),
+            _ => None,
+        }
     }
 }
 
@@ -170,4 +180,92 @@ impl Deck {
 
         cards
     }
+}
+
+/// a single card
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct Single(Card);
+
+/// a pair of cards of equal value
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct Pair {
+    value: CardValue,
+    cards: Vec<Card>,
+}
+
+/// a sequence of pairs of adjacent value
+/// u8 = number of pairs
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct SequenceOfPairs {
+    starting_value: CardValue,
+    number_of_pairs: u8,
+    cards: Vec<Card>,
+}
+
+/// a trio of cards of equal value
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct Trio {
+    value: CardValue,
+    cards: Vec<Card>,
+}
+
+/// a bomb (4 of the same value)
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct BombOf4 {
+    value: CardValue,
+    cards: Vec<Card>,
+}
+
+/// a bomb (sequence of 5+ of all the same suit)
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct BombOfSequence {
+    suit: Card,
+    starting_value: CardValue,
+    number_of_cards: u8,
+    cards: Vec<Card>,
+}
+
+/// a full house (trio + pair)
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct FullHouse {
+    trio_value: CardValue,
+    pair_value: CardValue,
+    lowest_value: CardValue,
+    cards: Vec<Card>,
+}
+
+/// a sequence of length at least 5
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct Sequence {
+    starting_value: CardValue,
+    number_of_cards: u8,
+    cards: Vec<Card>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub enum ValidCardCombos {
+    /// a single card
+    Single(Single),
+
+    /// a pair of cards of equal value
+    Pair(Pair),
+
+    /// a sequence of pairs of adjacent value
+    /// u8 = number of pairs
+    SequenceOfPairs(SequenceOfPairs),
+
+    /// a trio of cards of equal value
+    Trio(Trio),
+
+    /// a bomb (4 of the same value)
+    BombOf4(BombOf4),
+
+    /// a bomb (sequence of 5+ of all the same suit)
+    BombOfSequence(BombOfSequence),
+
+    /// a full house (trio + pair)
+    FullHouse(FullHouse),
+
+    /// a sequence of length at least 5
+    Sequence(Sequence),
 }

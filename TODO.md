@@ -15,6 +15,9 @@ IDEAS:
 
 --------------------------------------------------------------------------------------------
 
+TODO:
+- implement PartialOrd + Ord for card combination structs
+
 MUST HAVES:
 - Add client-side check before being able to call Grand Tichu
 - Minimize .expect() errors (see example in call_grand_tichu.rs for better match expressions)
@@ -22,6 +25,7 @@ MUST HAVES:
 - Search TODOs in codebase
 
 NICE TO HAVES:
+- Configure rand crate to "js" feature for randomness
 - Redirect normal logs to println (to a file output) & reserve eprintln for errors
 - Return Result<PrivateGameState, String> for GameState results
 - Validate in handle_ws_message OR in game_state methods, but NOT BOTH --- OR share methods for determining if that action can be taken
