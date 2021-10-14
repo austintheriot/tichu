@@ -15,7 +15,7 @@ pub enum CTSMsgInternal {
     LeaveGame,
     StartGrandTichu,
     SubmitTrade,
-    PlayCards,
+    SubmitCards,
     GiveDragon,
     CallGrandTichu(CallGrandTichuRequest),
     CallSmallTichu,

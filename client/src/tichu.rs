@@ -45,10 +45,12 @@ struct State {
     team_a_name_input: String,
     team_b_name_input: String,
 
-    selected_card: Option<Card>,
+    selected_pre_play_card: Option<Card>,
     trade_to_opponent1: Option<Card>,
     trade_to_teammate: Option<Card>,
     trade_to_opponent2: Option<Card>,
+
+    selected_play_cards: Vec<Card>,
 }
 
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
@@ -67,11 +69,13 @@ pub enum AppMsg {
     SetJoinRoomGameCodeInput(String),
     SetTeamANameInput(String),
     SetTeamBNameInput(String),
-    SetSelectedCard(usize),
-    RemoveSelectedCard,
+    SetSelectedPrePlayCard(usize),
+    RemoveSelectedPrePlayCard,
 
     SetTrade(OtherPlayerOption),
     RemoveTrade(OtherPlayerOption),
+    AddSelectedPlayCard(usize),
+    RemoveSelectedPlayCard(usize),
 }
 
 const PING_INTERVAL_MS: u64 = 5000;
@@ -135,10 +139,11 @@ impl Component for App {
             is_alive: false,
             team_a_name_input: "".into(),
             team_b_name_input: "".into(),
-            selected_card: None,
+            selected_pre_play_card: None,
             trade_to_opponent1: None,
             trade_to_teammate: None,
             trade_to_opponent2: None,
+            selected_play_cards: Vec::new(),
         };
         Self {
             interval_task: None,
@@ -245,8 +250,8 @@ impl Component for App {
                 self.state.team_b_name_input = s;
                 true
             }
-            AppMsg::SetSelectedCard(i) => {
-                if !self.can_select_card() {
+            AppMsg::SetSelectedPrePlayCard(i) => {
+                if !self.can_select_pre_play_card() {
                     warn!("Invalid state to set selected card");
                     return false;
                 }
@@ -259,7 +264,7 @@ impl Component for App {
                         return false;
                     }
                 } else {
-                    warn!("Can't SetSelectedCard because current game_state is None");
+                    warn!("Can't SetSelectedPrePlayCard because current game_state is None");
                     return false;
                 };
 
@@ -268,11 +273,11 @@ impl Component for App {
                     return false;
                 }
 
-                self.state.selected_card.replace(card_from_hand);
+                self.state.selected_pre_play_card.replace(card_from_hand);
                 true
             }
-            AppMsg::RemoveSelectedCard => {
-                self.state.selected_card = None;
+            AppMsg::RemoveSelectedPrePlayCard => {
+                self.state.selected_pre_play_card = None;
                 true
             }
             AppMsg::SetTrade(trade_to_person) => {
@@ -280,8 +285,8 @@ impl Component for App {
                     warn!("Invalid state to set trade to {:?}", trade_to_person);
                     return false;
                 }
-                if let Some(selected_card) = &self.state.selected_card {
-                    if self.is_card_is_set_to_trade(selected_card) {
+                if let Some(selected_pre_play_card) = &self.state.selected_pre_play_card {
+                    if self.is_card_is_set_to_trade(selected_pre_play_card) {
                         warn!(
                             "Can't set trade to {:?} since card is already set to trade",
                             trade_to_person
@@ -291,13 +296,13 @@ impl Component for App {
                 }
                 match &trade_to_person {
                     OtherPlayerOption::Opponent1 => {
-                        self.state.trade_to_opponent1 = self.state.selected_card.take();
+                        self.state.trade_to_opponent1 = self.state.selected_pre_play_card.take();
                     }
                     OtherPlayerOption::Teammate => {
-                        self.state.trade_to_teammate = self.state.selected_card.take();
+                        self.state.trade_to_teammate = self.state.selected_pre_play_card.take();
                     }
                     OtherPlayerOption::Opponent2 => {
-                        self.state.trade_to_opponent2 = self.state.selected_card.take();
+                        self.state.trade_to_opponent2 = self.state.selected_pre_play_card.take();
                     }
                 }
 
@@ -324,6 +329,42 @@ impl Component for App {
                     game_state.current_user.hand.sort();
                 }
 
+                true
+            }
+            AppMsg::AddSelectedPlayCard(i) => {
+                if !self.can_select_play_card() {
+                    warn!("Invalid state to add selected play card");
+                    return false;
+                }
+
+                let card_from_hand = if let Some(game_state) = &self.state.game_state {
+                    if let Some(card) = game_state.current_user.hand.get(i) {
+                        card.clone()
+                    } else {
+                        warn!("Couldn't find index {:?} in current users hand", i);
+                        return false;
+                    }
+                } else {
+                    warn!("Can't AddSelectedPlayCard because current game_state is None");
+                    return false;
+                };
+
+                if self.is_play_card_selected(&card_from_hand) {
+                    warn!("Can't set selected card since card is already selected to play");
+                    return false;
+                }
+
+                info!("Adding {:?} to selected_play_cards", card_from_hand);
+                self.state.selected_play_cards.push(card_from_hand);
+                self.state.selected_play_cards.sort();
+                true
+            }
+            AppMsg::RemoveSelectedPlayCard(i) => {
+                if let Some(card) = self.state.selected_play_cards.get(i) {
+                    info!("Removing {:?} from selected_play_cards", card);
+                    self.state.selected_play_cards.remove(i);
+                    self.state.selected_play_cards.sort();
+                }
                 true
             }
         }
@@ -867,32 +908,30 @@ impl App {
             || card_is_set_to_trade_opponent2
     }
 
-    fn view_hand(&self) -> Html {
+    fn view_pre_play_hand(&self) -> Html {
         if let Some(game_state) = &self.state.game_state {
             html! {
                     <ul>
                         {for game_state.current_user.hand.iter().enumerate().map(|(i, card)| {
                             // do not render card if the stage is Trade and it is currently selected
                             // OR if it has been selected for trade with opponent
-                            let card_is_selected = if let Some(selected_card) = &self.state.selected_card {
-                                *selected_card == *card
+                        let card_is_selected = if let Some(selected_pre_play_card) = &self.state.selected_pre_play_card {
+                            *selected_pre_play_card == *card
                         } else {
                                 false
                         };
-                            let card_is_set_to_trade = self.is_card_is_set_to_trade(card);
-                            let stage_is_trade = self.stage_is_trade();
-                            if (card_is_selected || card_is_set_to_trade) && stage_is_trade {
-                                html!{}
+                        if (card_is_selected || self.is_card_is_set_to_trade(card)) && self.stage_is_trade() {
+                            html!{}
                         } else {
                                 html!{
                                     <li>
                                         <button
-                                            disabled=!self.can_select_card()
-                                            onclick=self.link.callback(move |_| {AppMsg::SetSelectedCard(i)})
+                                            disabled=!self.can_select_pre_play_card()
+                                            onclick=self.link.callback(move |_| {AppMsg::SetSelectedPrePlayCard(i)})
                                             >
                                             {&format!("{:#?}", card)}
                                         </button>
-                                     </li>
+                                    </li>
                             }
                         }
                     })}
@@ -957,7 +996,7 @@ impl App {
                     >{"Decline Grand Tichu"}</button>
                     {self.call_small_tichu_button()}
                     <p>{"Hand:"}</p>
-                    {self.view_hand()}
+                    {self.view_pre_play_hand()}
                 </>
         }
     }
@@ -969,17 +1008,30 @@ impl App {
         )
     }
 
-    fn can_select_card(&self) -> bool {
+    fn stage_is_play(&self) -> bool {
+        matches!(
+            self.state.game_state.as_ref().unwrap().stage,
+            PublicGameStage::Play(_)
+        )
+    }
+
+    /// only for use in the Trade stage
+    fn can_select_pre_play_card(&self) -> bool {
         self.stage_is_trade() && !self.has_submitted_trade()
     }
 
-    fn view_selected_card_button(&self) -> Html {
-        match &self.state.selected_card {
+    /// only for use in the Play stage
+    fn can_select_play_card(&self) -> bool {
+        self.stage_is_play()
+    }
+
+    fn view_selected_pre_play_card_button(&self) -> Html {
+        match &self.state.selected_pre_play_card {
             Some(card) => {
                 html! {
                         <button
-                            onclick=self.link.callback(|_| {AppMsg::RemoveSelectedCard})
-                            disabled=self.state.selected_card.is_none()
+                            onclick=self.link.callback(|_| {AppMsg::RemoveSelectedPrePlayCard})
+                            disabled=self.state.selected_pre_play_card.is_none()
                             type="button">
                             {&format!("Remove {:#?}", card)}
                         </button>
@@ -996,7 +1048,7 @@ impl App {
     }
 
     fn can_set_trade(&self) -> bool {
-        matches!(&self.state.selected_card, Some(_))
+        matches!(&self.state.selected_pre_play_card, Some(_))
     }
 
     fn can_remove_trade(&self, trade_to_person: &OtherPlayerOption) -> bool {
@@ -1053,7 +1105,7 @@ impl App {
 
         return html! {
               <>
-                {if self.state.selected_card.is_none() {
+                {if self.state.selected_pre_play_card.is_none() {
                     html!{
                         <button
                             disabled=!self.can_remove_trade(&trade_to_person)
@@ -1123,7 +1175,7 @@ impl App {
                                 <br />
                                 <br />
                                 <br />
-                                {self.view_selected_card_button()}
+                                {self.view_selected_pre_play_card_button()}
                                 <br />
                                 <br />
                                 <br />
@@ -1134,8 +1186,63 @@ impl App {
                             <p>{"Waiting for others to trade..."}</p>
                     }
                 }}
-                    {self.view_hand()}
+                    {self.view_pre_play_hand()}
                 </>
+        }
+    }
+
+    fn is_play_card_selected(&self, card: &Card) -> bool {
+        self.state
+            .selected_play_cards
+            .iter()
+            .any(|selected_card| *selected_card == *card)
+    }
+
+    fn view_play_hand(&self) -> Html {
+        if let Some(game_state) = &self.state.game_state {
+            html! {
+                    <ul>
+                        {for game_state.current_user.hand.iter().enumerate().map(|(i, card)| {
+                            // do not render card if the stage is Trade and it is currently selected
+                            // OR if it has been selected for trade with opponent
+                        let card_is_selected = self.state.selected_play_cards.iter().any(|selected_card| {
+                            *selected_card == *card
+                        });
+                        if card_is_selected {
+                            html!{}
+                        } else {
+                                html!{
+                                    <li>
+                                        <button
+                                            disabled=!self.can_select_play_card()
+                                            onclick=self.link.callback(move |_| {AppMsg::AddSelectedPlayCard(i)})
+                                            >
+                                            {&format!("{:#?}", card)}
+                                        </button>
+                                    </li>
+                            }
+                        }
+                    })}
+                    </ul>
+            }
+        } else {
+            html! {}
+        }
+    }
+
+    fn view_selected_play_card_buttons(&self) -> Html {
+        html! {
+            <>
+            { for self.state.selected_play_cards.iter().enumerate().map(|(i, selected_card)| {
+                 html! {
+                     <button
+                         onclick=self.link.callback(move |_| {AppMsg::RemoveSelectedPlayCard(i)})
+                         type="button">
+                         {&format!("Remove {:#?}", selected_card)}
+                     </button>
+                 }
+            })}
+            </>
         }
     }
 
@@ -1143,7 +1250,21 @@ impl App {
         html! {
               <>
                 <h1>{"Play"}</h1>
-                {self.view_hand()}
+                <br />
+                <button
+                    type="submit"
+                    >
+                    {"Submit cards"}
+                </button>
+                <br />
+                <br />
+                {self.call_small_tichu_button()}
+                <br />
+                <br />
+                {self.view_selected_play_card_buttons()}
+                <br />
+                <br />
+                {self.view_play_hand()}
               </>
         }
     }
@@ -1423,7 +1544,7 @@ impl App {
 
                 // clear selected card / trade state
                 self.link.send_message_batch(vec![
-                    AppMsg::RemoveSelectedCard,
+                    AppMsg::RemoveSelectedPrePlayCard,
                     AppMsg::RemoveTrade(OtherPlayerOption::Opponent1),
                     AppMsg::RemoveTrade(OtherPlayerOption::Teammate),
                     AppMsg::RemoveTrade(OtherPlayerOption::Opponent2),

@@ -104,7 +104,8 @@ pub enum CTSMsg {
 
     SubmitTrade(SubmitTrade),
 
-    PlayCards {
+    /// Submit cards to play in the Play stage
+    SubmitCards {
         cards: Vec<Card>,
         wished_for: Option<Card>,
         give_dragon_to: Option<String>,

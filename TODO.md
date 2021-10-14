@@ -22,6 +22,7 @@ MUST HAVES:
 - Search TODOs in codebase
 
 NICE TO HAVES:
+- Redirect normal logs to println (to a file output) & reserve eprintln for errors
 - Return Result<PrivateGameState, String> for GameState results
 - Validate in handle_ws_message OR in game_state methods, but NOT BOTH --- OR share methods for determining if that action can be taken
 - Validate SubmitTrade in websocket message (Share validations with PrivateGameState)
