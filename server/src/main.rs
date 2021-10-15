@@ -12,6 +12,7 @@ use routes::{
     ws::{self, send_ws_message},
 };
 use std::collections::HashMap;
+use std::env;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, RwLock};
@@ -113,5 +114,14 @@ async fn main() {
 
     let routes = index_route.or(ws_route);
 
-    let (_, _) = join!(warp::serve(routes).run(([127, 0, 0, 1], 8001)), ping_pong);
+    // docker provides PORT=8080
+    let port: u16 = if let Ok(port) = env::var("PORT") {
+        port
+    } else {
+        "8080".to_string()
+    }
+    .parse()
+    .expect("Could not parse provided PORT environment variable into u16");
+
+    let (_, _) = join!(warp::serve(routes).run(([0, 0, 0, 0], port)), ping_pong);
 }

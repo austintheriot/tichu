@@ -181,7 +181,7 @@ impl Component for App {
                     }
                 });
                 if self.ws.is_none() {
-                    let url = format!("ws://localhost:8001/ws?user_id={}", self.state.user_id);
+                    let url = format!("ws://localhost:8080/ws?user_id={}", self.state.user_id);
                     let ws_task = WebSocketService::connect_binary(
                         &url,
                         handle_ws_receive_data,
