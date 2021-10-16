@@ -56,31 +56,30 @@ impl Iterator for CardValue {
     }
 }
 
-/// Enum of every possible card in Tichu
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub enum Card {
-    Sword(CardValue),
-    Jade(CardValue),
-    Pagoda(CardValue),
-    Star(CardValue),
+pub enum CardSuit {
+    Sword,
+    Jade,
+    Pagoda,
+    Star,
     MahJong,
     Dog,
     Phoenix,
     Dragon,
 }
 
+/// Enum of every possible card in Tichu
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct Card {
+    pub suit: CardSuit,
+    pub value: CardValue,
+}
+
 impl Card {
     pub fn start_iter() -> Card {
-        Card::Sword(CardValue::Noop)
-    }
-
-    pub fn get_value(&self) -> Option<&CardValue> {
-        match self {
-            Card::Sword(card_value) => Some(card_value),
-            Card::Jade(card_value) => Some(card_value),
-            Card::Pagoda(card_value) => Some(card_value),
-            Card::Star(card_value) => Some(card_value),
-            _ => None,
+        Card {
+            suit: CardSuit::Sword,
+            value: CardValue::Noop,
         }
     }
 }
@@ -90,38 +89,95 @@ impl Iterator for Card {
 
     fn next(&mut self) -> Option<Self::Item> {
         let next_card = match &self {
-            Card::Sword(card_value) => {
+            Card {
+                suit: CardSuit::Sword,
+                value: card_value,
+            } => {
                 let next_card_value = card_value.clone().next();
                 match next_card_value {
-                    Some(next_card_value) => Some(Card::Sword(next_card_value)),
-                    None => Some(Card::Jade(CardValue::_2)),
+                    Some(next_card_value) => Some(Card {
+                        suit: CardSuit::Sword,
+                        value: next_card_value,
+                    }),
+                    None => Some(Card {
+                        suit: CardSuit::Jade,
+                        value: CardValue::_2,
+                    }),
                 }
             }
-            Card::Jade(card_value) => {
+            Card {
+                suit: CardSuit::Jade,
+                value: card_value,
+            } => {
                 let next_card_value = card_value.clone().next();
                 match next_card_value {
-                    Some(next_card_value) => Some(Card::Jade(next_card_value)),
-                    None => Some(Card::Pagoda(CardValue::_2)),
+                    Some(next_card_value) => Some(Card {
+                        suit: CardSuit::Jade,
+                        value: next_card_value,
+                    }),
+                    None => Some(Card {
+                        suit: CardSuit::Pagoda,
+                        value: CardValue::_2,
+                    }),
                 }
             }
-            Card::Pagoda(card_value) => {
+            Card {
+                suit: CardSuit::Pagoda,
+                value: card_value,
+            } => {
                 let next_card_value = card_value.clone().next();
                 match next_card_value {
-                    Some(next_card_value) => Some(Card::Pagoda(next_card_value)),
-                    None => Some(Card::Star(CardValue::_2)),
+                    Some(next_card_value) => Some(Card {
+                        suit: CardSuit::Pagoda,
+                        value: next_card_value,
+                    }),
+                    None => Some(Card {
+                        suit: CardSuit::Star,
+                        value: CardValue::_2,
+                    }),
                 }
             }
-            Card::Star(card_value) => {
+            Card {
+                suit: CardSuit::Star,
+                value: card_value,
+            } => {
                 let next_card_value = card_value.clone().next();
                 match next_card_value {
-                    Some(next_card_value) => Some(Card::Star(next_card_value)),
-                    None => Some(Card::MahJong),
+                    Some(next_card_value) => Some(Card {
+                        suit: CardSuit::Star,
+                        value: next_card_value,
+                    }),
+                    None => Some(Card {
+                        suit: CardSuit::MahJong,
+                        value: CardValue::Noop,
+                    }),
                 }
             }
-            Card::MahJong => Some(Card::Dog),
-            Card::Dog => Some(Card::Phoenix),
-            Card::Phoenix => Some(Card::Dragon),
-            Card::Dragon => None,
+            Card {
+                suit: CardSuit::MahJong,
+                ..
+            } => Some(Card {
+                suit: CardSuit::Dog,
+                value: CardValue::Noop,
+            }),
+            Card {
+                suit: CardSuit::Dog,
+                ..
+            } => Some(Card {
+                suit: CardSuit::Phoenix,
+                value: CardValue::Noop,
+            }),
+            Card {
+                suit: CardSuit::Phoenix,
+                ..
+            } => Some(Card {
+                suit: CardSuit::Dragon,
+                value: CardValue::Noop,
+            }),
+            Card {
+                suit: CardSuit::Dragon,
+                ..
+            } => None,
         };
 
         if let Some(next_card) = &next_card {
@@ -179,6 +235,100 @@ impl Deck {
         }
 
         cards
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    mod test_deck {
+        use crate::{Card, CardSuit, CardValue};
+
+        use super::super::Deck;
+        #[test]
+        fn new_should_produce_a_vec_of_56_cards() {
+            assert_eq!(Deck::new().0.len(), 56);
+        }
+        #[test]
+        fn new_should_produce_a_sorted_deck() {
+            let deck = Deck::new();
+            assert_eq!(
+                deck.0.get(0),
+                Some(&Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue::_2,
+                })
+            );
+            assert_eq!(
+                deck.0.get(12),
+                Some(&Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue::A,
+                })
+            );
+            assert_eq!(
+                deck.0.get(13),
+                Some(&Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue::_2,
+                })
+            );
+            assert_eq!(
+                deck.0.get(20),
+                Some(&Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue::_9,
+                })
+            );
+            assert_eq!(
+                deck.0.get(26),
+                Some(&Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue::_2,
+                })
+            );
+            assert_eq!(
+                deck.0.get(39),
+                Some(&Card {
+                    suit: CardSuit::Star,
+                    value: CardValue::_2,
+                })
+            );
+            assert_eq!(
+                deck.0.get(40),
+                Some(&Card {
+                    suit: CardSuit::Star,
+                    value: CardValue::_3,
+                })
+            );
+            assert_eq!(
+                deck.0.get(52),
+                Some(&Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::Noop,
+                })
+            );
+            assert_eq!(
+                deck.0.get(53),
+                Some(&Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::Noop,
+                })
+            );
+            assert_eq!(
+                deck.0.get(54),
+                Some(&Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::Noop,
+                })
+            );
+            assert_eq!(
+                deck.0.get(55),
+                Some(&Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::Noop,
+                })
+            );
+        }
     }
 }
 

@@ -13,11 +13,7 @@ pub fn is_valid_combination(cards: &Vec<Card>) -> bool {
     // a pair of cards of equal rank
     if cards.len() == 2 {
         if let [card_0, card_1] = &cards[..cards.len()] {
-            if let [Some(card_0_value), Some(card_1_value)] =
-                [card_0.get_value(), card_1.get_value()]
-            {
-                return *card_0_value == *card_1_value;
-            }
+            return card_0.value == card_1.value;
         }
 
         return false;
