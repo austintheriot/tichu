@@ -1,8 +1,9 @@
 use crate::{
-    get_new_game_code, user::UserRole, CallGrandTichuRequest, Deck, GetSmallTichu, ImmutableTeam,
-    MutableTeam, OtherPlayers, PrivateGameStage, PrivateGrandTichu, PrivateUser, PublicGameStage,
-    PublicUser, SubmitTrade, TeamCategories, TeamOption, TichuCallStatus,
-    UserIdWithTichuCallStatus, NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
+    get_new_game_code, sort_cards_for_hand, user::UserRole, CallGrandTichuRequest, Deck,
+    GetSmallTichu, ImmutableTeam, MutableTeam, OtherPlayers, PrivateGameStage, PrivateGrandTichu,
+    PrivateUser, PublicGameStage, PublicUser, SubmitTrade, TeamCategories, TeamOption,
+    TichuCallStatus, UserIdWithTichuCallStatus, NUM_CARDS_AFTER_GRAND_TICHU,
+    NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -156,7 +157,7 @@ impl PrivateGameState {
         };
 
         // sort users hand just in case
-        current_user.hand.sort();
+        sort_cards_for_hand(&mut current_user.hand);
 
         let public_game_state = PublicGameState {
             game_id: self.game_id.clone(),
@@ -281,7 +282,7 @@ impl PrivateGameState {
                                 .iter_mut()
                                 .for_each(|participant| {
                                     let mut cards = deck.draw(NUM_CARDS_BEFORE_GRAND_TICHU);
-                                    cards.sort();
+                                    sort_cards_for_hand(&mut cards);
                                     for card in cards.into_iter() {
                                         participant.hand.push(card);
                                     }

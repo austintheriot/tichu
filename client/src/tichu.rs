@@ -1,10 +1,10 @@
 use crate::types::CTSMsgInternal;
 use anyhow::Error;
 use common::{
-    clean_up_display_name, clean_up_game_code, validate_display_name, validate_game_code,
-    validate_team_name, CTSMsg, CallGrandTichuRequest, Card, CardTrade, MutableTeam,
-    OtherPlayerOption, PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamOption,
-    TichuCallStatus, NO_USER_ID,
+    clean_up_display_name, clean_up_game_code, sort_cards_for_hand, validate_display_name,
+    validate_game_code, validate_team_name, CTSMsg, CallGrandTichuRequest, Card, CardTrade,
+    MutableTeam, OtherPlayerOption, PublicGameStage, PublicGameState, PublicUser, STCMsg,
+    TeamOption, TichuCallStatus, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -307,7 +307,7 @@ impl Component for App {
                 }
 
                 if let Some(game_state) = &mut self.state.game_state {
-                    game_state.current_user.hand.sort();
+                    sort_cards_for_hand(&mut game_state.current_user.hand);
                 }
 
                 true
@@ -326,7 +326,7 @@ impl Component for App {
                 }
 
                 if let Some(game_state) = &mut self.state.game_state {
-                    game_state.current_user.hand.sort();
+                    sort_cards_for_hand(&mut game_state.current_user.hand);
                 }
 
                 true
@@ -356,14 +356,14 @@ impl Component for App {
 
                 info!("Adding {:?} to selected_play_cards", card_from_hand);
                 self.state.selected_play_cards.push(card_from_hand);
-                self.state.selected_play_cards.sort();
+                sort_cards_for_hand(&mut self.state.selected_play_cards);
                 true
             }
             AppMsg::RemoveSelectedPlayCard(i) => {
                 if let Some(card) = self.state.selected_play_cards.get(i) {
                     info!("Removing {:?} from selected_play_cards", card);
                     self.state.selected_play_cards.remove(i);
-                    self.state.selected_play_cards.sort();
+                    sort_cards_for_hand(&mut self.state.selected_play_cards);
                 }
                 true
             }
@@ -1320,7 +1320,7 @@ impl App {
                         ));
 
                         // sort current user's hand
-                        new_game_state.current_user.hand.sort();
+                        sort_cards_for_hand(&mut new_game_state.current_user.hand);
 
                         Box::new(Some(new_game_state))
                     } else {
