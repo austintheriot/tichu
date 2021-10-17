@@ -16,6 +16,7 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
+- make sort by value the default for Cards
 - implement PartialOrd + Ord for card combination structs
 
 MUST HAVES:
