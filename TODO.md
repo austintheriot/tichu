@@ -16,7 +16,6 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
-- make sort by value the default for Cards
 - implement PartialOrd + Ord for card combination structs
 
 MUST HAVES:
@@ -24,6 +23,7 @@ MUST HAVES:
 - Minimize .expect() errors (see example in call_grand_tichu.rs for better match expressions)
 - update Small tichu to be able to be called from states other than Grand Tichu once other stages are implemented
 - Search TODOs in codebase
+- - make sort by value the default for Cards
 
 NICE TO HAVES:
 - Configure rand crate to "js" feature for randomness

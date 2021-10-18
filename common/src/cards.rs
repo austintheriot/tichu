@@ -22,8 +22,8 @@ impl CardValue {
         CardValue(CARD_VALUE_NOOP)
     }
 
-    pub fn is_noop(card_value: &Self) -> bool {
-        card_value.0 == CARD_VALUE_NOOP
+    pub fn is_noop(&self) -> bool {
+        self.0 == CARD_VALUE_NOOP
     }
 
     pub fn start_iter() -> Self {
@@ -347,10 +347,7 @@ pub struct Single(pub Card);
 impl PartialOrd for Single {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         // can't compare identical special cards
-        if CardValue::is_noop(&self.0.value)
-            && CardValue::is_noop(&other.0.value)
-            && self.0.suit == other.0.suit
-        {
+        if self.0.value.is_noop() && other.0.value.is_noop() && self.0.suit == other.0.suit {
             panic!("{COMPARE_IDENTICAL_SPECIAL_CARDS}");
         }
 
@@ -376,10 +373,7 @@ impl PartialOrd for Single {
 impl Ord for Single {
     fn cmp(&self, other: &Self) -> Ordering {
         // can't compare identical special cards
-        if CardValue::is_noop(&self.0.value)
-            && CardValue::is_noop(&other.0.value)
-            && self.0.suit == other.0.suit
-        {
+        if self.0.value.is_noop() && other.0.value.is_noop() && self.0.suit == other.0.suit {
             panic!("{COMPARE_IDENTICAL_SPECIAL_CARDS}");
         }
 
@@ -404,7 +398,7 @@ impl Ord for Single {
 }
 impl PartialEq for Single {
     fn eq(&self, other: &Self) -> bool {
-        if CardValue::is_noop(&self.0.value) && CardValue::is_noop(&other.0.value) {
+        if self.0.value.is_noop() && other.0.value.is_noop() {
             if self.0.suit == other.0.suit {
                 // can't compare two identical special cards to each other
                 panic!("{COMPARE_IDENTICAL_SPECIAL_CARDS}");
@@ -1036,20 +1030,366 @@ mod test_single_card {
     }
 }
 
+const NOOP_PAIR_ERROR: &str = "A pair cannot consist of special card values";
+
 /// a pair of cards of equal value
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Pair {
     pub value: CardValue,
     pub cards: Vec<Card>,
 }
+impl PartialOrd for Pair {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.value.is_noop() || other.value.is_noop() {
+            panic!("{NOOP_PAIR_ERROR}");
+        }
+        Some([&self.value].cmp(&[&other.value]))
+    }
+}
+impl Ord for Pair {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self.value.is_noop() || other.value.is_noop() {
+            panic!("{NOOP_PAIR_ERROR}");
+        }
+        [&self.value].cmp(&[&other.value])
+    }
+}
+impl PartialEq for Pair {
+    fn eq(&self, other: &Self) -> bool {
+        if self.value.is_noop() || other.value.is_noop() {
+            panic!("{NOOP_PAIR_ERROR}");
+        }
+        self.value == other.value
+    }
+}
+impl Eq for Pair {}
+
+#[cfg(test)]
+mod test_double {
+    use crate::{Card, CardSuit, CardValue, Pair};
+
+    #[test]
+    fn it_should_compare_pairs_correctly() {
+        let card_value_of_2 = CardValue(2);
+        let pair_of_2_example_1 = Pair {
+            value: card_value_of_2.clone(),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Sword,
+                    value: card_value_of_2.clone(),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: card_value_of_2.clone(),
+                },
+            ],
+        };
+        let pair_of_2_example_2 = Pair {
+            value: card_value_of_2.clone(),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: card_value_of_2.clone(),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: card_value_of_2.clone(),
+                },
+            ],
+        };
+        assert_eq!(pair_of_2_example_1 == pair_of_2_example_2, true);
+        assert_eq!(pair_of_2_example_1 < pair_of_2_example_2, false);
+        assert_eq!(pair_of_2_example_1 > pair_of_2_example_2, false);
+
+        let card_value_of_13 = CardValue(13);
+        let pair_of_2_example_3 = Pair {
+            value: card_value_of_13.clone(),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Sword,
+                    value: card_value_of_13.clone(),
+                },
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: card_value_of_13.clone(),
+                },
+            ],
+        };
+        let pair_of_2_example_4 = Pair {
+            value: card_value_of_13.clone(),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Jade,
+                    value: card_value_of_13.clone(),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: card_value_of_13.clone(),
+                },
+            ],
+        };
+        assert_eq!(pair_of_2_example_3 == pair_of_2_example_4, true);
+        assert_eq!(pair_of_2_example_3 < pair_of_2_example_4, false);
+        assert_eq!(pair_of_2_example_3 > pair_of_2_example_4, false);
+    }
+
+    #[test]
+    #[should_panic(expected = "special card")]
+    fn it_should_throw_if_comparing_special_pairs_as_equal() {
+        let original_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let card_value_of_2 = CardValue(0);
+        let pair_of_2_example_1 = Pair {
+            value: card_value_of_2.clone(),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Phoenix,
+                    value: card_value_of_2.clone(),
+                },
+                Card {
+                    suit: CardSuit::Dragon,
+                    value: card_value_of_2.clone(),
+                },
+            ],
+        };
+        let pair_of_2_example_2 = Pair {
+            value: card_value_of_2.clone(),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Dog,
+                    value: card_value_of_2.clone(),
+                },
+                Card {
+                    suit: CardSuit::Dog,
+                    value: card_value_of_2.clone(),
+                },
+            ],
+        };
+        assert_eq!(pair_of_2_example_1 == pair_of_2_example_2, true);
+        std::panic::set_hook(original_panic_hook);
+    }
+
+    #[test]
+    #[should_panic(expected = "special card")]
+    fn it_should_throw_if_comparing_special_pairs_as_less_than() {
+        let original_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let card_value_of_2 = CardValue(0);
+        let pair_of_2_example_1 = Pair {
+            value: card_value_of_2.clone(),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Phoenix,
+                    value: card_value_of_2.clone(),
+                },
+                Card {
+                    suit: CardSuit::Dragon,
+                    value: card_value_of_2.clone(),
+                },
+            ],
+        };
+        let pair_of_2_example_2 = Pair {
+            value: card_value_of_2.clone(),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Dog,
+                    value: card_value_of_2.clone(),
+                },
+                Card {
+                    suit: CardSuit::Dog,
+                    value: card_value_of_2.clone(),
+                },
+            ],
+        };
+        assert_eq!(pair_of_2_example_1 < pair_of_2_example_2, true);
+        std::panic::set_hook(original_panic_hook);
+    }
+
+    #[test]
+    #[should_panic(expected = "special card")]
+    fn it_should_throw_if_comparing_special_pairs_as_greater_than() {
+        let original_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let card_value_of_2 = CardValue(0);
+        let pair_of_2_example_1 = Pair {
+            value: card_value_of_2.clone(),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Phoenix,
+                    value: card_value_of_2.clone(),
+                },
+                Card {
+                    suit: CardSuit::Dragon,
+                    value: card_value_of_2.clone(),
+                },
+            ],
+        };
+        let pair_of_2_example_2 = Pair {
+            value: card_value_of_2.clone(),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Dog,
+                    value: card_value_of_2.clone(),
+                },
+                Card {
+                    suit: CardSuit::Dog,
+                    value: card_value_of_2.clone(),
+                },
+            ],
+        };
+        assert_eq!(pair_of_2_example_1 > pair_of_2_example_2, true);
+        std::panic::set_hook(original_panic_hook);
+    }
+}
+
+const UNEVEN_SEQUENCE_OF_PAIRS_ERROR: &str = "Can't compare unequal sequences of pairs";
+const SPECIAL_CARD_SEQUENCE_OF_PAIRS_ERROR: &str =
+    "Can't compare sequences of pairs that contain special cards";
 
 /// a sequence of pairs of adjacent value
 /// u8 = number of pairs
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SequenceOfPairs {
     pub starting_value: CardValue,
     pub number_of_pairs: u8,
     pub cards: Vec<Card>,
+}
+impl PartialOrd for SequenceOfPairs {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.number_of_pairs != other.number_of_pairs || self.cards.len() != other.cards.len() {
+            panic!("{UNEVEN_SEQUENCE_OF_PAIRS_ERROR}");
+        }
+        if self.starting_value.is_noop() || other.starting_value.is_noop() {
+            panic!("{SPECIAL_CARD_SEQUENCE_OF_PAIRS_ERROR}");
+        }
+        Some([&self.starting_value].cmp(&[&other.starting_value]))
+    }
+}
+impl Ord for SequenceOfPairs {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self.number_of_pairs != other.number_of_pairs || self.cards.len() != other.cards.len() {
+            panic!("{UNEVEN_SEQUENCE_OF_PAIRS_ERROR}");
+        }
+        if self.starting_value.is_noop() || other.starting_value.is_noop() {
+            panic!("{SPECIAL_CARD_SEQUENCE_OF_PAIRS_ERROR}");
+        }
+        [&self.starting_value].cmp(&[&other.starting_value])
+    }
+}
+impl PartialEq for SequenceOfPairs {
+    fn eq(&self, other: &Self) -> bool {
+        if self.number_of_pairs != other.number_of_pairs || self.cards.len() != other.cards.len() {
+            panic!("{UNEVEN_SEQUENCE_OF_PAIRS_ERROR}");
+        }
+        if self.starting_value.is_noop() || other.starting_value.is_noop() {
+            panic!("{SPECIAL_CARD_SEQUENCE_OF_PAIRS_ERROR}");
+        }
+        self.starting_value == other.starting_value
+    }
+}
+impl Eq for SequenceOfPairs {}
+
+#[cfg(test)]
+mod test_sequence_of_pairs {
+    use crate::{Card, CardSuit, CardValue, SequenceOfPairs};
+
+    #[test]
+    fn it_should_compare_sequence_of_pairs_correctly() {
+        let number_of_pairs = 2;
+        let sequence_of_pairs_example_1 = SequenceOfPairs {
+            starting_value: CardValue(2),
+            number_of_pairs,
+            cards: vec![
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(3),
+                },
+            ],
+        };
+        let sequence_of_pairs_example_2 = SequenceOfPairs {
+            starting_value: CardValue(2),
+            number_of_pairs,
+            cards: vec![
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(3),
+                },
+            ],
+        };
+
+        let sequence_of_pairs_example_3 = SequenceOfPairs {
+            starting_value: CardValue(11),
+            number_of_pairs,
+            cards: vec![
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(11),
+                },
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(12),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(12),
+                },
+            ],
+        };
+
+        assert_eq!(
+            sequence_of_pairs_example_1 == sequence_of_pairs_example_2,
+            true
+        );
+        assert_eq!(
+            sequence_of_pairs_example_1 < sequence_of_pairs_example_2,
+            false
+        );
+        assert_eq!(
+            sequence_of_pairs_example_1 > sequence_of_pairs_example_2,
+            false
+        );
+
+        assert_eq!(
+            sequence_of_pairs_example_1 == sequence_of_pairs_example_3,
+            false
+        );
+        assert_eq!(
+            sequence_of_pairs_example_1 < sequence_of_pairs_example_3,
+            true
+        );
+        assert_eq!(
+            sequence_of_pairs_example_1 > sequence_of_pairs_example_3,
+            false
+        );
+    }
 }
 
 /// a trio of cards of equal value
