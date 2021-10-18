@@ -17,6 +17,7 @@ IDEAS:
 
 TODO:
 - implement PartialOrd + Ord for card combination structs
+  - Implement comparisons for Bombs against other, non-bomb combinations
 
 MUST HAVES:
 - Add client-side check before being able to call Grand Tichu

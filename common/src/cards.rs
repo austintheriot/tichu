@@ -1392,18 +1392,228 @@ mod test_sequence_of_pairs {
     }
 }
 
+const SPECIAL_CARD_TRIO_ERROR: &str = "Can't compare a Trio that contains special cards";
+
 /// a trio of cards of equal value
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Trio {
     pub value: CardValue,
     pub cards: Vec<Card>,
 }
+impl PartialOrd for Trio {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.value.is_noop() || other.value.is_noop() {
+            panic!("{SPECIAL_CARD_TRIO_ERROR}");
+        }
+        Some([&self.value].cmp(&[&other.value]))
+    }
+}
+impl Ord for Trio {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self.value.is_noop() || other.value.is_noop() {
+            panic!("{SPECIAL_CARD_TRIO_ERROR}");
+        }
+        [&self.value].cmp(&[&other.value])
+    }
+}
+impl PartialEq for Trio {
+    fn eq(&self, other: &Self) -> bool {
+        if self.value.is_noop() || other.value.is_noop() {
+            panic!("{SPECIAL_CARD_TRIO_ERROR}");
+        }
+        self.value == other.value
+    }
+}
+impl Eq for Trio {}
+
+#[cfg(test)]
+mod test_trio {
+    use crate::{Card, CardSuit, CardValue, Trio};
+
+    #[test]
+    fn it_should_compare_trios_correctly() {
+        let trio_example_1 = Trio {
+            value: CardValue(3),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(3),
+                },
+            ],
+        };
+
+        let trio_example_2 = Trio {
+            value: CardValue(3),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(3),
+                },
+            ],
+        };
+
+        let trio_example_3 = Trio {
+            value: CardValue(7),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(7),
+                },
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(7),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(7),
+                },
+            ],
+        };
+
+        // example 1 : example 2
+        assert_eq!(trio_example_1 == trio_example_2, true);
+        assert_eq!(trio_example_1 < trio_example_2, false);
+        assert_eq!(trio_example_1 > trio_example_2, false);
+
+        // example 1 : example 3
+        assert_eq!(trio_example_1 == trio_example_3, false);
+        assert_eq!(trio_example_1 < trio_example_3, true);
+        assert_eq!(trio_example_1 > trio_example_3, false);
+    }
+}
+
+const SPECIAL_CARD_BOMB_OF_4_ERROR: &str = "Can't compare a Bomb of 4 that contains special cards";
 
 /// a bomb (4 of the same value)
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BombOf4 {
     pub value: CardValue,
     pub cards: Vec<Card>,
+}
+impl PartialOrd for BombOf4 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.value.is_noop() || other.value.is_noop() {
+            panic!("{SPECIAL_CARD_BOMB_OF_4_ERROR}");
+        }
+        Some([&self.value].cmp(&[&other.value]))
+    }
+}
+impl Ord for BombOf4 {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self.value.is_noop() || other.value.is_noop() {
+            panic!("{SPECIAL_CARD_BOMB_OF_4_ERROR}");
+        }
+        [&self.value].cmp(&[&other.value])
+    }
+}
+impl PartialEq for BombOf4 {
+    fn eq(&self, other: &Self) -> bool {
+        if self.value.is_noop() || other.value.is_noop() {
+            panic!("{SPECIAL_CARD_BOMB_OF_4_ERROR}");
+        }
+        self.value == other.value
+    }
+}
+impl Eq for BombOf4 {}
+
+#[cfg(test)]
+mod test_bomb_of_4 {
+    use crate::{Card, CardSuit, CardValue, Trio};
+
+    #[test]
+    fn it_should_compare_bombs_of_4_correctly() {
+        let bomb_of_4_example_1 = Trio {
+            value: CardValue(3),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(3),
+                },
+            ],
+        };
+
+        let bomb_of_4_example_2 = Trio {
+            value: CardValue(3),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(3),
+                },
+            ],
+        };
+
+        let bomb_of_4_example_3 = Trio {
+            value: CardValue(7),
+            cards: vec![
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(7),
+                },
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(7),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(7),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(7),
+                },
+            ],
+        };
+
+        // example 1 : example 2
+        assert_eq!(bomb_of_4_example_1 == bomb_of_4_example_2, true);
+        assert_eq!(bomb_of_4_example_1 < bomb_of_4_example_2, false);
+        assert_eq!(bomb_of_4_example_1 > bomb_of_4_example_2, false);
+
+        // example 1 : example 3
+        assert_eq!(bomb_of_4_example_1 == bomb_of_4_example_3, false);
+        assert_eq!(bomb_of_4_example_1 < bomb_of_4_example_3, true);
+        assert_eq!(bomb_of_4_example_1 > bomb_of_4_example_3, false);
+    }
 }
 
 /// a bomb (sequence of 5+ of all the same suit)
