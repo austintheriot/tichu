@@ -1534,11 +1534,11 @@ impl Eq for BombOf4 {}
 
 #[cfg(test)]
 mod test_bomb_of_4 {
-    use crate::{Card, CardSuit, CardValue, Trio};
+    use crate::{BombOf4, Card, CardSuit, CardValue};
 
     #[test]
-    fn it_should_compare_bombs_of_4_correctly() {
-        let bomb_of_4_example_1 = Trio {
+    fn it_should_compare_sequence_bombs_correctly() {
+        let bomb_of_4_example_1 = BombOf4 {
             value: CardValue(3),
             cards: vec![
                 Card {
@@ -1560,7 +1560,7 @@ mod test_bomb_of_4 {
             ],
         };
 
-        let bomb_of_4_example_2 = Trio {
+        let bomb_of_4_example_2 = BombOf4 {
             value: CardValue(3),
             cards: vec![
                 Card {
@@ -1582,7 +1582,7 @@ mod test_bomb_of_4 {
             ],
         };
 
-        let bomb_of_4_example_3 = Trio {
+        let bomb_of_4_example_3 = BombOf4 {
             value: CardValue(7),
             cards: vec![
                 Card {
@@ -1617,29 +1617,261 @@ mod test_bomb_of_4 {
 }
 
 /// a bomb (sequence of 5+ of all the same suit)
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub struct BombOfSequence {
-    pub suit: Card,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SequenceBomb {
+    pub suit: CardSuit,
     pub starting_value: CardValue,
     pub number_of_cards: u8,
     pub cards: Vec<Card>,
 }
 
-/// a full house (trio + pair)
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+impl PartialOrd for SequenceBomb {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some([&self.starting_value].cmp(&[&other.starting_value]))
+    }
+}
+impl Ord for SequenceBomb {
+    fn cmp(&self, other: &Self) -> Ordering {
+        [&self.starting_value].cmp(&[&other.starting_value])
+    }
+}
+impl PartialEq for SequenceBomb {
+    fn eq(&self, other: &Self) -> bool {
+        self.starting_value == other.starting_value
+    }
+}
+impl Eq for SequenceBomb {}
+
+#[cfg(test)]
+mod test_sequence_bomb {
+    use crate::{Card, CardSuit, CardValue, SequenceBomb};
+
+    #[test]
+    fn it_should_compare_sequence_bombs_correctly() {
+        let sequence_bomb_example_1 = SequenceBomb {
+            starting_value: CardValue(3),
+            suit: CardSuit::Sword,
+            number_of_cards: 5,
+            cards: vec![
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(4),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(5),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(5),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(7),
+                },
+            ],
+        };
+
+        let sequence_bomb_example_2 = SequenceBomb {
+            starting_value: CardValue(3),
+            suit: CardSuit::Pagoda,
+            number_of_cards: 5,
+            cards: vec![
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(4),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(5),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(5),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(7),
+                },
+            ],
+        };
+
+        let sequence_bomb_example_3 = SequenceBomb {
+            starting_value: CardValue(4),
+            suit: CardSuit::Star,
+            number_of_cards: 4,
+            cards: vec![
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(4),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(5),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(5),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(7),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(8),
+                },
+            ],
+        };
+
+        // example 1 : example 2
+        assert_eq!(sequence_bomb_example_1 == sequence_bomb_example_2, true);
+        assert_eq!(sequence_bomb_example_1 < sequence_bomb_example_2, false);
+        assert_eq!(sequence_bomb_example_1 > sequence_bomb_example_2, false);
+
+        // example 1 : example 3
+        assert_eq!(sequence_bomb_example_1 == sequence_bomb_example_3, false);
+        assert_eq!(sequence_bomb_example_1 < sequence_bomb_example_3, true);
+        assert_eq!(sequence_bomb_example_1 > sequence_bomb_example_3, false);
+    }
+}
+
+/// A full house (trio + pair)
+///
+/// The value of the Trio is what counts
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FullHouse {
     pub trio_value: CardValue,
-    pub pair_value: CardValue,
-    pub lowest_value: CardValue,
     pub cards: Vec<Card>,
+}
+impl PartialOrd for FullHouse {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some([&self.trio_value].cmp(&[&other.trio_value]))
+    }
+}
+impl Ord for FullHouse {
+    fn cmp(&self, other: &Self) -> Ordering {
+        [&self.trio_value].cmp(&[&other.trio_value])
+    }
+}
+impl PartialEq for FullHouse {
+    fn eq(&self, other: &Self) -> bool {
+        self.trio_value == other.trio_value
+    }
+}
+impl Eq for FullHouse {}
+
+#[cfg(test)]
+mod test_full_house {
+    use crate::{Card, CardSuit, CardValue, FullHouse};
+
+    #[test]
+    fn it_should_compare_full_houses_correctly() {
+        let full_house_example_1 = FullHouse {
+            trio_value: CardValue(3),
+            cards: vec![
+               // not necessary
+            ],
+        };
+
+        let full_house_example_2 = FullHouse {
+            trio_value: CardValue(3),
+            cards: vec![
+                // not necessary
+            ],
+        };
+
+        let full_house_example_3 = FullHouse {
+            trio_value: CardValue(4),
+            cards: vec![
+             // not necessary
+            ],
+        };
+
+        // example 1 : example 2
+        assert_eq!(full_house_example_1 == full_house_example_2, true);
+        assert_eq!(full_house_example_1 < full_house_example_2, false);
+        assert_eq!(full_house_example_1 > full_house_example_2, false);
+
+        // example 1 : example 3
+        assert_eq!(full_house_example_1 == full_house_example_3, false);
+        assert_eq!(full_house_example_1 < full_house_example_3, true);
+        assert_eq!(full_house_example_1 > full_house_example_3, false);
+    }
 }
 
 /// a sequence of length at least 5
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Sequence {
     pub starting_value: CardValue,
     pub number_of_cards: u8,
     pub cards: Vec<Card>,
+}
+impl PartialOrd for Sequence {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some([&self.starting_value].cmp(&[&other.starting_value]))
+    }
+}
+impl Ord for Sequence {
+    fn cmp(&self, other: &Self) -> Ordering {
+        [&self.starting_value].cmp(&[&other.starting_value])
+    }
+}
+impl PartialEq for Sequence {
+    fn eq(&self, other: &Self) -> bool {
+        self.starting_value == other.starting_value
+    }
+}
+impl Eq for Sequence {}
+
+#[cfg(test)]
+mod test_sequence {
+    use crate::{CardValue, Sequence};
+
+    #[test]
+    fn it_should_compare_sequences_correctly() {
+        let sequence_example_1 = Sequence {
+            starting_value: CardValue(3),
+            number_of_cards: 6,
+            cards: vec![
+                // not necessary
+            ],
+        };
+
+        let sequence_example_2 = Sequence {
+            starting_value: CardValue(3),
+            number_of_cards: 6,
+            cards: vec![
+                // not necessary
+            ],
+        };
+
+        let sequence_example_3 = Sequence {
+            starting_value: CardValue(4),
+            number_of_cards: 6,
+            cards: vec![
+                // not necessary
+            ],
+        };
+
+        // example 1 : example 2
+        assert_eq!(sequence_example_1 == sequence_example_2, true);
+        assert_eq!(sequence_example_1 < sequence_example_2, false);
+        assert_eq!(sequence_example_1 > sequence_example_2, false);
+
+        // example 1 : example 3
+        assert_eq!(sequence_example_1 == sequence_example_3, false);
+        assert_eq!(sequence_example_1 < sequence_example_3, true);
+        assert_eq!(sequence_example_1 > sequence_example_3, false);
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -1661,7 +1893,7 @@ pub enum ValidCardCombos {
     BombOf4(BombOf4),
 
     /// a bomb (sequence of 5+ of all the same suit)
-    BombOfSequence(BombOfSequence),
+    SequenceBomb(SequenceBomb),
 
     /// a full house (trio + pair)
     FullHouse(FullHouse),
