@@ -16,8 +16,6 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
-- implement PartialOrd + Ord for card combination structs
-- Implement comparisons for Bombs against other, non-bomb combinations
 - use "into" pattern more: 
 -  fn last_name(mut self, last_name: impl Into<String>) -> Self {
         self.last_name = Some(last_name.into());

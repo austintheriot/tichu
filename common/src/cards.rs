@@ -1073,29 +1073,11 @@ mod test_double {
         let card_value_of_2 = CardValue(2);
         let pair_of_2_example_1 = Pair {
             value: card_value_of_2.clone(),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Sword,
-                    value: card_value_of_2.clone(),
-                },
-                Card {
-                    suit: CardSuit::Jade,
-                    value: card_value_of_2.clone(),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
         let pair_of_2_example_2 = Pair {
             value: card_value_of_2.clone(),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Pagoda,
-                    value: card_value_of_2.clone(),
-                },
-                Card {
-                    suit: CardSuit::Star,
-                    value: card_value_of_2.clone(),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
         assert_eq!(pair_of_2_example_1 == pair_of_2_example_2, true);
         assert_eq!(pair_of_2_example_1 < pair_of_2_example_2, false);
@@ -1104,29 +1086,11 @@ mod test_double {
         let card_value_of_13 = CardValue(13);
         let pair_of_2_example_3 = Pair {
             value: card_value_of_13.clone(),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Sword,
-                    value: card_value_of_13.clone(),
-                },
-                Card {
-                    suit: CardSuit::Pagoda,
-                    value: card_value_of_13.clone(),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
         let pair_of_2_example_4 = Pair {
             value: card_value_of_13.clone(),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Jade,
-                    value: card_value_of_13.clone(),
-                },
-                Card {
-                    suit: CardSuit::Star,
-                    value: card_value_of_13.clone(),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
         assert_eq!(pair_of_2_example_3 == pair_of_2_example_4, true);
         assert_eq!(pair_of_2_example_3 < pair_of_2_example_4, false);
@@ -1141,29 +1105,11 @@ mod test_double {
         let card_value_of_2 = CardValue(0);
         let pair_of_2_example_1 = Pair {
             value: card_value_of_2.clone(),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Phoenix,
-                    value: card_value_of_2.clone(),
-                },
-                Card {
-                    suit: CardSuit::Dragon,
-                    value: card_value_of_2.clone(),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
         let pair_of_2_example_2 = Pair {
             value: card_value_of_2.clone(),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Dog,
-                    value: card_value_of_2.clone(),
-                },
-                Card {
-                    suit: CardSuit::Dog,
-                    value: card_value_of_2.clone(),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
         assert_eq!(pair_of_2_example_1 == pair_of_2_example_2, true);
         std::panic::set_hook(original_panic_hook);
@@ -1177,29 +1123,11 @@ mod test_double {
         let card_value_of_2 = CardValue(0);
         let pair_of_2_example_1 = Pair {
             value: card_value_of_2.clone(),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Phoenix,
-                    value: card_value_of_2.clone(),
-                },
-                Card {
-                    suit: CardSuit::Dragon,
-                    value: card_value_of_2.clone(),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
         let pair_of_2_example_2 = Pair {
             value: card_value_of_2.clone(),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Dog,
-                    value: card_value_of_2.clone(),
-                },
-                Card {
-                    suit: CardSuit::Dog,
-                    value: card_value_of_2.clone(),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
         assert_eq!(pair_of_2_example_1 < pair_of_2_example_2, true);
         std::panic::set_hook(original_panic_hook);
@@ -1213,16 +1141,7 @@ mod test_double {
         let card_value_of_2 = CardValue(0);
         let pair_of_2_example_1 = Pair {
             value: card_value_of_2.clone(),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Phoenix,
-                    value: card_value_of_2.clone(),
-                },
-                Card {
-                    suit: CardSuit::Dragon,
-                    value: card_value_of_2.clone(),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
         let pair_of_2_example_2 = Pair {
             value: card_value_of_2.clone(),
@@ -1291,7 +1210,7 @@ impl Eq for SequenceOfPairs {}
 
 #[cfg(test)]
 mod test_sequence_of_pairs {
-    use crate::{Card, CardSuit, CardValue, SequenceOfPairs};
+    use crate::{CardValue, SequenceOfPairs};
 
     #[test]
     fn it_should_compare_sequence_of_pairs_correctly() {
@@ -1299,69 +1218,18 @@ mod test_sequence_of_pairs {
         let sequence_of_pairs_example_1 = SequenceOfPairs {
             starting_value: CardValue(2),
             number_of_pairs,
-            cards: vec![
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(2),
-                },
-                Card {
-                    suit: CardSuit::Jade,
-                    value: CardValue(2),
-                },
-                Card {
-                    suit: CardSuit::Pagoda,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(3),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
         let sequence_of_pairs_example_2 = SequenceOfPairs {
             starting_value: CardValue(2),
             number_of_pairs,
-            cards: vec![
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(2),
-                },
-                Card {
-                    suit: CardSuit::Pagoda,
-                    value: CardValue(2),
-                },
-                Card {
-                    suit: CardSuit::Jade,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(3),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
 
         let sequence_of_pairs_example_3 = SequenceOfPairs {
             starting_value: CardValue(11),
             number_of_pairs,
-            cards: vec![
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(11),
-                },
-                Card {
-                    suit: CardSuit::Pagoda,
-                    value: CardValue(11),
-                },
-                Card {
-                    suit: CardSuit::Jade,
-                    value: CardValue(12),
-                },
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(12),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
 
         assert_eq!(
@@ -1428,62 +1296,23 @@ impl Eq for Trio {}
 
 #[cfg(test)]
 mod test_trio {
-    use crate::{Card, CardSuit, CardValue, Trio};
+    use crate::{CardValue, Trio};
 
     #[test]
     fn it_should_compare_trios_correctly() {
         let trio_example_1 = Trio {
             value: CardValue(3),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Jade,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Pagoda,
-                    value: CardValue(3),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
 
         let trio_example_2 = Trio {
             value: CardValue(3),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Pagoda,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Jade,
-                    value: CardValue(3),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
 
         let trio_example_3 = Trio {
             value: CardValue(7),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(7),
-                },
-                Card {
-                    suit: CardSuit::Pagoda,
-                    value: CardValue(7),
-                },
-                Card {
-                    suit: CardSuit::Jade,
-                    value: CardValue(7),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
 
         // example 1 : example 2
@@ -1511,6 +1340,7 @@ impl PartialOrd for BombOf4 {
         if self.value.is_noop() || other.value.is_noop() {
             panic!("{SPECIAL_CARD_BOMB_OF_4_ERROR}");
         }
+
         Some([&self.value].cmp(&[&other.value]))
     }
 }
@@ -1534,74 +1364,23 @@ impl Eq for BombOf4 {}
 
 #[cfg(test)]
 mod test_bomb_of_4 {
-    use crate::{BombOf4, Card, CardSuit, CardValue};
+    use crate::{BombOf4, CardValue};
 
     #[test]
     fn it_should_compare_sequence_bombs_correctly() {
         let bomb_of_4_example_1 = BombOf4 {
             value: CardValue(3),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Jade,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Pagoda,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(3),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
 
         let bomb_of_4_example_2 = BombOf4 {
             value: CardValue(3),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Pagoda,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Jade,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(3),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
 
         let bomb_of_4_example_3 = BombOf4 {
             value: CardValue(7),
-            cards: vec![
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(7),
-                },
-                Card {
-                    suit: CardSuit::Pagoda,
-                    value: CardValue(7),
-                },
-                Card {
-                    suit: CardSuit::Jade,
-                    value: CardValue(7),
-                },
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(7),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
 
         // example 1 : example 2
@@ -1644,7 +1423,7 @@ impl Eq for SequenceBomb {}
 
 #[cfg(test)]
 mod test_sequence_bomb {
-    use crate::{Card, CardSuit, CardValue, SequenceBomb};
+    use crate::{CardSuit, CardValue, SequenceBomb};
 
     #[test]
     fn it_should_compare_sequence_bombs_correctly() {
@@ -1652,84 +1431,21 @@ mod test_sequence_bomb {
             starting_value: CardValue(3),
             suit: CardSuit::Sword,
             number_of_cards: 5,
-            cards: vec![
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(4),
-                },
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(5),
-                },
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(5),
-                },
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(7),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
 
         let sequence_bomb_example_2 = SequenceBomb {
             starting_value: CardValue(3),
             suit: CardSuit::Pagoda,
             number_of_cards: 5,
-            cards: vec![
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(3),
-                },
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(4),
-                },
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(5),
-                },
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(5),
-                },
-                Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(7),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
 
         let sequence_bomb_example_3 = SequenceBomb {
             starting_value: CardValue(4),
             suit: CardSuit::Star,
             number_of_cards: 4,
-            cards: vec![
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(4),
-                },
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(5),
-                },
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(5),
-                },
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(7),
-                },
-                Card {
-                    suit: CardSuit::Star,
-                    value: CardValue(8),
-                },
-            ],
+            cards: vec![ /* omitted */],
         };
 
         // example 1 : example 2
@@ -1771,29 +1487,23 @@ impl Eq for FullHouse {}
 
 #[cfg(test)]
 mod test_full_house {
-    use crate::{Card, CardSuit, CardValue, FullHouse};
+    use crate::{CardValue, FullHouse};
 
     #[test]
     fn it_should_compare_full_houses_correctly() {
         let full_house_example_1 = FullHouse {
             trio_value: CardValue(3),
-            cards: vec![
-               // not necessary
-            ],
+            cards: vec![ /* omitted */],
         };
 
         let full_house_example_2 = FullHouse {
             trio_value: CardValue(3),
-            cards: vec![
-                // not necessary
-            ],
+            cards: vec![ /* omitted */],
         };
 
         let full_house_example_3 = FullHouse {
             trio_value: CardValue(4),
-            cards: vec![
-             // not necessary
-            ],
+            cards: vec![ /* omitted */],
         };
 
         // example 1 : example 2
@@ -1841,25 +1551,19 @@ mod test_sequence {
         let sequence_example_1 = Sequence {
             starting_value: CardValue(3),
             number_of_cards: 6,
-            cards: vec![
-                // not necessary
-            ],
+            cards: vec![ /* omitted */],
         };
 
         let sequence_example_2 = Sequence {
             starting_value: CardValue(3),
             number_of_cards: 6,
-            cards: vec![
-                // not necessary
-            ],
+            cards: vec![ /* omitted */],
         };
 
         let sequence_example_3 = Sequence {
             starting_value: CardValue(4),
             number_of_cards: 6,
-            cards: vec![
-                // not necessary
-            ],
+            cards: vec![ /* omitted */],
         };
 
         // example 1 : example 2
