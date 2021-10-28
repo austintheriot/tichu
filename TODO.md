@@ -21,6 +21,7 @@ TODO:
         self.last_name = Some(last_name.into());
         self
     }
+- improve get valid card combo tests to test particulars of results and not just memory discriminants
 
 
 MUST HAVES:

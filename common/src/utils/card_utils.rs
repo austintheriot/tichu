@@ -1,7 +1,13 @@
-use crate::{Card, Pair, Single, Trio, ValidCardCombos};
+use crate::{
+    BombOf4, Card, FullHouse, Pair, Sequence, SequenceBomb, SequenceOfPairs, Single, Trio,
+    ValidCardCombos,
+};
 
 // TODO: account for single special cards and Phoenix wild card
 pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
+    let mut cards = cards.clone();
+    sort_cards_for_hand(&mut cards);
+
     // length 0: no cards
     if cards.is_empty() {
         return None;
@@ -48,13 +54,99 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
     }
 
     // length 4:
-    // a bomb (4 of the same)
-    // a sequence of pairs of adjacent value
+    if cards.len() == 4 {
+        // a bomb (4 of the same)
+        if let [card_0, card_1, card_2, card_3] = &cards[..cards.len()] {
+            return if card_0.value == card_1.value
+                && card_1.value == card_2.value
+                && card_2.value == card_3.value
+            {
+                Some(ValidCardCombos::BombOf4(BombOf4 {
+                    cards: cards.clone(),
+                    value: card_0.value.clone(),
+                }))
+            }
+            // sequence of 2 pairs
+            else if (card_0.value == card_1.value && card_2.value == card_3.value)
+                || (card_0.value == card_2.value && card_1.value == card_3.value)
+                || (card_0.value == card_3.value && card_1.value == card_2.value)
+            {
+                let mut least_value = &cards.get(0).unwrap().value;
+                cards.iter().for_each(|card| {
+                    if card.value < *least_value {
+                        least_value = &card.value;
+                    }
+                });
+                Some(ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+                    cards: cards.clone(),
+                    number_of_pairs: 2,
+                    starting_value: least_value.clone(),
+                }))
+            } else {
+                None
+            };
+        }
+
+        return None;
+    }
 
     // length 5:
     // a full house (trio + pair)
     // a sequence of length at least 5
     // a bomb (sequence of 5, all same suit)
+    if cards.len() == 5 {
+        // full house (first 3 are equal)
+        return if let [card_0, card_1, card_2, card_3, card_4] = &cards[..cards.len()] {
+            if (card_0.value == card_1.value && card_0.value == card_2.value)
+                && (card_3.value == card_4.value)
+            {
+                Some(ValidCardCombos::FullHouse(FullHouse {
+                    cards: cards.clone(),
+                    trio_value: card_0.value.clone(),
+                }))
+            }
+            // full house (last 3 are equal)
+            else if (card_2.value == card_3.value && card_2.value == card_4.value)
+                && (card_0.value == card_1.value)
+            {
+                Some(ValidCardCombos::FullHouse(FullHouse {
+                    cards: cards.clone(),
+                    trio_value: card_2.value.clone(),
+                }))
+            }
+            // sequences
+            else if card_0.value.add_one() == card_1.value
+                && card_1.value.add_one() == card_2.value
+                && card_2.value.add_one() == card_3.value
+                && card_3.value.add_one() == card_4.value
+            {
+                if card_0.suit == card_1.suit
+                    && card_0.suit == card_2.suit
+                    && card_0.suit == card_3.suit
+                    && card_0.suit == card_4.suit
+                {
+                    // bomb sequence of length 5
+                    Some(ValidCardCombos::SequenceBomb(SequenceBomb {
+                        cards: cards.clone(),
+                        number_of_cards: 5,
+                        starting_value: card_0.value.clone(),
+                        suit: card_0.suit.clone(),
+                    }))
+                } else {
+                    // plain sequence of length at least 5
+                    Some(ValidCardCombos::Sequence(Sequence {
+                        cards: cards.clone(),
+                        number_of_cards: 5,
+                        starting_value: card_0.value.clone(),
+                    }))
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+    }
 
     // any length greater than 5:
     // a sequence
@@ -69,7 +161,10 @@ mod tests {
 
     mod test_get_random_string_of_len {
         use super::super::get_card_combination;
-        use crate::{Card, CardSuit, CardValue, Pair, Single, Trio, ValidCardCombos};
+        use crate::{
+            BombOf4, Card, CardSuit, CardValue, FullHouse, Pair, Sequence, SequenceBomb,
+            SequenceOfPairs, Single, Trio, ValidCardCombos,
+        };
 
         #[test]
         fn it_should_return_some_for_correct_combos() {
@@ -245,29 +340,275 @@ mod tests {
             );
 
             // a sequence of pairs of adjacent value
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(14),
+                        },
+                        Card {
+                            suit: CardSuit::Sword,
+                            value: CardValue(14),
+                        },
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(15),
+                        },
+                        Card {
+                            suit: CardSuit::Star,
+                            value: CardValue(15),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+                    starting_value: CardValue(14),
+                    number_of_pairs: 2,
+                    cards: vec![ /* omitted */],
+                }))
+            );
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(2),
+                        },
+                        Card {
+                            suit: CardSuit::Star,
+                            value: CardValue(2),
+                        },
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(3),
+                        },
+                        Card {
+                            suit: CardSuit::Star,
+                            value: CardValue(3),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+                    starting_value: CardValue(2),
+                    number_of_pairs: 2,
+                    cards: vec![ /* omitted */],
+                }))
+            );
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(7),
+                        },
+                        Card {
+                            suit: CardSuit::Star,
+                            value: CardValue(7),
+                        },
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(8),
+                        },
+                        Card {
+                            suit: CardSuit::Star,
+                            value: CardValue(8),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+                    starting_value: CardValue(7),
+                    number_of_pairs: 2,
+                    cards: vec![ /* omitted */],
+                }))
+            );
 
             // a bomb (4 of the same)
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(7),
+                        },
+                        Card {
+                            suit: CardSuit::Star,
+                            value: CardValue(7),
+                        },
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(7),
+                        },
+                        Card {
+                            suit: CardSuit::Sword,
+                            value: CardValue(7),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::BombOf4(BombOf4 {
+                    value: CardValue(7),
+                    cards: vec![ /* omitted */],
+                }))
+            );
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(2),
+                        },
+                        Card {
+                            suit: CardSuit::Star,
+                            value: CardValue(2),
+                        },
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(2),
+                        },
+                        Card {
+                            suit: CardSuit::Sword,
+                            value: CardValue(2),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::BombOf4(BombOf4 {
+                    value: CardValue(2),
+                    cards: vec![ /* omitted */],
+                }))
+            );
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(14),
+                        },
+                        Card {
+                            suit: CardSuit::Star,
+                            value: CardValue(14),
+                        },
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(14),
+                        },
+                        Card {
+                            suit: CardSuit::Sword,
+                            value: CardValue(14),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::BombOf4(BombOf4 {
+                    value: CardValue(14),
+                    cards: vec![ /* omitted */],
+                }))
+            );
 
             // a full house (trio + pair)
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(14),
+                        },
+                        Card {
+                            suit: CardSuit::Star,
+                            value: CardValue(14),
+                        },
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(14),
+                        },
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(15),
+                        },
+                        Card {
+                            suit: CardSuit::Sword,
+                            value: CardValue(15),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::FullHouse(FullHouse {
+                    cards: vec![ /* omitted */],
+                    trio_value: CardValue(14),
+                }))
+            );
 
-            // a sequence of length at least 5
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
+            // a plain sequence of length 5
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(3),
+                        },
+                        Card {
+                            suit: CardSuit::Star,
+                            value: CardValue(4),
+                        },
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(5),
+                        },
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(6),
+                        },
+                        Card {
+                            suit: CardSuit::Sword,
+                            value: CardValue(7),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+                    cards: vec![ /* omitted */],
+                    number_of_cards: 5,
+                    starting_value: CardValue(3),
+                }))
+            );
 
             // sequence bomb
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
-            assert_eq!(get_card_combination(&vec![]).is_some(), false);
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(3),
+                        },
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(4),
+                        },
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(5),
+                        },
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(6),
+                        },
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(7),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::SequenceBomb(SequenceBomb {
+                    cards: vec![ /* omitted */],
+                    number_of_cards: 5,
+                    starting_value: CardValue(3),
+                    suit: CardSuit::Pagoda,
+                }))
+            );
 
             // sequence of pairs of adjacent value (any length)
             // length 4

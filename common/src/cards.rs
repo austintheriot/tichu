@@ -29,6 +29,10 @@ impl CardValue {
     pub fn start_iter() -> Self {
         CardValue(CARD_VALUE_START_ITER)
     }
+
+    pub fn add_one(&self) -> Self {
+        CardValue(self.0 + 1)
+    }
 }
 
 impl Iterator for CardValue {
