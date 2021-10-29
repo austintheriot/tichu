@@ -1,6 +1,6 @@
 use crate::{
-    BombOf4, Card, FullHouse, Pair, Sequence, SequenceBomb, SequenceOfPairs, Single, Trio,
-    ValidCardCombos,
+    BombOf4, Card, CardSuit, FullHouse, Pair, Sequence, SequenceBomb, SequenceOfPairs, Single,
+    Trio, ValidCardCombos,
 };
 
 // TODO: account for single special cards and Phoenix wild card
@@ -23,11 +23,20 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
     // length 2: a pair of cards of equal rank
     // OR 1 standard card and 1 Phoenix
     if cards.len() == 2 {
+        // standard pair
         if let [card_0, card_1] = &cards[..cards.len()] {
             return if card_0.value == card_1.value {
                 Some(ValidCardCombos::Pair(Pair {
                     cards: cards.clone(),
                     value: card_0.value.clone(),
+                }))
+            }
+            // pair with 1 standard card and 1 Phoenix
+            else if cards.iter().any(|card| card.suit == CardSuit::Phoenix) {
+                let std_card = cards.iter().find(|card| card.suit != CardSuit::Phoenix);
+                Some(ValidCardCombos::Pair(Pair {
+                    cards: cards.clone(),
+                    value: std_card.unwrap().value.clone(),
                 }))
             } else {
                 None
@@ -45,6 +54,23 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                     cards: cards.clone(),
                     value: card_0.value.clone(),
                 }))
+            } else if cards.iter().any(|card| card.suit == CardSuit::Phoenix) {
+                let std_cards: Vec<&Card> = cards
+                    .iter()
+                    .filter(|card| card.suit != CardSuit::Phoenix)
+                    .collect();
+                if let [std_card_0, std_card_1] = &std_cards[0..std_cards.len()] {
+                    if std_card_0.value == std_card_1.value {
+                        Some(ValidCardCombos::Trio(Trio {
+                            cards: cards.clone(),
+                            value: std_card_0.value.clone(),
+                        }))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
             } else {
                 None
             };
@@ -192,7 +218,7 @@ mod tests {
                 })))
             );
 
-            // a pair of cards of equal rank
+            // a pair of cards of equal rank (plain)
             assert_eq!(
                 std::mem::discriminant(
                     &get_card_combination(&vec![
@@ -213,7 +239,28 @@ mod tests {
                 }))
             );
 
-            // a trio of cards of equal rank
+            // a pair of cards of equal rank (with Phoenix)
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Sword,
+                            value: CardValue(7),
+                        },
+                        Card {
+                            suit: CardSuit::Phoenix,
+                            value: CardValue::noop(),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::Pair(Pair {
+                    value: CardValue(7),
+                    cards: vec![ /* omitted */],
+                }))
+            );
+
+            // a trio of cards of equal rank (standard)
             assert_eq!(
                 std::mem::discriminant(
                     &get_card_combination(&vec![
@@ -228,6 +275,31 @@ mod tests {
                         Card {
                             suit: CardSuit::Star,
                             value: CardValue(3),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::Trio(Trio {
+                    value: CardValue(3),
+                    cards: vec![ /* omitted */],
+                }))
+            );
+
+            // a trio of cards of equal rank (with Phoenix)
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(3),
+                        },
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(3),
+                        },
+                        Card {
+                            suit: CardSuit::Phoenix,
+                            value: CardValue::noop(),
                         },
                     ])
                     .unwrap()
