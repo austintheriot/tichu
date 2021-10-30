@@ -1,5 +1,16 @@
+use common::{Card, ValidCardCombos};
+
+/// Helper to get prettier logging on failed tests
+fn fmt_panic(cards: Vec<Card>, combo: Option<ValidCardCombos>) -> String {
+    panic!(
+        "\n\nUnexpected combo received:\nOriginal Cards: {:?}\nCombo Received: {:?}\n\n",
+        cards, combo
+    )
+}
+
 #[cfg(test)]
 mod test_get_card_combination {
+    use crate::fmt_panic;
     use common::{
         get_card_combination, BombOf4, Card, CardSuit, CardValue, FullHouse, Pair, Sequence,
         SequenceBomb, SequenceOfPairs, Single, Trio, ValidCardCombos,
@@ -7,65 +18,104 @@ mod test_get_card_combination {
 
     #[test]
     fn it_should_return_some_for_correct_single_cards() {
-        // a single card
-        assert_eq!(
-            std::mem::discriminant(
-                &get_card_combination(&vec![Card {
-                    suit: CardSuit::Sword,
-                    value: CardValue(2),
-                }])
-                .unwrap()
-            ),
-            std::mem::discriminant(&ValidCardCombos::Single(Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(2),
-            })))
-        );
+        // a single standard card
+        let cards = vec![Card {
+            suit: CardSuit::Sword,
+            value: CardValue(2),
+        }];
+        let combo = get_card_combination(&cards);
+        if let Some(ValidCardCombos::Single(Single(card))) = combo {
+            assert_eq!(card.suit, CardSuit::Sword);
+            assert_eq!(card.value, CardValue(2));
+        } else {
+            fmt_panic(cards, combo);
+        }
+
+        // a single special card
+        let cards = vec![Card {
+            suit: CardSuit::Dragon,
+            value: CardValue::noop(),
+        }];
+        let combo = get_card_combination(&cards);
+        if let Some(ValidCardCombos::Single(Single(card))) = combo {
+            assert_eq!(card.suit, CardSuit::Dragon);
+            assert_eq!(card.value, CardValue::noop());
+        } else {
+            fmt_panic(cards, combo);
+        }
+
+        let cards = vec![Card {
+            suit: CardSuit::MahJong,
+            value: CardValue::noop(),
+        }];
+        let combo = get_card_combination(&cards);
+        if let Some(ValidCardCombos::Single(Single(card))) = combo {
+            assert_eq!(card.suit, CardSuit::MahJong);
+            assert_eq!(card.value, CardValue::noop());
+        } else {
+            fmt_panic(cards, combo);
+        }
+
+        let cards = vec![Card {
+            suit: CardSuit::Phoenix,
+            value: CardValue::noop(),
+        }];
+        let combo = get_card_combination(&cards);
+        if let Some(ValidCardCombos::Single(Single(card))) = combo {
+            assert_eq!(card.suit, CardSuit::Phoenix);
+            assert_eq!(card.value, CardValue::noop());
+        } else {
+            fmt_panic(cards, combo);
+        }
     }
 
     #[test]
     fn it_should_return_some_for_correct_pairs() {
         // a pair of cards of equal rank (plain)
-        assert_eq!(
-            std::mem::discriminant(
-                &get_card_combination(&vec![
-                    Card {
-                        suit: CardSuit::Sword,
-                        value: CardValue(7),
-                    },
-                    Card {
-                        suit: CardSuit::Jade,
-                        value: CardValue(7),
-                    },
-                ])
-                .unwrap()
-            ),
-            std::mem::discriminant(&ValidCardCombos::Pair(Pair {
+        let cards = vec![
+            Card {
+                suit: CardSuit::Sword,
                 value: CardValue(7),
-                cards: vec![ /* omitted */],
-            }))
-        );
+            },
+            Card {
+                suit: CardSuit::Jade,
+                value: CardValue(7),
+            },
+        ];
+        let combo = get_card_combination(&cards);
+        if let Some(ValidCardCombos::Pair(Pair {
+            cards: returned_cards,
+            value,
+        })) = combo
+        {
+            assert_eq!(returned_cards == returned_cards, true);
+            assert_eq!(value, CardValue(7));
+        } else {
+            fmt_panic(cards, combo);
+        }
 
         // a pair of cards of equal rank (with Phoenix)
-        assert_eq!(
-            std::mem::discriminant(
-                &get_card_combination(&vec![
-                    Card {
-                        suit: CardSuit::Sword,
-                        value: CardValue(7),
-                    },
-                    Card {
-                        suit: CardSuit::Phoenix,
-                        value: CardValue::noop(),
-                    },
-                ])
-                .unwrap()
-            ),
-            std::mem::discriminant(&ValidCardCombos::Pair(Pair {
+        let cards = vec![
+            Card {
+                suit: CardSuit::Sword,
                 value: CardValue(7),
-                cards: vec![ /* omitted */],
-            }))
-        );
+            },
+            Card {
+                suit: CardSuit::Phoenix,
+                value: CardValue::noop(),
+            },
+        ];
+        let combo = get_card_combination(&cards);
+        if let Some(ValidCardCombos::Pair(Pair {
+            cards: returned_cards,
+            value,
+        })) = combo
+        {
+            assert_eq!(returned_cards == returned_cards, true);
+            assert_eq!(value, CardValue(7));
+        } else {
+            fmt_panic(cards, combo);
+        }
     }
 
     #[test]
