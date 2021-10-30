@@ -246,7 +246,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                 // bomb sequence of length at least 5
                 Some(ValidCardCombos::SequenceBomb(SequenceBomb {
                     cards: original_cards.clone(),
-                    number_of_cards: 5,
+                    number_of_cards: original_cards.len() as u8,
                     starting_value: cards[0].value.clone(),
                     suit: cards[0].suit.clone(),
                 }))
@@ -254,7 +254,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                 // non-bomb sequence
                 Some(ValidCardCombos::Sequence(Sequence {
                     cards: original_cards.clone(),
-                    number_of_cards: cards.len() as u8,
+                    number_of_cards: original_cards.len() as u8,
                     starting_value: cards[0].value.clone(),
                 }))
             };
