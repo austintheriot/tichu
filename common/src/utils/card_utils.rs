@@ -2,6 +2,7 @@ use crate::{BombOf4, Card, CardSuit, CardValue, FullHouse, MAX_CARDS_IN_HAND, Pa
 
 // TODO: account for single special cards and Phoenix wild card
 pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
+    let original_cards = cards;
     let mut cards = cards.clone();
     let mut includes_phoenix = false;
     let mut includes_non_phoenix_special_card = false;
@@ -69,7 +70,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
         if let [card_0, card_1] = &cards[..cards.len()] {
             return if card_0.value == card_1.value {
                 Some(ValidCardCombos::Pair(Pair {
-                    cards: cards.clone(),
+                    cards: original_cards.clone(),
                     value: card_0.value.clone(),
                 }))
             }
@@ -77,7 +78,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
             else if includes_phoenix {
                 let std_card = cards.iter().find(|card| card.suit != CardSuit::Phoenix);
                 Some(ValidCardCombos::Pair(Pair {
-                    cards: cards.clone(),
+                    cards: original_cards.clone(),
                     value: std_card.unwrap().value.clone(),
                 }))
             } else {
@@ -93,7 +94,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
         if let [card_0, card_1, card_2] = &cards[..cards.len()] {
             return if card_0.value == card_1.value && card_1.value == card_2.value {
                 Some(ValidCardCombos::Trio(Trio {
-                    cards: cards.clone(),
+                    cards: original_cards.clone(),
                     value: card_0.value.clone(),
                 }))
             } else if includes_phoenix {
@@ -104,7 +105,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                 if let [std_card_0, std_card_1] = &std_cards[0..std_cards.len()] {
                     if std_card_0.value == std_card_1.value {
                         Some(ValidCardCombos::Trio(Trio {
-                            cards: cards.clone(),
+                            cards: original_cards.clone(),
                             value: std_card_0.value.clone(),
                         }))
                     } else {
@@ -129,7 +130,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                 && card_2.value == card_3.value
             {
                 return Some(ValidCardCombos::BombOf4(BombOf4 {
-                    cards: cards.clone(),
+                    cards: original_cards.clone(),
                     value: card_0.value.clone(),
                 }));
             }
@@ -161,7 +162,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                 && (card_0.value != card_3.value)
             {
                 return Some(ValidCardCombos::FullHouse(FullHouse {
-                    cards: cards.clone(),
+                    cards: original_cards.clone(),
                     trio_value: card_0.value.clone(),
                 }));
             }
@@ -171,7 +172,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                 && (card_0.value != card_2.value)
             {
                 return Some(ValidCardCombos::FullHouse(FullHouse {
-                    cards: cards.clone(),
+                    cards: original_cards.clone(),
                     trio_value: card_2.value.clone(),
                 }));
             }
@@ -244,7 +245,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
             return if !includes_phoenix && all_same_suit {
                 // bomb sequence of length at least 5
                 Some(ValidCardCombos::SequenceBomb(SequenceBomb {
-                    cards: cards.clone(),
+                    cards: original_cards.clone(),
                     number_of_cards: 5,
                     starting_value: cards[0].value.clone(),
                     suit: cards[0].suit.clone(),
@@ -252,7 +253,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
             } else {
                 // non-bomb sequence
                 Some(ValidCardCombos::Sequence(Sequence {
-                    cards: cards.clone(),
+                    cards: original_cards.clone(),
                     number_of_cards: cards.len() as u8,
                     starting_value: cards[0].value.clone(),
                 }))
@@ -333,7 +334,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
         }
         if is_sequence_of_pairs {
             return Some(ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
-                cards: cards.clone(),
+                cards: original_cards.clone(),
                 starting_value: cards[0].value.clone(),
                 number_of_pairs: cards.len() as u8 / 2,
             }));
