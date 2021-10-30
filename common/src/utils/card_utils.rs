@@ -6,6 +6,7 @@ use crate::{
 // TODO: account for single special cards and Phoenix wild card
 pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
     let mut cards = cards.clone();
+    let includes_phoenix = cards.iter().any(|card| card.suit == CardSuit::Phoenix);
     sort_cards_for_hand(&mut cards);
 
     // length 0: no cards
@@ -32,7 +33,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                 }))
             }
             // pair with 1 standard card and 1 Phoenix
-            else if cards.iter().any(|card| card.suit == CardSuit::Phoenix) {
+            else if includes_phoenix {
                 let std_card = cards.iter().find(|card| card.suit != CardSuit::Phoenix);
                 Some(ValidCardCombos::Pair(Pair {
                     cards: cards.clone(),
@@ -54,7 +55,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                     cards: cards.clone(),
                     value: card_0.value.clone(),
                 }))
-            } else if cards.iter().any(|card| card.suit == CardSuit::Phoenix) {
+            } else if includes_phoenix {
                 let std_cards: Vec<&Card> = cards
                     .iter()
                     .filter(|card| card.suit != CardSuit::Phoenix)
@@ -141,7 +142,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
             break;
         }
     }
-    if is_sequence {
+    if is_sequence && cards.len() >= 5 {
         return if all_same_suit {
             // bomb sequence of length at least 5
             Some(ValidCardCombos::SequenceBomb(SequenceBomb {
@@ -163,11 +164,61 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
     // any sequence of pairs of adjacent value
     if cards.len() % 2 == 0 && cards.len() > 3 {
         let mut is_sequence_of_pairs = true;
+
+        // if a phoenix is present, swap out the phoenix for a normal card
+        let cards = if includes_phoenix {
+            let cards_without_phoenix: Vec<&Card> = cards
+                .iter()
+                .filter(|card| card.suit != CardSuit::Phoenix)
+                .collect();
+
+            let mut i_of_lone_card = None;
+            for i in 1..cards_without_phoenix.len() {
+                let prev_card = &cards_without_phoenix[i - 1];
+                let card = &cards_without_phoenix[i];
+                let next_card = cards_without_phoenix.get(i + 1);
+                let is_second_card = i == 1;
+                let is_last_card = i == cards_without_phoenix.len() - 1;
+
+                if is_second_card {
+                    if prev_card.value != card.value {
+                        i_of_lone_card = Some(i - 1);
+                        break;
+                    }
+                } else if is_last_card {
+                    if prev_card.value != card.value {
+                        i_of_lone_card = Some(i);
+                        break;
+                    }
+                } else if prev_card.value != card.value
+                    && card.value != next_card.expect("Card should be Some").value
+                {
+                    i_of_lone_card = Some(i);
+                    break;
+                }
+            }
+
+            // only clone cards if necessary
+            if let Some(i_of_lone_card) = i_of_lone_card {
+                let cloned_card = (*cards_without_phoenix.get(i_of_lone_card).unwrap()).clone();
+                let mut cards_without_phoenix: Vec<Card> = cards_without_phoenix
+                    .iter()
+                    .map(|card| (*card).clone())
+                    .collect();
+                cards_without_phoenix.insert(i_of_lone_card, cloned_card);
+                cards_without_phoenix
+            } else {
+                cards
+            }
+        } else {
+            cards
+        };
+
         for i in 1..cards.len() {
             let card = &cards[i];
             let prev_card = &cards[i - 1];
             let is_even = i % 2 == 0;
-            // pairs have same suit
+            // pairs have same value
             if !is_even && card.value != prev_card.value {
                 is_sequence_of_pairs = false;
                 break;
@@ -310,7 +361,7 @@ mod tests {
                 }))
             );
 
-            // a sequence of pairs, length 4
+            // a sequence of pairs, length 4 (plain)
             assert_eq!(
                 std::mem::discriminant(
                     &get_card_combination(&vec![
@@ -329,6 +380,120 @@ mod tests {
                         Card {
                             suit: CardSuit::Star,
                             value: CardValue(15),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+                    starting_value: CardValue(14),
+                    number_of_pairs: 2,
+                    cards: vec![ /* omitted */],
+                }))
+            );
+
+            // a sequence of pairs, length 4 (with phoenix)
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Phoenix,
+                            value: CardValue::noop(),
+                        },
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(2),
+                        },
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(3),
+                        },
+                        Card {
+                            suit: CardSuit::Sword,
+                            value: CardValue(3),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+                    starting_value: CardValue(2),
+                    number_of_pairs: 2,
+                    cards: vec![ /* omitted */],
+                }))
+            );
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(2),
+                        },
+                        Card {
+                            suit: CardSuit::Phoenix,
+                            value: CardValue::noop(),
+                        },
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(3),
+                        },
+                        Card {
+                            suit: CardSuit::Sword,
+                            value: CardValue(3),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+                    starting_value: CardValue(2),
+                    number_of_pairs: 2,
+                    cards: vec![ /* omitted */],
+                }))
+            );
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(14),
+                        },
+                        Card {
+                            suit: CardSuit::Sword,
+                            value: CardValue(14),
+                        },
+                        Card {
+                            suit: CardSuit::Phoenix,
+                            value: CardValue::noop(),
+                        },
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(15),
+                        },
+                    ])
+                    .unwrap()
+                ),
+                std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+                    starting_value: CardValue(14),
+                    number_of_pairs: 2,
+                    cards: vec![ /* omitted */],
+                }))
+            );
+            assert_eq!(
+                std::mem::discriminant(
+                    &get_card_combination(&vec![
+                        Card {
+                            suit: CardSuit::Pagoda,
+                            value: CardValue(14),
+                        },
+                        Card {
+                            suit: CardSuit::Sword,
+                            value: CardValue(14),
+                        },
+                        Card {
+                            suit: CardSuit::Jade,
+                            value: CardValue(15),
+                        },
+                        Card {
+                            suit: CardSuit::Phoenix,
+                            value: CardValue::noop(),
                         },
                     ])
                     .unwrap()

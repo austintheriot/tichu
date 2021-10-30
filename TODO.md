@@ -16,6 +16,7 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
+- use .iter().skip(1).enumerate() in for loop instead of a range starting from 1
 - use "into" pattern more: 
 -  fn last_name(mut self, last_name: impl Into<String>) -> Self {
         self.last_name = Some(last_name.into());
