@@ -1,10 +1,10 @@
 use crate::types::CTSMsgInternal;
 use anyhow::Error;
 use common::{
-    clean_up_display_name, clean_up_game_code, sort_cards_for_hand, validate_display_name,
-    validate_game_code, validate_team_name, CTSMsg, CallGrandTichuRequest, Card, CardTrade,
-    MutableTeam, OtherPlayerOption, PublicGameStage, PublicGameState, PublicUser, STCMsg,
-    TeamOption, TichuCallStatus, NO_USER_ID,
+    clean_up_display_name, clean_up_game_code, get_card_combination, sort_cards_for_hand,
+    validate_display_name, validate_game_code, validate_team_name, CTSMsg, CallGrandTichuRequest,
+    Card, CardTrade, MutableTeam, OtherPlayerOption, PublicGameStage, PublicGameState, PublicUser,
+    STCMsg, TeamOption, TichuCallStatus, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -1198,6 +1198,10 @@ impl App {
             .any(|selected_card| *selected_card == *card)
     }
 
+    fn is_valid_combination(&self) -> bool {
+        get_card_combination(&self.state.selected_play_cards).is_some()
+    }
+
     fn view_play_hand(&self) -> Html {
         if let Some(game_state) = &self.state.game_state {
             html! {
@@ -1252,6 +1256,7 @@ impl App {
                 <h1>{"Play"}</h1>
                 <br />
                 <button
+                    disabled=!self.is_valid_combination()
                     type="submit"
                     >
                     {"Submit cards"}
