@@ -3656,6 +3656,25 @@ mod test_get_card_combination {
                 },
                 Card {
                     suit: CardSuit::Sword,
+                    value: CardValue(7),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(12),
+                }
+            ]),
+            None
+        );
+
+        // run of 3
+        assert_eq!(
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Sword,
                     value: CardValue(3),
                 },
                 Card {
@@ -3665,10 +3684,278 @@ mod test_get_card_combination {
             ]),
             None
         );
+
+        // phoenix not useful
+        assert_eq!(
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(11),
+                },
+            ]),
+            None
+        );
     }
 
     #[test]
-    fn it_should_return_none_for_bogus_combos_length_4() {}
+    fn it_should_return_none_for_bogus_combos_length_4() {
+        // 4 different values
+        assert_eq!(
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(13),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(7),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(9),
+                }
+            ]),
+            None
+        );
+
+        // 4 different values with Phoenix
+        assert_eq!(
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(7),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(9),
+                }
+            ]),
+            None
+        );
+
+        // run of 4
+        assert_eq!(
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(4),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(5),
+                }
+            ]),
+            None
+        );
+
+        // run of 4 with Phoenix
+        assert_eq!(
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(4),
+                },
+                Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                }
+            ]),
+            None
+        );
+
+        // non-sequential pairs
+        assert_eq!(
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(4),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(4),
+                }
+            ]),
+            None
+        );
+
+        // non-sequential pairs with Phoenix
+        assert_eq!(
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(4),
+                },
+                Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                }
+            ]),
+            None
+        );
+    }
+
+    #[test]
+    fn it_should_return_none_for_bogus_combos_length_5() {
+        // gap in run
+        assert_eq!(
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(4),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(5),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(7),
+                },
+            ]),
+            None
+        );
+
+        // gap in run with Phoenix
+        assert_eq!(
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(3),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(4),
+                },
+                Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(7),
+                },
+            ]),
+            None
+        );
+
+        // 4 same and 1 out
+        assert_eq!(
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(3),
+                },
+            ]),
+            None
+        );
+
+        // 4 same and 1 out with Phoenix
+        assert_eq!(
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
+            ]),
+            None
+        );
+    }
 
     #[test]
     fn it_should_return_none_for_invalid_suit_and_value_combos() {
@@ -3722,22 +4009,22 @@ mod test_get_card_combination {
 
         // two of the same card
         assert_eq!(
-          get_card_combination(&vec![
-              Card {
-                  suit: CardSuit::Sword,
-                  value: CardValue(2),
-              },
-              Card {
-                  suit: CardSuit::Sword,
-                  value: CardValue(2),
-              },
-              Card {
-                suit: CardSuit::Star,
-                value: CardValue(2),
-            }
-          ]),
-          None
-      );
+            get_card_combination(&vec![
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2),
+                },
+                Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(2),
+                }
+            ]),
+            None
+        );
 
         // card value above max
         assert_eq!(
