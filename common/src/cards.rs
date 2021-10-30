@@ -11,8 +11,11 @@ pub const NUM_CARDS_BEFORE_GRAND_TICHU: usize = 9;
 pub const NUM_CARDS_AFTER_GRAND_TICHU: usize =
     TOTAL_CARDS / NUM_PLAYERS - NUM_CARDS_BEFORE_GRAND_TICHU;
 pub const MAX_CARDS_IN_HAND: usize = TOTAL_CARDS / NUM_PLAYERS;
+
 pub const CARD_VALUE_NOOP: u8 = 0;
 pub const CARD_VALUE_START_ITER: u8 = 1;
+pub const CARD_VALUE_MIN: u8 = 2; // 2
+pub const CARD_VALUE_MAX: u8 = 14; // Ace
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct CardValue(pub u8);
@@ -30,8 +33,16 @@ impl CardValue {
         CardValue(CARD_VALUE_START_ITER)
     }
 
-    pub fn add_one(&self) -> Self {
-        CardValue(self.0 + 1)
+    pub fn add(&self, number: u8) -> Self {
+        CardValue(self.0 + number)
+    }
+
+    pub fn min() -> Self {
+        CardValue(CARD_VALUE_MIN)
+    }
+
+    pub fn max() -> Self {
+        CardValue(CARD_VALUE_MAX)
     }
 }
 
@@ -53,6 +64,14 @@ impl Iterator for CardValue {
 #[cfg(test)]
 mod test_card_value {
     use crate::CardValue;
+
+    #[test]
+    fn it_should_compare_values_correctly() {
+        assert_eq!(CardValue::noop() < CardValue::min(), true);
+        assert_eq!(CardValue(5) > CardValue(4), true);
+        assert_eq!(CardValue(15) > CardValue::max(), true);
+    }
+
     #[test]
     fn it_should_iterate_correctly() {
         let cards: Vec<CardValue> = CardValue::start_iter().into_iter().collect();
@@ -78,6 +97,15 @@ pub enum CardSuit {
     Dog,
     Phoenix,
     Dragon,
+}
+
+impl CardSuit {
+    pub fn is_special(&self) -> bool {
+        self == &CardSuit::Phoenix
+            || self == &CardSuit::Dragon
+            || self == &CardSuit::MahJong
+            || self == &CardSuit::Dog
+    }
 }
 
 pub const CARD_SUIT_START_ITER: CardSuit = CardSuit::Sword;
