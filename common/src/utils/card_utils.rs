@@ -139,10 +139,26 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
     }
 
     if cards.len() == 5 {
+        // manipulate locally
+        let mut adjusted_cards = cards.clone();
+
+        // replace Phoenix with a standard card
+       if includes_phoenix {
+            let mut cards_without_phoenix: Vec<Card> = cards
+                .iter()
+                .filter(|card| card.suit != CardSuit::Phoenix)
+                .map(|card| (*card).clone())
+                .collect();
+            let highest_value_card = cards_without_phoenix[cards_without_phoenix.len() - 1].clone();
+            cards_without_phoenix.push(highest_value_card.clone());
+            adjusted_cards = cards_without_phoenix;
+        }
+
         // full house (first 3 are equal)
-        if let [card_0, card_1, card_2, card_3, card_4] = &cards[..cards.len()] {
+        if let [card_0, card_1, card_2, card_3, card_4] = &adjusted_cards[..adjusted_cards.len()] {
             if (card_0.value == card_1.value && card_0.value == card_2.value)
                 && (card_3.value == card_4.value)
+                && (card_0.value != card_3.value)
             {
                 return Some(ValidCardCombos::FullHouse(FullHouse {
                     cards: cards.clone(),
@@ -152,6 +168,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
             // full house (last 3 are equal)
             else if (card_2.value == card_3.value && card_2.value == card_4.value)
                 && (card_0.value == card_1.value)
+                && (card_0.value != card_2.value)
             {
                 return Some(ValidCardCombos::FullHouse(FullHouse {
                     cards: cards.clone(),
