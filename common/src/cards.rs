@@ -10,7 +10,7 @@ pub const TOTAL_CARDS: usize = 56;
 pub const NUM_CARDS_BEFORE_GRAND_TICHU: usize = 9;
 pub const NUM_CARDS_AFTER_GRAND_TICHU: usize =
     TOTAL_CARDS / NUM_PLAYERS - NUM_CARDS_BEFORE_GRAND_TICHU;
-
+pub const MAX_CARDS_IN_HAND: usize = TOTAL_CARDS / NUM_PLAYERS;
 pub const CARD_VALUE_NOOP: u8 = 0;
 pub const CARD_VALUE_START_ITER: u8 = 1;
 
