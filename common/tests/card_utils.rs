@@ -3859,6 +3859,7 @@ mod test_get_card_combination {
         );
     }
 
+    #[test]
     fn it_should_return_none_for_bogus_combos_length_5() {
         // gap in run
         assert_eq!(
