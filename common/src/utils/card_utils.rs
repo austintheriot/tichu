@@ -1,7 +1,7 @@
-use crate::{BombOf4, Card, CardSuit, CardValue, FullHouse, MAX_CARDS_IN_HAND, Pair, Sequence, SequenceBomb, SequenceOfPairs, Single, Trio, ValidCardCombos};
+use crate::{BombOf4, Card, CardSuit, CardValue, FullHouse, MAX_CARDS_IN_HAND, Pair, Sequence, SequenceBomb, SequenceOfPairs, Single, Trio, ValidCardCombo};
 
 // TODO: account for single special cards and Phoenix wild card
-pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
+pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombo> {
     let original_cards = cards;
     let mut cards = cards.clone();
     let mut includes_phoenix = false;
@@ -60,7 +60,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
 
     // length 1: a single card
     if cards.len() == 1 {
-        return Some(ValidCardCombos::Single(Single(
+        return Some(ValidCardCombo::Single(Single(
             cards.get(0).unwrap().clone(),
         )));
     }
@@ -69,7 +69,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
         // standard pair
         if let [card_0, card_1] = &cards[..cards.len()] {
             return if card_0.value == card_1.value {
-                Some(ValidCardCombos::Pair(Pair {
+                Some(ValidCardCombo::Pair(Pair {
                     cards: original_cards.clone(),
                     value: card_0.value.clone(),
                 }))
@@ -77,7 +77,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
             // pair with 1 standard card and 1 Phoenix
             else if includes_phoenix {
                 let std_card = cards.iter().find(|card| card.suit != CardSuit::Phoenix);
-                Some(ValidCardCombos::Pair(Pair {
+                Some(ValidCardCombo::Pair(Pair {
                     cards: original_cards.clone(),
                     value: std_card.unwrap().value.clone(),
                 }))
@@ -93,7 +93,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
         // trio of equal rank
         if let [card_0, card_1, card_2] = &cards[..cards.len()] {
             return if card_0.value == card_1.value && card_1.value == card_2.value {
-                Some(ValidCardCombos::Trio(Trio {
+                Some(ValidCardCombo::Trio(Trio {
                     cards: original_cards.clone(),
                     value: card_0.value.clone(),
                 }))
@@ -104,7 +104,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                     .collect();
                 if let [std_card_0, std_card_1] = &std_cards[0..std_cards.len()] {
                     if std_card_0.value == std_card_1.value {
-                        Some(ValidCardCombos::Trio(Trio {
+                        Some(ValidCardCombo::Trio(Trio {
                             cards: original_cards.clone(),
                             value: std_card_0.value.clone(),
                         }))
@@ -129,7 +129,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                 && card_1.value == card_2.value
                 && card_2.value == card_3.value
             {
-                return Some(ValidCardCombos::BombOf4(BombOf4 {
+                return Some(ValidCardCombo::BombOf4(BombOf4 {
                     cards: original_cards.clone(),
                     value: card_0.value.clone(),
                 }));
@@ -161,7 +161,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                 && (card_3.value == card_4.value)
                 && (card_0.value != card_3.value)
             {
-                return Some(ValidCardCombos::FullHouse(FullHouse {
+                return Some(ValidCardCombo::FullHouse(FullHouse {
                     cards: original_cards.clone(),
                     trio_value: card_0.value.clone(),
                 }));
@@ -171,7 +171,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                 && (card_0.value == card_1.value)
                 && (card_0.value != card_2.value)
             {
-                return Some(ValidCardCombos::FullHouse(FullHouse {
+                return Some(ValidCardCombo::FullHouse(FullHouse {
                     cards: original_cards.clone(),
                     trio_value: card_2.value.clone(),
                 }));
@@ -244,7 +244,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
         if is_sequence {
             return if !includes_phoenix && all_same_suit {
                 // bomb sequence of length at least 5
-                Some(ValidCardCombos::SequenceBomb(SequenceBomb {
+                Some(ValidCardCombo::SequenceBomb(SequenceBomb {
                     cards: original_cards.clone(),
                     number_of_cards: original_cards.len() as u8,
                     starting_value: cards[0].value.clone(),
@@ -252,7 +252,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
                 }))
             } else {
                 // non-bomb sequence
-                Some(ValidCardCombos::Sequence(Sequence {
+                Some(ValidCardCombo::Sequence(Sequence {
                     cards: original_cards.clone(),
                     number_of_cards: original_cards.len() as u8,
                     starting_value: cards[0].value.clone(),
@@ -333,7 +333,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
             }
         }
         if is_sequence_of_pairs {
-            return Some(ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            return Some(ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 cards: original_cards.clone(),
                 starting_value: cards[0].value.clone(),
                 number_of_pairs: cards.len() as u8 / 2,
@@ -342,6 +342,10 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombos> {
     }
 
     None
+}
+
+pub fn can_play_card_combo(prev: Option<ValidCardCombo>, next: ValidCardCombo) -> bool {
+    unimplemented!();
 }
 
 pub fn sort_cards_for_hand(cards: &mut Vec<Card>) {

@@ -1,7 +1,7 @@
-use common::{Card, ValidCardCombos};
+use common::{Card, ValidCardCombo};
 
 /// Helper to get prettier logging on failed tests
-fn fmt_panic(cards: Vec<Card>, combo: Option<ValidCardCombos>) -> String {
+fn fmt_panic(cards: Vec<Card>, combo: Option<ValidCardCombo>) -> String {
     panic!(
         "\n\nUnexpected combo received:\nOriginal Cards: {:?}\nCombo Received: {:?}\n\n",
         cards, combo
@@ -13,7 +13,7 @@ mod test_get_card_combination {
     use crate::fmt_panic;
     use common::{
         get_card_combination, BombOf4, Card, CardSuit, CardValue, FullHouse, Pair, Sequence,
-        SequenceBomb, SequenceOfPairs, Single, Trio, ValidCardCombos,
+        SequenceBomb, SequenceOfPairs, Single, Trio, ValidCardCombo,
     };
 
     #[test]
@@ -24,7 +24,7 @@ mod test_get_card_combination {
             value: CardValue(2),
         }];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Single(Single(returned_card))) = combo {
+        if let Some(ValidCardCombo::Single(Single(returned_card))) = combo {
             assert_eq!(returned_card, cards[0]);
         } else {
             fmt_panic(cards, combo);
@@ -36,7 +36,7 @@ mod test_get_card_combination {
             value: CardValue::noop(),
         }];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Single(Single(returned_card))) = combo {
+        if let Some(ValidCardCombo::Single(Single(returned_card))) = combo {
             assert_eq!(returned_card, cards[0]);
         } else {
             fmt_panic(cards, combo);
@@ -47,7 +47,7 @@ mod test_get_card_combination {
             value: CardValue::noop(),
         }];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Single(Single(returned_card))) = combo {
+        if let Some(ValidCardCombo::Single(Single(returned_card))) = combo {
             assert_eq!(returned_card, cards[0]);
         } else {
             fmt_panic(cards, combo);
@@ -58,7 +58,7 @@ mod test_get_card_combination {
             value: CardValue::noop(),
         }];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Single(Single(returned_card))) = combo {
+        if let Some(ValidCardCombo::Single(Single(returned_card))) = combo {
             assert_eq!(returned_card, cards[0]);
         } else {
             fmt_panic(cards, combo);
@@ -79,7 +79,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Pair(Pair {
+        if let Some(ValidCardCombo::Pair(Pair {
             cards: returned_cards,
             value,
         })) = combo
@@ -102,7 +102,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Pair(Pair {
+        if let Some(ValidCardCombo::Pair(Pair {
             cards: returned_cards,
             value,
         })) = combo
@@ -132,7 +132,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Trio(Trio {
+        if let Some(ValidCardCombo::Trio(Trio {
             cards: returned_cards,
             value,
         })) = combo
@@ -159,7 +159,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Trio(Trio {
+        if let Some(ValidCardCombo::Trio(Trio {
             cards: returned_cards,
             value,
         })) = combo
@@ -185,7 +185,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Trio(Trio {
+        if let Some(ValidCardCombo::Trio(Trio {
             cards: returned_cards,
             value,
         })) = combo
@@ -211,7 +211,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Trio(Trio {
+        if let Some(ValidCardCombo::Trio(Trio {
             cards: returned_cards,
             value,
         })) = combo
@@ -245,7 +245,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+        if let Some(ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
             starting_value,
             number_of_pairs,
             cards: returned_cards,
@@ -278,7 +278,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+        if let Some(ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
             starting_value,
             number_of_pairs,
             cards: returned_cards,
@@ -311,7 +311,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::BombOf4(BombOf4 {
+        if let Some(ValidCardCombo::BombOf4(BombOf4 {
             value,
             cards: returned_cards,
         })) = combo
@@ -349,7 +349,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::FullHouse(FullHouse {
+        if let Some(ValidCardCombo::FullHouse(FullHouse {
             trio_value,
             cards: returned_cards,
         })) = combo
@@ -384,7 +384,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::FullHouse(FullHouse {
+        if let Some(ValidCardCombo::FullHouse(FullHouse {
             trio_value,
             cards: returned_cards,
         })) = combo
@@ -419,7 +419,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::FullHouse(FullHouse {
+        if let Some(ValidCardCombo::FullHouse(FullHouse {
             trio_value,
             cards: returned_cards,
         })) = combo
@@ -454,7 +454,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::FullHouse(FullHouse {
+        if let Some(ValidCardCombo::FullHouse(FullHouse {
             trio_value,
             cards: returned_cards,
         })) = combo
@@ -489,7 +489,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Sequence(Sequence {
+        if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -526,7 +526,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Sequence(Sequence {
+        if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -562,7 +562,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Sequence(Sequence {
+        if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -598,7 +598,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Sequence(Sequence {
+        if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -635,7 +635,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::SequenceBomb(SequenceBomb {
+        if let Some(ValidCardCombo::SequenceBomb(SequenceBomb {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -681,7 +681,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Sequence(Sequence {
+        if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -722,7 +722,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Sequence(Sequence {
+        if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -762,7 +762,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Sequence(Sequence {
+        if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -802,7 +802,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Sequence(Sequence {
+        if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -846,7 +846,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceBomb(SequenceBomb {
+            std::mem::discriminant(&ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![ /* omitted */],
                 number_of_cards: 6,
                 starting_value: CardValue(3),
@@ -882,7 +882,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+        if let Some(ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
             starting_value,
             number_of_pairs,
             cards: returned_cards,
@@ -926,7 +926,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(12),
                 number_of_pairs: 3,
                 cards: vec![ /* omitted */],
@@ -962,7 +962,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(12),
                 number_of_pairs: 3,
                 cards: vec![ /* omitted */],
@@ -998,7 +998,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(12),
                 number_of_pairs: 3,
                 cards: vec![ /* omitted */],
@@ -1040,7 +1040,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Sequence(Sequence {
+        if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -1088,7 +1088,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 7,
                 starting_value: CardValue(4),
@@ -1127,7 +1127,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::SequenceBomb(SequenceBomb {
+        if let Some(ValidCardCombo::SequenceBomb(SequenceBomb {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -1181,7 +1181,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Sequence(Sequence {
+        if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -1230,7 +1230,7 @@ mod test_get_card_combination {
             },
         ];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombos::Sequence(Sequence {
+        if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
@@ -1282,7 +1282,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceBomb(SequenceBomb {
+            std::mem::discriminant(&ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![ /* omitted */],
                 number_of_cards: 8,
                 starting_value: CardValue(3),
@@ -1329,7 +1329,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(11),
                 number_of_pairs: 4,
                 cards: vec![ /* omitted */],
@@ -1375,7 +1375,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(11),
                 number_of_pairs: 4,
                 cards: vec![ /* omitted */],
@@ -1419,7 +1419,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(11),
                 number_of_pairs: 4,
                 cards: vec![ /* omitted */],
@@ -1463,7 +1463,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(11),
                 number_of_pairs: 4,
                 cards: vec![ /* omitted */],
@@ -1516,7 +1516,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 number_of_cards: 9,
                 starting_value: CardValue(3),
                 cards: vec![ /* omitted */],
@@ -1566,7 +1566,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 9,
                 starting_value: CardValue(4),
@@ -1614,7 +1614,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 9,
                 starting_value: CardValue(3),
@@ -1662,7 +1662,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 9,
                 starting_value: CardValue(3),
@@ -1712,7 +1712,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceBomb(SequenceBomb {
+            std::mem::discriminant(&ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![ /* omitted */],
                 number_of_cards: 9,
                 starting_value: CardValue(3),
@@ -1770,7 +1770,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 number_of_cards: 10,
                 starting_value: CardValue(3),
                 cards: vec![ /* omitted */],
@@ -1824,7 +1824,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 10,
                 starting_value: CardValue(4),
@@ -1876,7 +1876,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 10,
                 starting_value: CardValue(3),
@@ -1928,7 +1928,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 10,
                 starting_value: CardValue(3),
@@ -1982,7 +1982,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceBomb(SequenceBomb {
+            std::mem::discriminant(&ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![ /* omitted */],
                 number_of_cards: 10,
                 starting_value: CardValue(3),
@@ -2037,7 +2037,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(10),
                 number_of_pairs: 5,
                 cards: vec![ /* omitted */],
@@ -2091,7 +2091,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(10),
                 number_of_pairs: 5,
                 cards: vec![ /* omitted */],
@@ -2143,7 +2143,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(10),
                 number_of_pairs: 5,
                 cards: vec![ /* omitted */],
@@ -2195,7 +2195,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(10),
                 number_of_pairs: 5,
                 cards: vec![ /* omitted */],
@@ -2256,7 +2256,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 number_of_cards: 11,
                 starting_value: CardValue(3),
                 cards: vec![ /* omitted */],
@@ -2314,7 +2314,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 11,
                 starting_value: CardValue(4),
@@ -2370,7 +2370,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 11,
                 starting_value: CardValue(3),
@@ -2426,7 +2426,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 11,
                 starting_value: CardValue(3),
@@ -2484,7 +2484,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceBomb(SequenceBomb {
+            std::mem::discriminant(&ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![ /* omitted */],
                 number_of_cards: 11,
                 starting_value: CardValue(3),
@@ -2550,7 +2550,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 number_of_cards: 12,
                 starting_value: CardValue(3),
                 cards: vec![ /* omitted */],
@@ -2612,7 +2612,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 12,
                 starting_value: CardValue(4),
@@ -2672,7 +2672,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 12,
                 starting_value: CardValue(3),
@@ -2732,7 +2732,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 12,
                 starting_value: CardValue(3),
@@ -2794,7 +2794,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceBomb(SequenceBomb {
+            std::mem::discriminant(&ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![ /* omitted */],
                 number_of_cards: 12,
                 starting_value: CardValue(3),
@@ -2857,7 +2857,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(9),
                 number_of_pairs: 12,
                 cards: vec![ /* omitted */],
@@ -2919,7 +2919,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(9),
                 number_of_pairs: 6,
                 cards: vec![ /* omitted */],
@@ -2979,7 +2979,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(9),
                 number_of_pairs: 6,
                 cards: vec![ /* omitted */],
@@ -3039,7 +3039,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceOfPairs(SequenceOfPairs {
+            std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(9),
                 number_of_pairs: 6,
                 cards: vec![ /* omitted */],
@@ -3108,7 +3108,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 number_of_cards: 13,
                 starting_value: CardValue(2),
                 cards: vec![ /* omitted */],
@@ -3174,7 +3174,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 13,
                 starting_value: CardValue(3),
@@ -3238,7 +3238,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 13,
                 starting_value: CardValue(2),
@@ -3302,7 +3302,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 13,
                 starting_value: CardValue(2),
@@ -3368,7 +3368,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::SequenceBomb(SequenceBomb {
+            std::mem::discriminant(&ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![ /* omitted */],
                 number_of_cards: 13,
                 starting_value: CardValue(3),
@@ -3442,7 +3442,7 @@ mod test_get_card_combination {
                 ])
                 .unwrap()
             ),
-            std::mem::discriminant(&ValidCardCombos::Sequence(Sequence {
+            std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 cards: vec![ /* omitted */],
                 number_of_cards: 14,
                 starting_value: CardValue(2),

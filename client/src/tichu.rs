@@ -1250,10 +1250,30 @@ impl App {
         }
     }
 
+    fn view_turn_display_name(&self) -> Html {
+        if let Some(game_state) = &self.state.game_state {
+            if let PublicGameStage::Play(play_state) = &game_state.stage {
+                let turn_user_id = &play_state.turn_user_id;
+                let turn_user = &game_state.get_user_by_user_id(&turn_user_id);
+                if let Some(turn_user) = turn_user {
+                    return html! {
+                        <p>{&format!("Current turn: {}", turn_user.display_name)}</p>
+                    };
+                }
+            }
+        }
+
+        html! {}
+    }
+
     fn view_play(&self) -> Html {
         html! {
               <>
                 <h1>{"Play"}</h1>
+                <br />
+                <br />
+                {self.view_turn_display_name()}
+                <br />
                 <br />
                 <button
                     disabled=!self.is_valid_combination()

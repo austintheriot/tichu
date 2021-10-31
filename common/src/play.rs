@@ -1,4 +1,4 @@
-use crate::{Deck, GetSmallTichu, ImmutableTeams, PrivateTrade, SmallTichuArray};
+use crate::{GetSmallTichu, ImmutableTeams, PrivateTrade, SmallTichuArray, ValidCardCombo};
 use serde::{Deserialize, Serialize};
 
 /// Server state: includes sensitive information, such as the Deck
@@ -7,7 +7,8 @@ pub struct PrivatePlay {
     pub small_tichus: SmallTichuArray,
     pub grand_tichus: SmallTichuArray,
     pub teams: ImmutableTeams,
-    pub deck: Deck,
+    pub table: Vec<ValidCardCombo>,
+    pub turn_user_id: String,
 }
 
 impl From<PrivateTrade> for PrivatePlay {
@@ -16,7 +17,9 @@ impl From<PrivateTrade> for PrivatePlay {
             small_tichus: private_trade.small_tichus.clone(),
             grand_tichus: private_trade.grand_tichus.clone(),
             teams: private_trade.teams.clone(),
-            deck: private_trade.deck.clone(),
+            table: vec![],
+            // this value is set in game state on transition
+            turn_user_id: String::from(""),
         }
     }
 }
@@ -37,6 +40,8 @@ pub struct PublicPlay {
     pub small_tichus: SmallTichuArray,
     pub grand_tichus: SmallTichuArray,
     pub teams: ImmutableTeams,
+    pub table: Vec<ValidCardCombo>,
+    pub turn_user_id: String,
 }
 
 impl GetSmallTichu for PublicPlay {
@@ -55,6 +60,8 @@ impl From<PrivatePlay> for PublicPlay {
             small_tichus: private_play.small_tichus.clone(),
             grand_tichus: private_play.grand_tichus.clone(),
             teams: private_play.teams.clone(),
+            table: private_play.table.clone(),
+            turn_user_id: private_play.turn_user_id.clone(),
         }
     }
 }

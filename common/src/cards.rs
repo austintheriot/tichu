@@ -1610,8 +1610,8 @@ mod test_sequence {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub enum ValidCardCombos {
+#[derive(Debug, Serialize, Deserialize, PartialOrd, Ord, PartialEq, Eq, Clone)]
+pub enum ValidCardCombo {
     /// a single card
     Single(Single),
 
@@ -1636,4 +1636,13 @@ pub enum ValidCardCombos {
 
     /// a sequence of length at least 5
     Sequence(Sequence),
+}
+
+impl ValidCardCombo {
+    pub fn is_bomb(&self) -> bool {
+        match self {
+            ValidCardCombo::BombOf4(_) | ValidCardCombo::SequenceBomb(_) => true,
+            _ => false,
+        }
+    }
 }

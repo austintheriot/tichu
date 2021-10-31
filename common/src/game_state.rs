@@ -1,9 +1,9 @@
 use crate::{
-    get_new_game_code, sort_cards_for_hand, user::UserRole, CallGrandTichuRequest, Deck,
-    GetSmallTichu, ImmutableTeam, MutableTeam, OtherPlayers, PrivateGameStage, PrivateGrandTichu,
-    PrivateUser, PublicGameStage, PublicUser, SubmitTrade, TeamCategories, TeamOption,
-    TichuCallStatus, UserIdWithTichuCallStatus, NUM_CARDS_AFTER_GRAND_TICHU,
-    NUM_CARDS_BEFORE_GRAND_TICHU,
+    get_card_combination, get_new_game_code, sort_cards_for_hand, user::UserRole,
+    CallGrandTichuRequest, Card, CardSuit, Deck, GetSmallTichu, ImmutableTeam, MutableTeam,
+    OtherPlayers, PrivateGameStage, PrivateGrandTichu, PrivatePlay, PrivateUser, PublicGameStage,
+    PublicUser, SubmitTrade, TeamCategories, TeamOption, TichuCallStatus,
+    UserIdWithTichuCallStatus, NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -633,8 +633,24 @@ impl PrivateGameState {
                         }
                     }
 
-                    new_game_state.stage =
-                        PrivateGameStage::Play(Box::new((**private_trade).clone().into()));
+                    // player with the MahJong leads first
+                    let mut first_turn_user_id = None;
+                    'outer: for user in new_game_state.participants.iter() {
+                        for card in &user.hand {
+                            if card.suit == CardSuit::MahJong {
+                                first_turn_user_id = Some(user.user_id.clone());
+                                break 'outer;
+                            }
+                        }
+                    }
+                    let first_turn_user_id = if let Some(first_turn_user_id) = first_turn_user_id {
+                        first_turn_user_id
+                    } else {
+                        panic!("Could not find MahJong among the participants' hands");
+                    };
+                    let mut play_state: PrivatePlay = (**private_trade).clone().into();
+                    play_state.turn_user_id = first_turn_user_id;
+                    new_game_state.stage = PrivateGameStage::Play(Box::new(play_state));
                 }
             }
 
@@ -646,6 +662,40 @@ impl PrivateGameState {
             );
             return new_game_state;
         }
+    }
+
+    pub fn play_cards(&self, user_id: &str, cards: Vec<Card>) -> Self {
+        let mut new_game_state = self.clone();
+
+        // must be play stage
+        if let PrivateGameStage::Play(play_stage) = &new_game_state.stage {
+            let combo = get_card_combination(&cards);
+            if let Some(combo) = combo {
+                // must be the player's turn (unless a bomb)
+                if play_stage.turn_user_id == user_id {
+                    // must be a valid play based on the previous card (or no card)
+                } else {
+                    eprintln!(
+                        "Couldn't accept card play submitted by user {} because it is not the user's turn",
+                        user_id
+                    );
+                }
+            } else {
+                eprintln!(
+                    "Couldn't accept card play submitted by user {} because cards are not a valid combination",
+                    user_id
+                );
+                return new_game_state;
+            }
+        } else {
+            eprintln!(
+                "Couldn't accept card play submitted by user {} because Game Stage is not Play",
+                user_id
+            );
+            return new_game_state;
+        }
+
+        new_game_state
     }
 }
 
