@@ -1639,10 +1639,15 @@ pub enum ValidCardCombo {
 }
 
 impl ValidCardCombo {
+    pub fn is_bomb_of_4(&self) -> bool {
+        matches!(self, ValidCardCombo::BombOf4(_))
+    }
+
+    pub fn is_sequence_bomb(&self) -> bool {
+        matches!(self, ValidCardCombo::SequenceBomb(_))
+    }
+
     pub fn is_bomb(&self) -> bool {
-        match self {
-            ValidCardCombo::BombOf4(_) | ValidCardCombo::SequenceBomb(_) => true,
-            _ => false,
-        }
+        self.is_bomb_of_4() || self.is_sequence_bomb()
     }
 }

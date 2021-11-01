@@ -344,8 +344,49 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombo> {
     None
 }
 
-pub fn can_play_card_combo(prev: Option<ValidCardCombo>, next: ValidCardCombo) -> bool {
-    unimplemented!();
+pub fn can_play_card_combo(prev: &Option<ValidCardCombo>, next: &ValidCardCombo) -> bool {
+    if let Some(prev) = prev {
+        // sequence bomb
+        if let ValidCardCombo::SequenceBomb(next_sequence_bomb) = &next {
+            // sequence bomb vs sequence bomb
+            return if let ValidCardCombo::SequenceBomb(prev_sequence_bomb) = &prev {
+               next_sequence_bomb.number_of_cards > prev_sequence_bomb.number_of_cards
+                || (next_sequence_bomb.number_of_cards == prev_sequence_bomb.number_of_cards 
+                    && next_sequence_bomb.starting_value > prev_sequence_bomb.starting_value)
+            } else  {
+                // sequence bomb beats any other combo
+                true
+            }
+          }
+
+        // bomb of 4
+        if let ValidCardCombo::BombOf4(next_bomb_of_4) = &next {
+            // bomb of 4 vs bomb of 4
+            return if let ValidCardCombo::BombOf4(prev_bomb_4) = &prev {
+                next_bomb_of_4.value > prev_bomb_4.value
+            } else {
+                // sequence bomb beats any other non sequence-bomb combo
+                !prev.is_sequence_bomb()
+            }
+          }
+
+        //   // Phoenix
+        //   if let ValidCardCombo::Single(Single(Card { suit: CardSuit::Phoenix, .. })) = &next {
+        //     // phoenix vs dragon
+        //     return if let ValidCardCombo::Single(Single(Card { suit: CardSuit::Dragon, ..}) ) = &prev {
+        //         false
+        //     } else {
+        //         // can play against any other, single card
+        //         std::mem::discriminant(&prev) == std::mem::discriminant(&next)
+        //     }
+        //   }
+
+          // any standard card must be the same type and greater
+          (std::mem::discriminant(&prev) == std::mem::discriminant(&next)) && (next > prev)
+    } else {
+        // no card has yet been played, any combination can follow
+        true
+    }
 }
 
 pub fn sort_cards_for_hand(cards: &mut Vec<Card>) {
