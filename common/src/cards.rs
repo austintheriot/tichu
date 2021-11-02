@@ -375,72 +375,76 @@ const COMPARE_IDENTICAL_SPECIAL_CARDS: &str = "Can't compare identical special c
 
 /// a single card
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Single(pub Card);
+pub struct Single {
+    pub card: Card,
+    /// Phoenixes receive a value 0.5 higher than the previous card
+    pub value: CardValue,
+}
 impl PartialOrd for Single {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         // can't compare identical special cards
-        if self.0.value.is_noop() && other.0.value.is_noop() && self.0.suit == other.0.suit {
+        if self.value.is_noop() && other.value.is_noop() && self.card.suit == other.card.suit {
             panic!("{COMPARE_IDENTICAL_SPECIAL_CARDS}");
         }
 
         // dragon beats everything
-        if let CardSuit::Dragon = &self.0.suit {
+        if let CardSuit::Dragon = &self.card.suit {
             return Some(Ordering::Greater);
         }
-        if let CardSuit::Dragon = &other.0.suit {
+        if let CardSuit::Dragon = &other.card.suit {
             return Some(Ordering::Less);
         }
 
         // Phoenix beats any standard card
-        if let CardSuit::Phoenix = &self.0.suit {
+        if let CardSuit::Phoenix = &self.card.suit {
             return Some(Ordering::Greater);
         }
-        if let CardSuit::Phoenix = &other.0.suit {
+        if let CardSuit::Phoenix = &other.card.suit {
             return Some(Ordering::Less);
         }
 
-        Some([&self.0.value].cmp(&[&other.0.value]))
+        Some([&self.value].cmp(&[&other.value]))
     }
 }
 impl Ord for Single {
     fn cmp(&self, other: &Self) -> Ordering {
         // can't compare identical special cards
-        if self.0.value.is_noop() && other.0.value.is_noop() && self.0.suit == other.0.suit {
+        if self.value.is_noop() && other.value.is_noop() && self.card.suit == other.card.suit {
             panic!("{COMPARE_IDENTICAL_SPECIAL_CARDS}");
         }
 
         // dragon beats everything
-        if let CardSuit::Dragon = &self.0.suit {
+        if let CardSuit::Dragon = &self.card.suit {
             return Ordering::Greater;
         }
-        if let CardSuit::Dragon = &other.0.suit {
+        if let CardSuit::Dragon = &other.card.suit {
             return Ordering::Less;
         }
 
         // Phoenix beats any standard card
-        if let CardSuit::Phoenix = &self.0.suit {
+        if let CardSuit::Phoenix = &self.card.suit {
             return Ordering::Greater;
         }
-        if let CardSuit::Phoenix = &other.0.suit {
+        if let CardSuit::Phoenix = &other.card.suit {
             return Ordering::Less;
         }
 
-        [&self.0.value].cmp(&[&other.0.value])
+        [&self.value].cmp(&[&other.value])
     }
 }
 impl PartialEq for Single {
     fn eq(&self, other: &Self) -> bool {
-        if self.0.value.is_noop() && other.0.value.is_noop() {
-            if self.0.suit == other.0.suit {
+        if self.value.is_noop() && other.value.is_noop() {
+            if self.card.suit == other.card.suit {
                 // can't compare two identical special cards to each other
                 panic!("{COMPARE_IDENTICAL_SPECIAL_CARDS}");
             } else {
                 // only compare suits if they are special cards
-                return self.0.suit == other.0.suit;
+                return self.card.suit == other.card.suit;
             }
         }
 
-        self.0.value == other.0.value
+        self.value == other.value
     }
 }
 impl Eq for Single {}
@@ -452,97 +456,151 @@ mod test_single_card {
     fn it_should_compare_std_cards_of_same_suit_correctly() {
         // different suit, is less than
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(2)
-            }) < Single(Card {
-                suit: CardSuit::Jade,
-                value: CardValue(3)
-            }),
+            Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2)
+                },
+                value: CardValue(2),
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(3)
+                },
+                value: CardValue(3),
+            },
             true
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(2)
-            }) == Single(Card {
-                suit: CardSuit::Jade,
-                value: CardValue(3)
-            }),
+            Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2)
+                },
+                value: CardValue(2),
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(3)
+                },
+                value: CardValue(3),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Sword,
+            Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2)
+                },
                 value: CardValue(2)
-            }) > Single(Card {
-                suit: CardSuit::Jade,
-                value: CardValue(3)
-            }),
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(3)
+                },
+                value: CardValue(3),
+            },
             false
         );
 
         // different suit, is equal to
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(11)
-            }) < Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(11)
-            }),
+            Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(11)
-            }) == Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(11)
-            }),
+            Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            },
             true
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(11)
-            }) > Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(11)
-            }),
+            Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            },
             false
         );
 
         // different suit, is greater than
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Star,
+            Single {
+                card: Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(14),
+                },
                 value: CardValue(14),
-            }) < Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(11)
-            }),
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Star,
+            Single {
+                card: Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(14),
+                },
                 value: CardValue(14),
-            }) == Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(11)
-            }),
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Star,
+            Single {
+                card: Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(14),
+                },
                 value: CardValue(14),
-            }) > Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(11)
-            }),
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            },
             true
         );
     }
@@ -551,97 +609,151 @@ mod test_single_card {
     fn it_should_compare_std_cards_of_different_suits_correctly() {
         // different suit, is less than
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Sword,
+            Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2)
+                },
                 value: CardValue(2)
-            }) < Single(Card {
-                suit: CardSuit::Jade,
-                value: CardValue(3)
-            }),
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(3)
+                },
+                value: CardValue(3),
+            },
             true
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Sword,
+            Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2)
+                },
                 value: CardValue(2)
-            }) == Single(Card {
-                suit: CardSuit::Jade,
-                value: CardValue(3)
-            }),
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(3)
+                },
+                value: CardValue(3),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Sword,
+            Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2)
+                },
                 value: CardValue(2)
-            }) > Single(Card {
-                suit: CardSuit::Jade,
-                value: CardValue(3)
-            }),
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(3)
+                },
+                value: CardValue(3),
+            },
             false
         );
 
         // different suit, is equal to
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(11)
-            }) < Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(11)
-            }),
+            Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(11)
-            }) == Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(11)
-            }),
+            Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            },
             true
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(11)
-            }) > Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(11)
-            }),
+            Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            },
             false
         );
 
         // different suit, is greater than
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Star,
+            Single {
+                card: Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(14),
+                },
                 value: CardValue(14),
-            }) < Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(11)
-            }),
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Star,
+            Single {
+                card: Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(14),
+                },
                 value: CardValue(14),
-            }) == Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(11)
-            }),
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Star,
+            Single {
+                card: Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(14),
+                },
                 value: CardValue(14),
-            }) > Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(11)
-            }),
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(11)
+                },
+                value: CardValue(11),
+            },
             true
         );
     }
@@ -650,65 +762,101 @@ mod test_single_card {
     fn it_should_compare_dragon_correctly() {
         // Dragon to standard
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Dragon,
-                value: CardValue::noop(),
-            }) < Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(14)
-            }),
+            Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
+                value: CardValue::noop()
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Dragon,
+            Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) == Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(14)
-            }),
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Dragon,
+            Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) > Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(14)
-            }),
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            },
             true
         );
 
         // standard to Dragon
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Star,
+            Single {
+                card: Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(2),
+                },
                 value: CardValue(2),
-            }) < Single(Card {
-                suit: CardSuit::Dragon,
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             true
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(7),
-            }) == Single(Card {
-                suit: CardSuit::Dragon,
+            Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(7),
+                },
+                value: CardValue(7)
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Sword,
+            Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(13),
+                },
                 value: CardValue(13),
-            }) > Single(Card {
-                suit: CardSuit::Dragon,
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
     }
@@ -720,13 +868,19 @@ mod test_single_card {
         let original_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Dragon,
+            Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) == Single(Card {
-                suit: CardSuit::Dragon,
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             true
         );
         std::panic::set_hook(original_panic_hook);
@@ -739,13 +893,19 @@ mod test_single_card {
         let original_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Dragon,
+            Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) < Single(Card {
-                suit: CardSuit::Dragon,
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
         std::panic::set_hook(original_panic_hook);
@@ -758,13 +918,19 @@ mod test_single_card {
         let original_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Dragon,
+            Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) > Single(Card {
-                suit: CardSuit::Dragon,
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
         std::panic::set_hook(original_panic_hook);
@@ -774,65 +940,101 @@ mod test_single_card {
     fn it_should_compare_phoenix_correctly() {
         // Phoenix to standard
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Phoenix,
+            Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) < Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(14)
-            }),
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Phoenix,
+            Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) == Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(14)
-            }),
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Phoenix,
+            Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) > Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(14)
-            }),
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            },
             true
         );
 
         // standard to Phoenix
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Star,
+            Single {
+                card: Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(2),
+                },
                 value: CardValue(2),
-            }) < Single(Card {
-                suit: CardSuit::Phoenix,
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             true
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(7),
-            }) == Single(Card {
-                suit: CardSuit::Phoenix,
+            Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(7),
+                },
+                value: CardValue(7)
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Sword,
+            Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(14),
+                },
                 value: CardValue(14),
-            }) > Single(Card {
-                suit: CardSuit::Phoenix,
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
     }
@@ -844,13 +1046,19 @@ mod test_single_card {
         let original_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Phoenix,
+            Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) == Single(Card {
-                suit: CardSuit::Phoenix,
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             true
         );
         std::panic::set_hook(original_panic_hook);
@@ -863,13 +1071,19 @@ mod test_single_card {
         let original_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Phoenix,
+            Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) < Single(Card {
-                suit: CardSuit::Phoenix,
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
         std::panic::set_hook(original_panic_hook);
@@ -882,13 +1096,19 @@ mod test_single_card {
         let original_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Phoenix,
+            Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) > Single(Card {
-                suit: CardSuit::Phoenix,
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
         std::panic::set_hook(original_panic_hook);
@@ -897,33 +1117,51 @@ mod test_single_card {
     #[test]
     fn it_should_compare_dragon_to_phoenix_correctly() {
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Phoenix,
+            Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) < Single(Card {
-                suit: CardSuit::Dragon,
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             true
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Phoenix,
+            Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) == Single(Card {
-                suit: CardSuit::Dragon,
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Phoenix,
+            Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) > Single(Card {
-                suit: CardSuit::Dragon,
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
     }
@@ -931,65 +1169,101 @@ mod test_single_card {
     fn it_should_compare_mahjong_correctly() {
         // MahJong to standard
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::MahJong,
+            Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) < Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(14)
-            }),
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            },
             true
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::MahJong,
+            Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) == Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(14)
-            }),
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::MahJong,
+            Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) > Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(14)
-            }),
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            },
             false
         );
 
         // standard to MahJong
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Star,
+            Single {
+                card: Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(2),
+                },
                 value: CardValue(2),
-            }) < Single(Card {
-                suit: CardSuit::MahJong,
-                value: CardValue::noop(),
-            }),
+            } < Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
+                value: CardValue(2),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Pagoda,
+            Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(7),
+                },
                 value: CardValue(7),
-            }) == Single(Card {
-                suit: CardSuit::MahJong,
+            } == Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Sword,
+            Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(13),
+                },
                 value: CardValue(13),
-            }) > Single(Card {
-                suit: CardSuit::MahJong,
+            } > Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             true
         );
     }
@@ -998,65 +1272,101 @@ mod test_single_card {
     fn it_should_compare_the_dog_correctly() {
         // Dog to standard
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Dog,
+            Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) < Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(14)
-            }),
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            },
             true
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Dog,
+            Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) == Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(14)
-            }),
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Dog,
+            Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }) > Single(Card {
-                suit: CardSuit::Pagoda,
-                value: CardValue(14)
-            }),
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            },
             false
         );
 
         // standard to Dog
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Star,
+            Single {
+                card: Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(2),
+                },
                 value: CardValue(2),
-            }) < Single(Card {
-                suit: CardSuit::Dog,
+            } < Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Pagoda,
+            Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(7),
+                },
                 value: CardValue(7),
-            }) == Single(Card {
-                suit: CardSuit::Dog,
+            } == Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             false
         );
         assert_eq!(
-            Single(Card {
-                suit: CardSuit::Sword,
+            Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(13),
+                },
                 value: CardValue(13),
-            }) > Single(Card {
-                suit: CardSuit::Dog,
+            } > Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }),
+            },
             true
         );
     }

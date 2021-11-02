@@ -24,7 +24,11 @@ mod test_get_card_combination {
             value: CardValue(2),
         }];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombo::Single(Single(returned_card))) = combo {
+        if let Some(ValidCardCombo::Single(Single {
+            card: returned_card,
+            ..
+        })) = combo
+        {
             assert_eq!(returned_card, cards[0]);
         } else {
             fmt_panic(cards, combo);
@@ -36,7 +40,11 @@ mod test_get_card_combination {
             value: CardValue::noop(),
         }];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombo::Single(Single(returned_card))) = combo {
+        if let Some(ValidCardCombo::Single(Single {
+            card: returned_card,
+            ..
+        })) = combo
+        {
             assert_eq!(returned_card, cards[0]);
         } else {
             fmt_panic(cards, combo);
@@ -47,7 +55,11 @@ mod test_get_card_combination {
             value: CardValue::noop(),
         }];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombo::Single(Single(returned_card))) = combo {
+        if let Some(ValidCardCombo::Single(Single {
+            card: returned_card,
+            ..
+        })) = combo
+        {
             assert_eq!(returned_card, cards[0]);
         } else {
             fmt_panic(cards, combo);
@@ -58,7 +70,11 @@ mod test_get_card_combination {
             value: CardValue::noop(),
         }];
         let combo = get_card_combination(&cards);
-        if let Some(ValidCardCombo::Single(Single(returned_card))) = combo {
+        if let Some(ValidCardCombo::Single(Single {
+            card: returned_card,
+            ..
+        })) = combo
+        {
             assert_eq!(returned_card, cards[0]);
         } else {
             fmt_panic(cards, combo);
@@ -4372,10 +4388,10 @@ mod test_sort_cards_for_hand {
 }
 
 #[cfg(test)]
-mod test_can_play_card_combo {
+mod test_next_combo_beats_prev {
     use common::{
-        can_play_card_combo, BombOf4, Card, CardSuit, CardValue, Pair, Sequence, SequenceBomb,
-        Single, ValidCardCombo,
+        next_combo_beats_prev, BombOf4, Card, CardSuit, CardValue, FullHouse, Pair, Sequence,
+        SequenceBomb, Single, ValidCardCombo,
     };
     use std::vec;
 
@@ -4383,44 +4399,56 @@ mod test_can_play_card_combo {
     fn it_should_allow_valid_bombs_of_4() {
         // any special card:
         // maj jong
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::MahJong,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
+            })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
                 value: CardValue(2)
             })
         ));
         // dog
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dog,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
+            })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
                 value: CardValue(2)
             })
         ));
         // phoenix
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Phoenix,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
+            })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
                 value: CardValue(2)
             })
         ));
         // dragon
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dragon,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
+            })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
                 value: CardValue(2)
@@ -4429,18 +4457,21 @@ mod test_can_play_card_combo {
 
         // any non-bomb combo:
         // single
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Star,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(14),
+                },
                 value: CardValue(14),
-            }))),
+            })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
                 value: CardValue(14)
             })
         ));
         // big combos
-        assert!(can_play_card_combo(
+        assert!(next_combo_beats_prev(
             &Some(ValidCardCombo::Sequence(Sequence {
                 cards: vec![/* omitted */],
                 number_of_cards: 13,
@@ -4453,7 +4484,7 @@ mod test_can_play_card_combo {
         ));
 
         // lower bomb of 4
-        assert!(can_play_card_combo(
+        assert!(next_combo_beats_prev(
             &Some(ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
                 value: CardValue(13)
@@ -4468,7 +4499,7 @@ mod test_can_play_card_combo {
     #[test]
     fn it_should_not_allow_invalid_bombs_of_4() {
         // higher bomb of 4
-        assert!(!can_play_card_combo(
+        assert!(!next_combo_beats_prev(
             &Some(ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
                 value: CardValue(13)
@@ -4480,7 +4511,7 @@ mod test_can_play_card_combo {
         ));
 
         // sequence bomb
-        assert!(!can_play_card_combo(
+        assert!(!next_combo_beats_prev(
             &Some(ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![/* omitted */],
                 number_of_cards: 5,
@@ -4505,49 +4536,64 @@ mod test_can_play_card_combo {
 
         // any special card:
         // maj jong
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::MahJong,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
+            })),
             &sequence_bomb_example,
         ));
         // dog
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dog,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
+            })),
             &sequence_bomb_example,
         ));
         // phoenix
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Phoenix,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
+            })),
             &sequence_bomb_example,
         ));
         // dragon
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dragon,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
+            })),
             &sequence_bomb_example,
         ));
 
         // any non-bomb combo:
         // single
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Star,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Star,
+                    value: CardValue(14),
+                },
                 value: CardValue(14),
-            }))),
+            })),
             &sequence_bomb_example,
         ));
         // big combos
-        assert!(can_play_card_combo(
+        assert!(next_combo_beats_prev(
             &Some(ValidCardCombo::Sequence(Sequence {
                 cards: vec![/* omitted */],
                 number_of_cards: 13,
@@ -4557,7 +4603,7 @@ mod test_can_play_card_combo {
         ));
 
         // bomb of 4
-        assert!(can_play_card_combo(
+        assert!(next_combo_beats_prev(
             &Some(ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
                 value: CardValue(14),
@@ -4566,7 +4612,7 @@ mod test_can_play_card_combo {
         ));
 
         // sequence bomb of fewer cards
-        assert!(can_play_card_combo(
+        assert!(next_combo_beats_prev(
             &Some(ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![/* omitted */],
                 number_of_cards: 5,
@@ -4582,7 +4628,7 @@ mod test_can_play_card_combo {
         ));
 
         // sequence bomb of same number of cards but lower value
-        assert!(can_play_card_combo(
+        assert!(next_combo_beats_prev(
             &Some(ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![/* omitted */],
                 number_of_cards: 5,
@@ -4601,7 +4647,7 @@ mod test_can_play_card_combo {
     #[test]
     fn it_should_not_allow_invalid_sequence_bombs() {
         // longer sequence bomb
-        assert!(!can_play_card_combo(
+        assert!(!next_combo_beats_prev(
             &Some(ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![/* omitted */],
                 number_of_cards: 6,
@@ -4617,7 +4663,7 @@ mod test_can_play_card_combo {
         ));
 
         // sequence bomb with same number of higher value
-        assert!(!can_play_card_combo(
+        assert!(!next_combo_beats_prev(
             &Some(ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![/* omitted */],
                 number_of_cards: 5,
@@ -4637,55 +4683,79 @@ mod test_can_play_card_combo {
     fn it_should_allow_valid_dragon_plays() {
         // any standard card:
         // standard card
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Jade,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(14)
+                },
                 value: CardValue(14)
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dragon,
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
         // against phoenix
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Phoenix,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dragon,
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
         // against MahJong
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::MahJong,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dragon,
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
         // against Dog
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dog,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dragon,
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
     }
 
     #[test]
     fn it_should_not_allow_invalid_dragon_plays() {
         // against non-single cards
-        assert!(!can_play_card_combo(
+        assert!(!next_combo_beats_prev(
             &Some(ValidCardCombo::Pair(Pair {
                 value: CardValue(2),
                 cards: vec![
@@ -4699,56 +4769,77 @@ mod test_can_play_card_combo {
                     }
                 ]
             })),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dragon,
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
     }
 
     #[test]
     fn it_should_allow_valid_phoenix_plays() {
         // any single standard card
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Jade,
-                value: CardValue(14)
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Phoenix,
-                value: CardValue::noop(),
-            }))
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
+                value: CardValue::noop()
+            })
         ));
 
         // dog
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dog,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Phoenix,
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
 
         // mah jong
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::MahJong,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Phoenix,
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
     }
 
     #[test]
     fn it_should_not_allow_invalid_phoenix_plays() {
         // non-single cards
-        assert!(!can_play_card_combo(
+        assert!(!next_combo_beats_prev(
             &Some(ValidCardCombo::Pair(Pair {
                 value: CardValue(2),
                 cards: vec![
@@ -4762,150 +4853,387 @@ mod test_can_play_card_combo {
                     }
                 ]
             })),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Phoenix,
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
 
         // dragon
-        assert!(!can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dragon,
+        assert!(!next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Phoenix,
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
     }
 
     #[test]
     fn it_should_allow_valid_dog_plays() {
         // none
-        assert!(can_play_card_combo(
+        assert!(next_combo_beats_prev(
             &None,
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Phoenix,
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
     }
 
     #[test]
     fn it_should_not_allow_invalid_dog_plays() {
         // some
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(2),
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Phoenix,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2),
+                },
                 value: CardValue::noop(),
-            }))
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
+                value: CardValue::noop(),
+            })
         ));
     }
 
     #[test]
     fn it_should_allow_valid_mah_jong_plays() {
         // none
-        assert!(can_play_card_combo(
+        assert!(next_combo_beats_prev(
             &None,
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Phoenix,
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
 
         // dog
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Dog,
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Phoenix,
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
     }
 
     #[test]
     fn it_should_not_allow_invalid_mah_jong_plays() {
         // some
-        assert!(!can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Sword,
+        assert!(!next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2),
+                },
                 value: CardValue(2),
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::MahJong,
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
                 value: CardValue::noop(),
-            }))
+            })
         ));
     }
 
     #[test]
     fn it_should_allow_valid_standard_singles() {
         // single
-        assert!(can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Jade,
-                value: CardValue(2)
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(3)
-            }))
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(2)
+                },
+                value: CardValue(2),
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(3)
+                },
+                value: CardValue(3),
+            })
         ));
 
-        // on top of lower Phoenix (this will require refactor of Single data structure)
-        todo!();
+        // on top of lower Phoenix
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
+                value: CardValue(11),
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(12)
+                },
+                value: CardValue(12),
+            })
+        ));
 
         // Mah Jong
-        todo!();
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
+                value: CardValue::noop(),
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2)
+                },
+                value: CardValue(2),
+            })
+        ));
 
         // Dog
-        todo!();
+        assert!(next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
+                value: CardValue::noop(),
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2)
+                },
+                value: CardValue(2),
+            })
+        ));
     }
 
     #[test]
     fn it_should_not_allow_invalid_standard_singles() {
         // ==
-        assert!(!can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Jade,
-                value: CardValue(2)
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(2)
-            }))
+        assert!(!next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(2)
+                },
+                value: CardValue(3),
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2)
+                },
+                value: CardValue(2),
+            })
         ));
 
         // <
-        assert!(!can_play_card_combo(
-            &Some(ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Jade,
-                value: CardValue(3)
-            }))),
-            &ValidCardCombo::Single(Single(Card {
-                suit: CardSuit::Sword,
-                value: CardValue(2)
-            }))
+        assert!(!next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Jade,
+                    value: CardValue(3)
+                },
+                value: CardValue(3),
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(2)
+                },
+                value: CardValue(3),
+            })
         ));
 
         // against non-single cards
+        assert!(!next_combo_beats_prev(
+            &Some(ValidCardCombo::Pair(Pair {
+                cards: vec![
+                    Card {
+                        suit: CardSuit::Jade,
+                        value: CardValue(3)
+                    },
+                    Card {
+                        suit: CardSuit::Sword,
+                        value: CardValue(3)
+                    }
+                ],
+                value: CardValue(3),
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(4)
+                },
+                value: CardValue(4),
+            })
+        ));
 
-        // on top of higher Phoenix (this will require refactor of Single data structure)
-        todo!();
+        // on top of higher Phoenix
+        assert!(!next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
+                value: CardValue(11),
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(7)
+                },
+                value: CardValue(7),
+            })
+        ));
 
         // on top of Dragon
-        todo!();
+        assert!(!next_combo_beats_prev(
+            &Some(ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
+                value: CardValue::noop(),
+            })),
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            })
+        ));
     }
 
     #[test]
-    fn it_should_allow_any_card_when_none_has_been_played() {}
+    fn it_should_allow_any_card_when_none_has_been_played() {
+        // single
+        assert!(next_combo_beats_prev(
+            &None,
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Pagoda,
+                    value: CardValue(2)
+                },
+                value: CardValue(2),
+            })
+        ));
+        assert!(next_combo_beats_prev(
+            &None,
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Sword,
+                    value: CardValue(14)
+                },
+                value: CardValue(14),
+            })
+        ));
+
+        // Mah Jong
+        assert!(next_combo_beats_prev(
+            &None,
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::MahJong,
+                    value: CardValue::noop(),
+                },
+                value: CardValue::noop(),
+            })
+        ));
+
+        // Dog
+        assert!(next_combo_beats_prev(
+            &None,
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dog,
+                    value: CardValue::noop(),
+                },
+                value: CardValue::noop(),
+            })
+        ));
+
+        // Phoenix
+        assert!(next_combo_beats_prev(
+            &None,
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Phoenix,
+                    value: CardValue::noop(),
+                },
+                value: CardValue(2),
+            })
+        ));
+
+        // Dragon
+        assert!(next_combo_beats_prev(
+            &None,
+            &ValidCardCombo::Single(Single {
+                card: Card {
+                    suit: CardSuit::Dragon,
+                    value: CardValue::noop(),
+                },
+                value: CardValue::noop(),
+            })
+        ));
+
+        // full house
+        assert!(next_combo_beats_prev(
+            &None,
+            &ValidCardCombo::FullHouse(FullHouse {
+                cards: vec![/* omitted */],
+                trio_value: CardValue(10),
+            })
+        ));
+
+        // long sequence
+        assert!(next_combo_beats_prev(
+            &None,
+            &ValidCardCombo::Sequence(Sequence {
+                cards: vec![/* omitted */],
+                number_of_cards: 10,
+                starting_value: CardValue(2),
+            })
+        ));
+    }
 }

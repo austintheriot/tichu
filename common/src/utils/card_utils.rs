@@ -60,9 +60,10 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombo> {
 
     // length 1: a single card
     if cards.len() == 1 {
-        return Some(ValidCardCombo::Single(Single(
-            cards.get(0).unwrap().clone(),
-        )));
+        return Some(ValidCardCombo::Single(Single{
+            card:   cards.get(0).unwrap().clone(),
+            value:   cards.get(0).unwrap().value.clone(),
+        }));
     }
 
     if cards.len() == 2 {
@@ -344,7 +345,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombo> {
     None
 }
 
-pub fn can_play_card_combo(prev: &Option<ValidCardCombo>, next: &ValidCardCombo) -> bool {
+pub fn next_combo_beats_prev(prev: &Option<ValidCardCombo>, next: &ValidCardCombo) -> bool {
     if let Some(prev) = prev {
         // sequence bomb
         if let ValidCardCombo::SequenceBomb(next_sequence_bomb) = &next {
@@ -370,16 +371,14 @@ pub fn can_play_card_combo(prev: &Option<ValidCardCombo>, next: &ValidCardCombo)
             }
           }
 
-        //   // Phoenix
-        //   if let ValidCardCombo::Single(Single(Card { suit: CardSuit::Phoenix, .. })) = &next {
-        //     // phoenix vs dragon
-        //     return if let ValidCardCombo::Single(Single(Card { suit: CardSuit::Dragon, ..}) ) = &prev {
-        //         false
-        //     } else {
-        //         // can play against any other, single card
-        //         std::mem::discriminant(&prev) == std::mem::discriminant(&next)
-        //     }
-        //   }
+          // Standard single on top of Phoenix single
+          if let ValidCardCombo::Single(Single{ card: Card { suit: CardSuit::Phoenix, .. }, value: prev_value, }) = &prev {
+            if let ValidCardCombo::Single(Single{ card: Card { suit: next_suit, ..}, value: next_value, } ) = &next {
+                if !next_suit.is_special() {
+                    return next_value > prev_value
+                }
+            }
+          }
 
           // any standard card must be the same type and greater
           (std::mem::discriminant(&prev) == std::mem::discriminant(&next)) && (next > prev)
