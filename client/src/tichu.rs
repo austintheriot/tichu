@@ -1,10 +1,10 @@
 use crate::types::CTSMsgInternal;
 use anyhow::Error;
 use common::{
-    clean_up_display_name, clean_up_game_code, get_card_combination, sort_cards_for_hand,
-    validate_display_name, validate_game_code, validate_team_name, CTSMsg, CallGrandTichuRequest,
-    Card, CardTrade, MutableTeam, OtherPlayerOption, PublicGameStage, PublicGameState, PublicUser,
-    STCMsg, TeamOption, TichuCallStatus, NO_USER_ID,
+    clean_up_display_name, clean_up_game_code, get_card_combination, next_combo_beats_prev,
+    sort_cards_for_hand, validate_display_name, validate_game_code, validate_team_name, CTSMsg,
+    CallGrandTichuRequest, Card, CardTrade, MutableTeam, OtherPlayerOption, PublicGameStage,
+    PublicGameState, PublicUser, STCMsg, TeamOption, TichuCallStatus, ValidCardCombo, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -1020,11 +1020,6 @@ impl App {
         self.stage_is_trade() && !self.has_submitted_trade()
     }
 
-    /// only for use in the Play stage
-    fn can_select_play_card(&self) -> bool {
-        self.stage_is_play()
-    }
-
     fn view_selected_pre_play_card_button(&self) -> Html {
         match &self.state.selected_pre_play_card {
             Some(card) => {
@@ -1198,8 +1193,61 @@ impl App {
             .any(|selected_card| *selected_card == *card)
     }
 
-    fn is_valid_combination(&self) -> bool {
-        get_card_combination(&self.state.selected_play_cards).is_some()
+    fn can_select_play_card(&self) -> bool {
+        self.stage_is_play()
+    }
+
+    fn hand_beats_combo_on_table(&self, next_combo: &ValidCardCombo) -> bool {
+        let prev_combo = if let Some(game_state) = &self.state.game_state {
+            if let PublicGameStage::Play(play_stage) = &game_state.stage {
+                if play_stage.table.len() > 0 {
+                    play_stage.table.get(play_stage.table.len() - 1)
+                } else {
+                    None
+                }
+            } else {
+                // game stage is not Play
+                return false;
+            }
+        } else {
+            // game state is not instantiated
+            return false;
+        };
+        next_combo_beats_prev(&prev_combo, &next_combo)
+    }
+
+    fn is_current_users_turn(&self) -> bool {
+        if let Some(game_state) = &self.state.game_state {
+            if let PublicGameStage::Play(play_state) = &game_state.stage {
+                return play_state.turn_user_id == self.state.user_id;
+            }
+        }
+        false
+    }
+
+    fn view_is_valid_combo(&self) -> Html {
+        html!(
+            <p>
+            {if get_card_combination(&self.state.selected_play_cards).is_some() {
+                "Valid combination"
+            } else {
+                "Invalid combination"
+            }}
+            </p>
+        )
+    }
+
+    fn can_play_cards(&self) -> bool {
+        // must be users turn OR must be playable bomb
+        let combo = get_card_combination(&self.state.selected_play_cards);
+        if let Some(combo) = combo {
+            self.stage_is_play()
+                && (self.is_current_users_turn() || combo.is_bomb())
+                && self.hand_beats_combo_on_table(&combo)
+        } else {
+            // cards are not a valid combo
+            false
+        }
     }
 
     fn view_play_hand(&self) -> Html {
@@ -1276,7 +1324,8 @@ impl App {
                 <br />
                 <br />
                 <button
-                    disabled=!self.is_valid_combination()
+                    disabled=!self.can_play_cards()
+                    onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::PlayCards))
                     type="submit"
                     >
                     {"Submit cards"}
@@ -1284,6 +1333,9 @@ impl App {
                 <br />
                 <br />
                 {self.call_small_tichu_button()}
+                <br />
+                <br />
+                {self.view_is_valid_combo()}
                 <br />
                 <br />
                 {self.view_selected_play_card_buttons()}
@@ -1597,9 +1649,8 @@ impl App {
                 self._send_ws_message(&CTSMsg::SubmitTrade(submit_trade));
                 false
             }
-            _ => {
-                warn!("Tried to send unexpected message type {:?}", &msg_type);
-                false
+            CTSMsgInternal::PlayCards => {
+                todo!();
             }
         }
     }

@@ -75,11 +75,6 @@ pub enum CTSMsg {
         game_code: String,
     },
 
-    JoinRandomGame {
-        user_id: String,
-        display_name: String,
-    },
-
     /// Create game as the owner
     CreateGame {
         user_id: String,
@@ -105,14 +100,10 @@ pub enum CTSMsg {
     SubmitTrade(SubmitTrade),
 
     /// Submit cards to play in the Play stage
-    SubmitCards {
+    PlayCards {
         cards: Vec<Card>,
         wished_for: Option<Card>,
         give_dragon_to: Option<String>,
-    },
-
-    GiveDragon {
-        user_id: String,
     },
 
     Ping,

@@ -5,6 +5,7 @@ mod join_game_with_game_code;
 mod leave_game;
 mod move_to_team;
 mod ping;
+mod play_cards;
 mod pong;
 mod rename_team;
 mod start_grand_tichu;
@@ -18,6 +19,7 @@ use join_game_with_game_code::join_game_with_game_code;
 use leave_game::leave_game;
 use move_to_team::move_to_team;
 use ping::ping;
+use play_cards::play_cards;
 use pong::pong;
 use rename_team::rename_team;
 use start_grand_tichu::start_grand_tichu;
@@ -26,7 +28,7 @@ use test::test;
 
 use super::send_ws_message;
 use crate::{Connections, GameCodes, Games};
-use common::{CTSMsg, STCMsg};
+use common::CTSMsg;
 use warp::ws::Message;
 
 pub async fn handle_message_received(
@@ -98,14 +100,19 @@ pub async fn handle_message_received(
         CTSMsg::SubmitTrade(trade_array) => {
             submit_trade(trade_array, &user_id, &connections, &games, &game_codes).await;
         }
-        any_other_message => {
-            eprintln!("Unexpected message received: {:?}", any_other_message);
-
-            // let user know something weird was received
-            send_ws_message::to_user(
+        CTSMsg::PlayCards {
+            cards,
+            give_dragon_to,
+            wished_for,
+        } => {
+            play_cards(
                 &user_id,
-                STCMsg::UnexpectedMessageReceived(format!("{:#?}", &any_other_message)),
+                cards,
+                give_dragon_to,
+                wished_for,
                 &connections,
+                &games,
+                &game_codes,
             )
             .await;
         }

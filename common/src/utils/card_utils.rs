@@ -345,7 +345,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombo> {
     None
 }
 
-pub fn next_combo_beats_prev(prev: &Option<ValidCardCombo>, next: &ValidCardCombo) -> bool {
+pub fn next_combo_beats_prev(prev: &Option<&ValidCardCombo>, next: &ValidCardCombo) -> bool {
     if let Some(prev) = prev {
         // sequence bomb
         if let ValidCardCombo::SequenceBomb(next_sequence_bomb) = &next {
@@ -381,7 +381,7 @@ pub fn next_combo_beats_prev(prev: &Option<ValidCardCombo>, next: &ValidCardComb
           }
 
           // any standard card must be the same type and greater
-          (std::mem::discriminant(&prev) == std::mem::discriminant(&next)) && (next > prev)
+          (std::mem::discriminant(prev) == std::mem::discriminant(&next)) && (next > prev)
     } else {
         // no card has yet been played, any combination can follow
         true

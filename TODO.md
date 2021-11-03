@@ -16,6 +16,7 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
+- determine order of turns between participants
 - how to INFER value field of Single Phoenix combo
 - use .iter().skip(1).enumerate() in for loop instead of a range starting from 1
 - use "into" pattern more: 

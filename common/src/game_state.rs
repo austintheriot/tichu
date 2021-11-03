@@ -1,8 +1,8 @@
 use crate::{
-    get_card_combination, get_new_game_code, sort_cards_for_hand, user::UserRole,
-    CallGrandTichuRequest, Card, CardSuit, Deck, GetSmallTichu, ImmutableTeam, MutableTeam,
-    OtherPlayers, PrivateGameStage, PrivateGrandTichu, PrivatePlay, PrivateUser, PublicGameStage,
-    PublicUser, SubmitTrade, TeamCategories, TeamOption, TichuCallStatus,
+    get_card_combination, get_new_game_code, next_combo_beats_prev, sort_cards_for_hand,
+    user::UserRole, CallGrandTichuRequest, Card, CardSuit, Deck, GetSmallTichu, ImmutableTeam,
+    MutableTeam, OtherPlayers, PrivateGameStage, PrivateGrandTichu, PrivatePlay, PrivateUser,
+    PublicGameStage, PublicUser, SubmitTrade, TeamCategories, TeamOption, TichuCallStatus,
     UserIdWithTichuCallStatus, NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
@@ -664,16 +664,28 @@ impl PrivateGameState {
         }
     }
 
-    pub fn play_cards(&self, user_id: &str, cards: Vec<Card>) -> Self {
-        let mut new_game_state = self.clone();
+    pub fn play_cards(
+        &self,
+        user_id: &str,
+        next_cards: Vec<Card>,
+        give_dragon_to: Option<String>,
+        wished_for: Option<Card>,
+    ) -> Self {
+        let new_game_state = self.clone();
 
         // must be play stage
         if let PrivateGameStage::Play(play_stage) = &new_game_state.stage {
-            let combo = get_card_combination(&cards);
-            if let Some(combo) = combo {
+            let next_combo = get_card_combination(&next_cards);
+            if let Some(next_combo) = next_combo {
                 // must be the player's turn (unless a bomb)
                 if play_stage.turn_user_id == user_id {
+                    let prev_combo = play_stage.table.get(play_stage.table.len() - 1);
                     // must be a valid play based on the previous card (or no card)
+                    if next_combo_beats_prev(&prev_combo, &next_combo) {
+                        eprintln!("Can play!");
+                    } else {
+                        eprintln!("Can't play!");
+                    }
                 } else {
                     eprintln!(
                         "Couldn't accept card play submitted by user {} because it is not the user's turn",
@@ -694,7 +706,6 @@ impl PrivateGameState {
             );
             return new_game_state;
         }
-
         new_game_state
     }
 }

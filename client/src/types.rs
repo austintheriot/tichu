@@ -8,15 +8,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CTSMsgInternal {
     JoinGameWithGameCode,
-    JoinRandomGame,
     MoveToTeam(TeamOption),
     RenameTeam(TeamOption),
     CreateGame,
     LeaveGame,
     StartGrandTichu,
     SubmitTrade,
-    SubmitCards,
-    GiveDragon,
+    PlayCards,
     CallGrandTichu(CallGrandTichuRequest),
     CallSmallTichu,
 
