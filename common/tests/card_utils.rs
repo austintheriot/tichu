@@ -25,11 +25,11 @@ mod test_get_card_combination {
         }];
         let combo = get_card_combination(&cards);
         if let Some(ValidCardCombo::Single(Single {
-            card: returned_card,
+            cards: returned_cards,
             ..
         })) = combo
         {
-            assert_eq!(returned_card, cards[0]);
+            assert_eq!(returned_cards, cards);
         } else {
             fmt_panic(cards, combo);
         }
@@ -41,11 +41,11 @@ mod test_get_card_combination {
         }];
         let combo = get_card_combination(&cards);
         if let Some(ValidCardCombo::Single(Single {
-            card: returned_card,
+            cards: returned_cards,
             ..
         })) = combo
         {
-            assert_eq!(returned_card, cards[0]);
+            assert_eq!(returned_cards, cards);
         } else {
             fmt_panic(cards, combo);
         }
@@ -56,11 +56,11 @@ mod test_get_card_combination {
         }];
         let combo = get_card_combination(&cards);
         if let Some(ValidCardCombo::Single(Single {
-            card: returned_card,
+            cards: returned_cards,
             ..
         })) = combo
         {
-            assert_eq!(returned_card, cards[0]);
+            assert_eq!(returned_cards, cards);
         } else {
             fmt_panic(cards, combo);
         }
@@ -71,11 +71,11 @@ mod test_get_card_combination {
         }];
         let combo = get_card_combination(&cards);
         if let Some(ValidCardCombo::Single(Single {
-            card: returned_card,
+            cards: returned_cards,
             ..
         })) = combo
         {
-            assert_eq!(returned_card, cards[0]);
+            assert_eq!(returned_cards, cards);
         } else {
             fmt_panic(cards, combo);
         }
@@ -4401,10 +4401,10 @@ mod test_next_combo_beats_prev {
         // maj jong
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::MahJong,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
@@ -4415,10 +4415,10 @@ mod test_next_combo_beats_prev {
         // dog
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dog,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
@@ -4429,10 +4429,10 @@ mod test_next_combo_beats_prev {
         // phoenix
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
@@ -4443,10 +4443,10 @@ mod test_next_combo_beats_prev {
         // dragon
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
@@ -4459,10 +4459,10 @@ mod test_next_combo_beats_prev {
         // single
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Star,
                     value: CardValue(14),
-                },
+                }],
                 value: CardValue(14),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
@@ -4538,10 +4538,10 @@ mod test_next_combo_beats_prev {
         // maj jong
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::MahJong,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &sequence_bomb_example,
@@ -4549,10 +4549,10 @@ mod test_next_combo_beats_prev {
         // dog
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dog,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &sequence_bomb_example,
@@ -4560,10 +4560,10 @@ mod test_next_combo_beats_prev {
         // phoenix
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &sequence_bomb_example,
@@ -4571,10 +4571,10 @@ mod test_next_combo_beats_prev {
         // dragon
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &sequence_bomb_example,
@@ -4584,10 +4584,10 @@ mod test_next_combo_beats_prev {
         // single
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Star,
                     value: CardValue(14),
-                },
+                }],
                 value: CardValue(14),
             })),
             &sequence_bomb_example,
@@ -4685,68 +4685,68 @@ mod test_next_combo_beats_prev {
         // standard card
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Jade,
                     value: CardValue(14)
-                },
+                }],
                 value: CardValue(14)
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
         // against phoenix
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
         // against MahJong
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::MahJong,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
         // against Dog
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dog,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -4770,10 +4770,10 @@ mod test_next_combo_beats_prev {
                 ]
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -4784,17 +4784,17 @@ mod test_next_combo_beats_prev {
         // any single standard card
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Jade,
                     value: CardValue(14)
-                },
+                }],
                 value: CardValue(14),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop()
             })
         ));
@@ -4802,17 +4802,17 @@ mod test_next_combo_beats_prev {
         // dog
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dog,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -4820,17 +4820,17 @@ mod test_next_combo_beats_prev {
         // mah jong
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::MahJong,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -4854,10 +4854,10 @@ mod test_next_combo_beats_prev {
                 ]
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -4865,17 +4865,17 @@ mod test_next_combo_beats_prev {
         // dragon
         assert!(!next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -4887,10 +4887,10 @@ mod test_next_combo_beats_prev {
         assert!(next_combo_beats_prev(
             &None,
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -4901,17 +4901,17 @@ mod test_next_combo_beats_prev {
         // some
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(2),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -4923,10 +4923,10 @@ mod test_next_combo_beats_prev {
         assert!(next_combo_beats_prev(
             &None,
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -4934,17 +4934,17 @@ mod test_next_combo_beats_prev {
         // dog
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dog,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -4955,17 +4955,17 @@ mod test_next_combo_beats_prev {
         // some
         assert!(!next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(2),
-                },
+                }],
                 value: CardValue(2),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::MahJong,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -4976,17 +4976,17 @@ mod test_next_combo_beats_prev {
         // single
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Jade,
                     value: CardValue(2)
-                },
+                }],
                 value: CardValue(2),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(3)
-                },
+                }],
                 value: CardValue(3),
             })
         ));
@@ -4994,17 +4994,17 @@ mod test_next_combo_beats_prev {
         // on top of lower Phoenix
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue(11),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(12)
-                },
+                }],
                 value: CardValue(12),
             })
         ));
@@ -5012,17 +5012,17 @@ mod test_next_combo_beats_prev {
         // Mah Jong
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::MahJong,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(2)
-                },
+                }],
                 value: CardValue(2),
             })
         ));
@@ -5030,17 +5030,17 @@ mod test_next_combo_beats_prev {
         // Dog
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dog,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(2)
-                },
+                }],
                 value: CardValue(2),
             })
         ));
@@ -5051,17 +5051,17 @@ mod test_next_combo_beats_prev {
         // ==
         assert!(!next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Jade,
                     value: CardValue(2)
-                },
+                }],
                 value: CardValue(3),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(2)
-                },
+                }],
                 value: CardValue(2),
             })
         ));
@@ -5069,17 +5069,17 @@ mod test_next_combo_beats_prev {
         // <
         assert!(!next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Jade,
                     value: CardValue(3)
-                },
+                }],
                 value: CardValue(3),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(2)
-                },
+                }],
                 value: CardValue(3),
             })
         ));
@@ -5100,10 +5100,10 @@ mod test_next_combo_beats_prev {
                 value: CardValue(3),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(4)
-                },
+                }],
                 value: CardValue(4),
             })
         ));
@@ -5111,17 +5111,17 @@ mod test_next_combo_beats_prev {
         // on top of higher Phoenix
         assert!(!next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue(11),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(7)
-                },
+                }],
                 value: CardValue(7),
             })
         ));
@@ -5129,17 +5129,17 @@ mod test_next_combo_beats_prev {
         // on top of Dragon
         assert!(!next_combo_beats_prev(
             &Some(&ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })),
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
-                },
+                }],
                 value: CardValue(14),
             })
         ));
@@ -5151,20 +5151,20 @@ mod test_next_combo_beats_prev {
         assert!(next_combo_beats_prev(
             &None,
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(2)
-                },
+                }],
                 value: CardValue(2),
             })
         ));
         assert!(next_combo_beats_prev(
             &None,
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(14)
-                },
+                }],
                 value: CardValue(14),
             })
         ));
@@ -5173,10 +5173,10 @@ mod test_next_combo_beats_prev {
         assert!(next_combo_beats_prev(
             &None,
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::MahJong,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -5185,10 +5185,10 @@ mod test_next_combo_beats_prev {
         assert!(next_combo_beats_prev(
             &None,
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dog,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));
@@ -5197,10 +5197,10 @@ mod test_next_combo_beats_prev {
         assert!(next_combo_beats_prev(
             &None,
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue(2),
             })
         ));
@@ -5209,10 +5209,10 @@ mod test_next_combo_beats_prev {
         assert!(next_combo_beats_prev(
             &None,
             &ValidCardCombo::Single(Single {
-                card: Card {
+                cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
-                },
+                }],
                 value: CardValue::noop(),
             })
         ));

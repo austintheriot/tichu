@@ -61,8 +61,8 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombo> {
     // length 1: a single card
     if cards.len() == 1 {
         return Some(ValidCardCombo::Single(Single{
-            card:   cards.get(0).unwrap().clone(),
-            value:   cards.get(0).unwrap().value.clone(),
+            cards: vec![cards.get(0).unwrap().clone()],
+            value: cards.get(0).unwrap().value.clone(),
         }));
     }
 
@@ -372,12 +372,16 @@ pub fn next_combo_beats_prev(prev: &Option<&ValidCardCombo>, next: &ValidCardCom
           }
 
           // Standard single on top of Phoenix single
-          if let ValidCardCombo::Single(Single{ card: Card { suit: CardSuit::Phoenix, .. }, value: prev_value, }) = &prev {
-            if let ValidCardCombo::Single(Single{ card: Card { suit: next_suit, ..}, value: next_value, } ) = &next {
-                if !next_suit.is_special() {
-                    return next_value > prev_value
+          if let ValidCardCombo::Single(Single{ cards: prev_cards, value: prev_value, }) = &prev {
+              if let Some(Card { suit: CardSuit::Phoenix, .. }) = prev_cards.first() {
+                if let ValidCardCombo::Single(Single{ cards: next_cards, value: next_value, } ) = &next {
+                    if let Some(Card { suit: next_suit, ..}) = next_cards.first() {
+                        if !next_suit.is_special() {
+                            return next_value > prev_value
+                        }
+                    }
                 }
-            }
+              }
           }
 
           // any standard card must be the same type and greater

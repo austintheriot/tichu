@@ -664,6 +664,16 @@ impl PrivateGameState {
         }
     }
 
+    pub fn pass(&self) -> Self {
+        let new_game_state = self.clone();
+
+        // if this is the final pass, user wins trick
+
+        // else if not the final pass, merely save the pass and move the turn
+
+        new_game_state
+    }
+
     pub fn play_cards(
         &self,
         user_id: &str,
@@ -682,9 +692,51 @@ impl PrivateGameState {
                     let prev_combo = play_stage.table.get(play_stage.table.len() - 1);
                     // must be a valid play based on the previous card (or no card)
                     if next_combo_beats_prev(&prev_combo, &next_combo) {
-                        eprintln!("Can play!");
+                        // if there is a wish and the user can play it, does this combo contain it?
+                        if let Some(wished_for_card) = &play_stage.wished_for_card {
+                            let user = new_game_state
+                                .participants
+                                .iter()
+                                .find(|user| user.user_id == user_id);
+                            if let Some(user) = user {
+                                let user_can_play_wish =
+                                    user.hand.iter().any(|card| card == wished_for_card);
+                                if user_can_play_wish {
+                                    let combo_contains_wish = next_combo
+                                        .cards()
+                                        .iter()
+                                        .any(|card| card == wished_for_card);
+
+                                    if combo_contains_wish {
+                                        // player is playing wish, so erase wished-for card
+                                    } else {
+                                        eprintln!(
+                                            "Couldn't accept card play submitted by user {} because user can play wished-for card but didn't",
+                                            user_id
+                                        );
+                                        return self.clone();
+                                    }
+                                }
+                            } else {
+                                eprintln!(
+                                    "Couldn't accept card play submitted by user {} because user couldn't be found in participants",
+                                    user_id
+                                );
+                            }
+                        }
+
+                        // user is now the winning user
+
+                        // if user has wished, save it
+
+                        // is user played dragon, choose a user to give dragon to
+
+                        // move turn to next user
                     } else {
-                        eprintln!("Can't play!");
+                        eprintln!(
+                            "Couldn't accept card play submitted by user {} because combo does not beat combo on the table",
+                            user_id
+                        );
                     }
                 } else {
                     eprintln!(
