@@ -16,15 +16,13 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
-- determine order of turns between participants
 - how to INFER value field of Single Phoenix combo
-- use .iter().skip(1).enumerate() in for loop instead of a range starting from 1
+  
 - use "into" pattern more: 
--  fn last_name(mut self, last_name: impl Into<String>) -> Self {
+- fn last_name(mut self, last_name: impl Into<String>) -> Self {
         self.last_name = Some(last_name.into());
         self
     }
-- improve get valid card combo tests to test particulars of results and not just memory discriminants
 
 
 MUST HAVES:

@@ -678,13 +678,13 @@ impl PrivateGameState {
         &self,
         user_id: &str,
         next_cards: Vec<Card>,
-        give_dragon_to: Option<String>,
-        wished_for: Option<Card>,
+        user_id_to_give_dragon_to: Option<String>,
+        wished_for_card: Option<Card>,
     ) -> Self {
-        let new_game_state = self.clone();
+        let mut new_game_state = self.clone();
 
         // must be play stage
-        if let PrivateGameStage::Play(play_stage) = &new_game_state.stage {
+        if let PrivateGameStage::Play(play_stage) = &mut new_game_state.stage {
             let next_combo = get_card_combination(&next_cards);
             if let Some(next_combo) = next_combo {
                 // must be the player's turn (unless a bomb)
@@ -726,12 +726,24 @@ impl PrivateGameState {
                         }
 
                         // user is now the winning user
+                        play_stage.winning_user_id.replace(user_id.to_string());
 
-                        // if user has wished, save it
+                        // if user has wished for a card, save it
+                        if let Some(wished_for_card) = wished_for_card {
+                            play_stage.wished_for_card.replace(wished_for_card);
+                        }
 
                         // is user played dragon, choose a user to give dragon to
+                        if next_cards.iter().any(|card| card.suit == CardSuit::Dragon) {
+                            if let Some(user_id_to_give_dragon_to) = user_id_to_give_dragon_to {
+                                play_stage
+                                    .user_id_to_give_dragon_to
+                                    .replace(user_id_to_give_dragon_to);
+                            }
+                        }
 
                         // move turn to next user
+                        play_stage.turn_user_id = play_stage.get_next_turn_user_id().clone();
                     } else {
                         eprintln!(
                             "Couldn't accept card play submitted by user {} because combo does not beat combo on the table",

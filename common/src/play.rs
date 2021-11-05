@@ -1,4 +1,7 @@
-use crate::{Card, GetSmallTichu, ImmutableTeams, PrivateTrade, SmallTichuArray, ValidCardCombo};
+use crate::{
+    Card, GetSmallTichu, ImmutableTeam, ImmutableTeams, PrivateTrade, SmallTichuArray,
+    TeamCategories, ValidCardCombo,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -55,6 +58,47 @@ impl From<PrivateTrade> for PrivatePlay {
             wished_for_card: None,
             user_id_to_give_dragon_to: None,
             passes,
+        }
+    }
+}
+
+impl PrivatePlay {
+    pub fn get_turn_user_team_categories(&self) -> TeamCategories<&ImmutableTeam> {
+        let current_team = self.teams.iter().find(|team| {
+            team.user_ids
+                .iter()
+                .any(|user_id| *user_id == self.turn_user_id)
+        });
+
+        let opposing_team = if let Some(current_team) = current_team {
+            self.teams.iter().find(|team| *team.id != current_team.id)
+        } else {
+            None
+        };
+
+        TeamCategories {
+            current_team,
+            opposing_team,
+        }
+    }
+
+    /// Pattern of turns:
+    /// Teammate 1 -> Opponent 1 -> Teammate 2 -> Opponent 2
+    pub fn get_next_turn_user_id(&self) -> &String {
+        let current_user_turn = &self.turn_user_id;
+        let teammate_1 = &self.teams[0].user_ids[0];
+        let opponent_1 = &self.teams[1].user_ids[0];
+        let teammate_2 = &self.teams[0].user_ids[1];
+        let opponent_2 = &self.teams[1].user_ids[1];
+
+        if current_user_turn == teammate_1 {
+            opponent_1
+        } else if current_user_turn == opponent_1 {
+            teammate_2
+        } else if current_user_turn == teammate_2 {
+            opponent_2
+        } else {
+            teammate_1
         }
     }
 }
