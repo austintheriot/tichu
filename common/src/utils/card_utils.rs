@@ -151,7 +151,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombo> {
                 .filter(|card| card.suit != CardSuit::Phoenix)
                 .map(|card| (*card).clone())
                 .collect();
-            let highest_value_card = cards_without_phoenix[cards_without_phoenix.len() - 1].clone();
+            let highest_value_card = cards_without_phoenix.last().expect("Should have non-Phoenix cards").clone();
             cards_without_phoenix.push(highest_value_card.clone());
             adjusted_cards = cards_without_phoenix;
         }
@@ -220,7 +220,7 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombo> {
                 cards_without_phoenix.insert(i_of_last_continuos_sequence_card + 1, new_card);
             } else {
                 // NO gap in cards found--put Phoenix at the end of the Sequence
-                let mut new_card = cards_without_phoenix[cards_without_phoenix.len() - 1].clone();
+                let mut new_card = cards_without_phoenix.last().expect("There should be non-Phoenix cards").clone();
                 new_card.value = new_card.value.add(1);
                 cards_without_phoenix.push(new_card);
             }

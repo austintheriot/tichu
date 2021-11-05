@@ -689,7 +689,7 @@ impl PrivateGameState {
             if let Some(next_combo) = next_combo {
                 // must be the player's turn (unless a bomb)
                 if play_stage.turn_user_id == user_id {
-                    let prev_combo = play_stage.table.get(play_stage.table.len() - 1);
+                    let prev_combo = play_stage.table.last();
                     // must be a valid play based on the previous card (or no card)
                     if next_combo_beats_prev(&prev_combo, &next_combo) {
                         // if there is a wish and the user can play it, does this combo contain it?

@@ -1200,11 +1200,7 @@ impl App {
     fn hand_beats_combo_on_table(&self, next_combo: &ValidCardCombo) -> bool {
         let prev_combo = if let Some(game_state) = &self.state.game_state {
             if let PublicGameStage::Play(play_stage) = &game_state.stage {
-                if play_stage.table.len() > 0 {
-                    play_stage.table.get(play_stage.table.len() - 1)
-                } else {
-                    None
-                }
+                play_stage.table.last()
             } else {
                 // game stage is not Play
                 return false;
