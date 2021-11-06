@@ -71,6 +71,16 @@ pub async fn start_grand_tichu(
     )
     .await;
 
+    // send FirstCardsDealt event
+    send_ws_message::to_group(
+        game_id_clone,
+        STCMsg::FirstCardsDealt,
+        connections,
+        games,
+        game_codes,
+    )
+    .await;
+
     // send updated game state
     send_ws_message::game_state_to_group(
         game_id_clone,

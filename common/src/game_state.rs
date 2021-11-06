@@ -664,10 +664,11 @@ impl PrivateGameState {
         }
     }
 
-    pub fn pass(&self) -> Self {
+    pub fn pass(&self, user_id: &str, user_id_to_give_dragon_to: String) -> Self {
         let new_game_state = self.clone();
 
         // if this is the final pass, user wins trick
+        // if won and it contains a dragon, give trick to the user who it is intended for
 
         // else if not the final pass, merely save the pass and move the turn
 
@@ -678,7 +679,6 @@ impl PrivateGameState {
         &self,
         user_id: &str,
         next_cards: Vec<Card>,
-        user_id_to_give_dragon_to: Option<String>,
         wished_for_card: Option<Card>,
     ) -> Self {
         let mut new_game_state = self.clone();
@@ -709,6 +709,7 @@ impl PrivateGameState {
 
                                     if combo_contains_wish {
                                         // player is playing wish, so erase wished-for card
+                                        play_stage.wished_for_card = None;
                                     } else {
                                         eprintln!(
                                             "Couldn't accept card play submitted by user {} because user can play wished-for card but didn't",
@@ -725,21 +726,25 @@ impl PrivateGameState {
                             }
                         }
 
+                        // put combo on table
+                        play_stage.table.push(next_combo.clone());
+
+                        // user has now definitely played first card
+                        let current_user_i = new_game_state
+                            .participants
+                            .iter()
+                            .position(|participant| participant.user_id == user_id);
+                        if let Some(current_user_i) = current_user_i {
+                            new_game_state.participants[current_user_i].has_played_first_card =
+                                true;
+                        }
+
                         // user is now the winning user
                         play_stage.winning_user_id.replace(user_id.to_string());
 
                         // if user has wished for a card, save it
                         if let Some(wished_for_card) = wished_for_card {
                             play_stage.wished_for_card.replace(wished_for_card);
-                        }
-
-                        // is user played dragon, choose a user to give dragon to
-                        if next_cards.iter().any(|card| card.suit == CardSuit::Dragon) {
-                            if let Some(user_id_to_give_dragon_to) = user_id_to_give_dragon_to {
-                                play_stage
-                                    .user_id_to_give_dragon_to
-                                    .replace(user_id_to_give_dragon_to);
-                            }
                         }
 
                         // move turn to next user

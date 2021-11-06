@@ -102,19 +102,18 @@ pub async fn handle_message_received(
         }
         CTSMsg::PlayCards {
             cards,
-            give_dragon_to,
-            wished_for,
+            wished_for_card,
         } => {
             play_cards(
                 &user_id,
                 cards,
-                give_dragon_to,
-                wished_for,
+                wished_for_card,
                 &connections,
                 &games,
                 &game_codes,
             )
             .await;
         }
+        CTSMsg::Pass { .. } => todo!(),
     }
 }

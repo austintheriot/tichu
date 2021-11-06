@@ -33,15 +33,15 @@ pub enum STCMsg {
     GrandTichuCalled(String, CallGrandTichuRequest),
 
     /// deal first 9 cards
-    DealFinalCards,
-
+    FirstCardsDealt,
     /// Deal last 5 cards.
+    LastCardsDealt,
+
     /// Player with the Mah Jong leads.
     TradeSubmitted(String),
 
     /// after all submitted
     CardsPlayed,
-    DragonWasWon,
     PlayerReceivedDragon,
 
     /// Temporary end game: show scores, etc.
@@ -102,8 +102,11 @@ pub enum CTSMsg {
     /// Submit cards to play in the Play stage
     PlayCards {
         cards: Vec<Card>,
-        wished_for: Option<Card>,
-        give_dragon_to: Option<String>,
+        wished_for_card: Option<Card>,
+    },
+
+    Pass {
+        user_id_to_give_dragon_to: Option<String>,
     },
 
     Ping,

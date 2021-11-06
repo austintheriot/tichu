@@ -6,7 +6,6 @@ const FUNCTION_NAME: &str = "play_cards";
 pub async fn play_cards(
     user_id: &str,
     cards: Vec<Card>,
-    give_dragon_to: Option<String>,
     wished_for: Option<Card>,
     connections: &Connections,
     games: &Games,
@@ -40,7 +39,7 @@ pub async fn play_cards(
     };
 
     // update game state
-    let new_game_state = game_state.play_cards(user_id, cards, give_dragon_to, wished_for);
+    let new_game_state = game_state.play_cards(user_id, cards, wished_for);
     *game_state = new_game_state.clone();
 
     drop(write_games);

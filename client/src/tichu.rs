@@ -3,8 +3,9 @@ use anyhow::Error;
 use common::{
     clean_up_display_name, clean_up_game_code, get_card_combination, next_combo_beats_prev,
     sort_cards_for_hand, validate_display_name, validate_game_code, validate_team_name, CTSMsg,
-    CallGrandTichuRequest, Card, CardTrade, MutableTeam, OtherPlayerOption, PublicGameStage,
-    PublicGameState, PublicUser, STCMsg, TeamOption, TichuCallStatus, ValidCardCombo, NO_USER_ID,
+    CallGrandTichuRequest, Card, CardSuit, CardTrade, ImmutableTeam, MutableTeam,
+    OtherPlayerOption, PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamOption,
+    TichuCallStatus, ValidCardCombo, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -51,6 +52,8 @@ struct State {
     trade_to_opponent2: Option<Card>,
 
     selected_play_cards: Vec<Card>,
+    wished_for_card: Option<Card>,
+    user_id_to_give_dragon_to: Option<String>,
 }
 
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
@@ -144,6 +147,8 @@ impl Component for App {
             trade_to_teammate: None,
             trade_to_opponent2: None,
             selected_play_cards: Vec::new(),
+            user_id_to_give_dragon_to: None,
+            wished_for_card: None,
         };
         Self {
             interval_task: None,
@@ -539,7 +544,24 @@ impl App {
         }
     }
 
-    fn debug_team(&self, team: &MutableTeam) -> Html {
+    fn debug_mutable_team(&self, team: &MutableTeam) -> Html {
+        html! {
+                <ul>
+                    <li>{"Team Name: "} {{&team.team_name}}</li>
+                    <li>{"Score: "} {{&team.score}}</li>
+                    <li>{"Users: "} {for team.user_ids.iter().map(|id| {
+                        html!{
+                            <p>{match &self.get_participant_by_id(id) {
+                                Some(participant) => &participant.display_name,
+                                None => ""
+                        }}</p>
+                    }
+                })}</li>
+                </ul>
+        }
+    }
+
+    fn debug_immutable_team(&self, team: &ImmutableTeam) -> Html {
         html! {
                 <ul>
                     <li>{"Team Name: "} {{&team.team_name}}</li>
@@ -562,9 +584,33 @@ impl App {
                 PublicGameStage::Teams(team_state) => {
                     html! {
                             <ul>
-                                <li>{self.debug_team(&team_state[0])}</li>
-                                <li>{self.debug_team(&team_state[1])}</li>
+                                <li>{self.debug_mutable_team(&team_state[0])}</li>
+                                <li>{self.debug_mutable_team(&team_state[1])}</li>
                             </ul>
+                    }
+                }
+                PublicGameStage::GrandTichu(grand_tichu_state) => {
+                    html! {
+                        <ul>
+                            <li>{self.debug_immutable_team(&grand_tichu_state.teams[0])}</li>
+                            <li>{self.debug_immutable_team(&grand_tichu_state.teams[1])}</li>
+                        </ul>
+                    }
+                }
+                PublicGameStage::Trade(trade_state) => {
+                    html! {
+                        <ul>
+                            <li>{self.debug_immutable_team(&trade_state.teams[0])}</li>
+                            <li>{self.debug_immutable_team(&trade_state.teams[1])}</li>
+                        </ul>
+                    }
+                }
+                PublicGameStage::Play(play_state) => {
+                    html! {
+                        <ul>
+                            <li>{self.debug_immutable_team(&play_state.teams[0])}</li>
+                            <li>{self.debug_immutable_team(&play_state.teams[1])}</li>
+                        </ul>
                     }
                 }
                 _ => html! {},
@@ -1310,6 +1356,38 @@ impl App {
         html! {}
     }
 
+    fn view_cards_on_table(&self) -> Html {
+        if let Some(game_state) = &self.state.game_state {
+            if let PublicGameStage::Play(play_state) = &game_state.stage {
+                let last_combo = play_state.table.last();
+                if let Some(last_combo) = last_combo {
+                    html! {
+                            <>
+                                <p>{"Cards on table:"}</p>
+                                <ul>
+                                    {for last_combo.cards().iter().map(|card| {
+                                        html!{
+                                            <li>
+                                                <p>
+                                                    {&format!("{:#?}", card)}
+                                                </p>
+                                            </li>
+                                    }
+                                })}
+                                </ul>
+                           </>
+                    }
+                } else {
+                    html! {  <p>{"No cards on table yet"}</p> }
+                }
+            } else {
+                html! {}
+            }
+        } else {
+            html! {}
+        }
+    }
+
     fn view_play(&self) -> Html {
         html! {
               <>
@@ -1317,6 +1395,9 @@ impl App {
                 <br />
                 <br />
                 {self.view_turn_display_name()}
+                <br />
+                <br />
+                {self.view_cards_on_table()}
                 <br />
                 <br />
                 <button
@@ -1347,11 +1428,11 @@ impl App {
     fn handle_ws_message_received(&mut self, data: Result<Vec<u8>, Error>) -> bool {
         let mut should_rerender = true;
         if data.is_err() {
-            error!("Data received from websocket was an error {:?}", &data);
+            error!("Data received from websocket was an error {:#?}", &data);
             return false;
         }
         let data: Option<STCMsg> = bincode::deserialize(&data.unwrap()).ok();
-        info!("Received websocket message: {:?}", &data);
+        info!("Received websocket message: {:#?}", &data);
         match data {
             None => {
                 warn!("Deserialized data is None. This probably indicates there was an error deserializing the websocket message binary");
@@ -1433,7 +1514,12 @@ impl App {
                 STCMsg::GrandTichuCalled(_, _) => {}
                 STCMsg::SmallTichuCalled(_) => {}
                 STCMsg::TradeSubmitted(_) => {}
-                _ => warn!("Unexpected websocket message received {:#?}", data),
+                STCMsg::CardsPlayed => {}
+                STCMsg::FirstCardsDealt => {}
+                STCMsg::LastCardsDealt => {}
+                STCMsg::PlayerReceivedDragon => {}
+                STCMsg::GameEnded => {}
+                STCMsg::GameEndedFinal => {}
             },
         }
 
@@ -1646,6 +1732,33 @@ impl App {
                 false
             }
             CTSMsgInternal::PlayCards => {
+                if !self.can_play_cards() {
+                    return false;
+                }
+
+                let cards = self.state.selected_play_cards.clone();
+                let mut cards_include_mahjong = false;
+                for card in self.state.selected_play_cards.iter() {
+                    if card.suit == CardSuit::MahJong {
+                        cards_include_mahjong = true;
+                        break;
+                    }
+                }
+
+                let wished_for_card = if cards_include_mahjong {
+                    todo!();
+                } else {
+                    self.state.wished_for_card.clone()
+                };
+
+                self._send_ws_message(&CTSMsg::PlayCards {
+                    cards,
+                    wished_for_card,
+                });
+                false
+            }
+            CTSMsgInternal::Pass => {
+                // if this pass wins the trick and it contains a dragon, choose who to give the dragon to
                 todo!();
             }
         }

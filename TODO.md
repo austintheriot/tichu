@@ -16,6 +16,7 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
+- Create inputs for user_id_to_give_dragon_to & wished_for_cards
 - how to INFER value field of Single Phoenix combo
   
 - use "into" pattern more: 

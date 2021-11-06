@@ -91,6 +91,15 @@ pub async fn call_grand_tichu(
     if let PrivateGameStage::Trade(_) = &new_game_state.stage {
         send_ws_message::to_group(
             &game_id,
+            STCMsg::LastCardsDealt,
+            connections,
+            games,
+            game_codes,
+        )
+        .await;
+
+        send_ws_message::to_group(
+            &game_id,
             STCMsg::GameStageChanged(new_game_state.stage.clone().into()),
             connections,
             games,
