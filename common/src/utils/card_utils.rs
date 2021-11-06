@@ -60,9 +60,15 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombo> {
 
     // length 1: a single card
     if cards.len() == 1 {
+        let card = cards.get(0).unwrap();
+        if card.suit == CardSuit::Phoenix {
+            // determine single value of the Phoenix based on the previous combo
+            todo!();
+        }
+
         return Some(ValidCardCombo::Single(Single{
-            cards: vec![cards.get(0).unwrap().clone()],
-            value: cards.get(0).unwrap().value.clone(),
+            cards: vec![card.clone()],
+            value: card.value.clone(),
         }));
     }
 
