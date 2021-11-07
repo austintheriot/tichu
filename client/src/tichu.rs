@@ -3,7 +3,7 @@ use anyhow::Error;
 use common::{
     clean_up_display_name, clean_up_game_code, get_card_combination, next_combo_beats_prev,
     sort_cards_for_hand, validate_display_name, validate_game_code, validate_team_name, CTSMsg,
-    CallGrandTichuRequest, Card, CardSuit, CardTrade, ImmutableTeam, MutableTeam,
+    CallGrandTichuRequest, Card, CardSuit, CardTrade, Deck, ImmutableTeam, MutableTeam,
     OtherPlayerOption, PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamOption,
     TichuCallStatus, ValidCardCombo, NO_USER_ID,
 };
@@ -59,6 +59,15 @@ struct State {
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
 const DISPLAY_NAME_STORAGE_KEY: &str = "yew.tichu.display_name";
 
+lazy_static! {
+    static ref WISHED_FOR_DECK: Deck = Deck::new();
+    static ref FILTERED_WISHED_FOR_DECK: Vec<&'static Card> = WISHED_FOR_DECK
+        .0
+        .iter()
+        .filter(|card| !card.suit.is_special())
+        .collect();
+}
+
 pub enum AppMsg {
     ConnectToWS,
     BeginPing,
@@ -79,6 +88,8 @@ pub enum AppMsg {
     RemoveTrade(OtherPlayerOption),
     AddSelectedPlayCard(usize),
     RemoveSelectedPlayCard(usize),
+    SetUserIdToGiveDragonTo(Option<String>),
+    SetWishedForCard(Option<Card>),
 }
 
 const PING_INTERVAL_MS: u64 = 5000;
@@ -372,6 +383,14 @@ impl Component for App {
                 }
                 true
             }
+            AppMsg::SetUserIdToGiveDragonTo(user_id) => {
+                self.state.user_id_to_give_dragon_to = user_id;
+                true
+            }
+            AppMsg::SetWishedForCard(card) => {
+                self.state.wished_for_card = card;
+                true
+            }
         }
     }
 
@@ -583,10 +602,10 @@ impl App {
             match &game_state.stage {
                 PublicGameStage::Teams(team_state) => {
                     html! {
-                            <ul>
-                                <li>{self.debug_mutable_team(&team_state[0])}</li>
-                                <li>{self.debug_mutable_team(&team_state[1])}</li>
-                            </ul>
+                        <ul>
+                            <li>{self.debug_mutable_team(&team_state[0])}</li>
+                            <li>{self.debug_mutable_team(&team_state[1])}</li>
+                        </ul>
                     }
                 }
                 PublicGameStage::GrandTichu(grand_tichu_state) => {
@@ -630,15 +649,13 @@ impl App {
             match owner {
                 Some(owner) => {
                     html! {
-                            <ul>
-                                <li>{&owner.display_name}</li>
-                            </ul>
+                        <ul>
+                            <li>{&owner.display_name}</li>
+                        </ul>
                     }
                 }
                 None => {
-                    html! {
-                            <> </>
-                    }
+                    html! {}
                 }
             }
         } else {
@@ -712,7 +729,7 @@ impl App {
             "n/a"
         };
         html! {
-                <p>{&format!("Small Tichu Call Status for {display_name}: {small_tichu_call_status}\n")}</p>
+            <p>{&format!("Small Tichu Call Status for {display_name}: {small_tichu_call_status}\n")}</p>
         }
     }
 
@@ -1403,6 +1420,25 @@ impl App {
         }
     }
 
+    fn view_wish_for_card_input(&self) -> Html {
+        let no_card: Option<Card> = None;
+        let no_card_string = format!("{:#?}", no_card);
+        html! {
+            <>
+                <label for="wish-for-card">{"Wish for a card?"}</label>
+                <select name="wish-for-card" id="wish-for-card">
+                    <option value=no_card_string.clone()>{no_card_string.clone()}</option>
+                    {for FILTERED_WISHED_FOR_DECK.iter().map(|card| {
+                        let card_string = format!("{:#?}", card);
+                        html!{
+                            <option value=card_string.clone()>{card_string.clone()}</option>
+                        }
+                    })}
+                </select>
+            </>
+        }
+    }
+
     fn view_play(&self) -> Html {
         html! {
               <>
@@ -1413,6 +1449,9 @@ impl App {
                 <br />
                 <br />
                 {self.view_cards_on_table()}
+                <br />
+                <br />
+                {self.view_wish_for_card_input()}
                 <br />
                 <br />
                 <button
