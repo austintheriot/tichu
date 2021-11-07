@@ -1267,10 +1267,22 @@ impl App {
         false
     }
 
+    fn get_prev_played_combo(&self) -> Option<&ValidCardCombo> {
+        return if let Some(game_state) = &self.state.game_state {
+            if let PublicGameStage::Play(play_stage) = &game_state.stage {
+                play_stage.table.last()
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+    }
+
     fn view_is_valid_combo(&self) -> Html {
         html!(
             <p>
-            {if get_card_combination(&self.state.selected_play_cards).is_some() {
+            {if get_card_combination(self.get_prev_played_combo(), &self.state.selected_play_cards).is_some() {
                 "Valid combination"
             } else {
                 "Invalid combination"
@@ -1281,7 +1293,10 @@ impl App {
 
     fn can_play_cards(&self) -> bool {
         // must be users turn OR must be playable bomb
-        let combo = get_card_combination(&self.state.selected_play_cards);
+        let combo = get_card_combination(
+            self.get_prev_played_combo(),
+            &self.state.selected_play_cards,
+        );
         if let Some(combo) = combo {
             self.stage_is_play()
                 && (self.is_current_users_turn() || combo.is_bomb())

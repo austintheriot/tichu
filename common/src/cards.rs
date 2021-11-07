@@ -37,6 +37,11 @@ impl CardValue {
         CardValue(self.0 + number)
     }
 
+    pub fn minus(&self, number: u8) -> Self {
+        let new_number = if self.0 == 0 { 0 } else { self.0 - number };
+        CardValue(new_number)
+    }
+
     pub fn min() -> Self {
         CardValue(CARD_VALUE_MIN)
     }

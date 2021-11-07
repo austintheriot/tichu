@@ -1,7 +1,7 @@
 use crate::{BombOf4, Card, CardSuit, CardValue, FullHouse, MAX_CARDS_IN_HAND, Pair, Sequence, SequenceBomb, SequenceOfPairs, Single, Trio, ValidCardCombo};
 
 // TODO: account for single special cards and Phoenix wild card
-pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombo> {
+pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Card>) -> Option<ValidCardCombo> {
     let original_cards = cards;
     let mut cards = cards.clone();
     let mut includes_phoenix = false;
@@ -62,8 +62,37 @@ pub fn get_card_combination(cards: &Vec<Card>) -> Option<ValidCardCombo> {
     if cards.len() == 1 {
         let card = cards.get(0).unwrap();
         if card.suit == CardSuit::Phoenix {
-            // determine single value of the Phoenix based on the previous combo
-            todo!();
+            // since 1/2 values aren't possible with the Phoenix, new value should be equal
+            // (which functions the same in the end)
+            return if let Some(prev_combo) = prev_combo {
+                if let ValidCardCombo::Single(prev_single) = prev_combo {
+                    match prev_single.cards.first().expect("Every single card should have a Vec of cards").suit {
+                        // lowest possible card
+                        CardSuit::Dog | CardSuit::MahJong => Some(ValidCardCombo::Single(Single{
+                            cards: vec![card.clone()],
+                            // any card can beat the Phoenix when it's led
+                            value: CardValue::min().minus(1),
+                        })),
+                        // invalid play
+                        CardSuit::Dragon | CardSuit::Phoenix=> None,
+                        // copy the value of the previous Single
+                        _ =>  Some(ValidCardCombo::Single(Single{
+                            cards: vec![card.clone()],
+                            value: prev_single.value.clone(),
+                        })),
+                    }
+                } else {
+                    // invalid prev_combo
+                    None
+                }
+            } else {
+                // no previous value was played: play the least possible value card
+                Some(ValidCardCombo::Single(Single{
+                    cards: vec![card.clone()],
+                    // any card can beat the Phoenix when it's led
+                    value: CardValue::min().minus(1),
+                }))
+            }
         }
 
         return Some(ValidCardCombo::Single(Single{

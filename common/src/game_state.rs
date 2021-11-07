@@ -685,7 +685,7 @@ impl PrivateGameState {
 
         // must be play stage
         if let PrivateGameStage::Play(play_stage) = &mut new_game_state.stage {
-            let next_combo = get_card_combination(&next_cards);
+            let next_combo = get_card_combination(play_stage.table.last(), &next_cards);
             if let Some(next_combo) = next_combo {
                 // must be the player's turn (unless a bomb)
                 if play_stage.turn_user_id == user_id {
