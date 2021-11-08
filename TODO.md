@@ -17,6 +17,7 @@ IDEAS:
 
 TODO:
 - Create input for user_id_to_give_dragon_to
+- Implement "waiting_for_user_id_to_give_dragon_to" in game_state
 - Game state implementation for Pass move
 - move more front-end state checks into /common (in prep for bot player)
   
