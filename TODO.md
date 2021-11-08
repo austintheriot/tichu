@@ -17,6 +17,7 @@ IDEAS:
 
 TODO:
 - Create inputs for user_id_to_give_dragon_to & wished_for_cards
+- move more front-end state checks into /common (in prep for bot player)
   
 - use "into" pattern more: 
 - fn last_name(mut self, last_name: impl Into<String>) -> Self {

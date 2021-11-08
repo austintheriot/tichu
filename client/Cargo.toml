@@ -34,4 +34,6 @@ features = [
   'WebSocket',
   'Location',
   'Window',
+  'FormData',
+  'HtmlFormElement',
 ]

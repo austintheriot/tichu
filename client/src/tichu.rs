@@ -7,11 +7,14 @@ use common::{
     OtherPlayerOption, PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamOption,
     TichuCallStatus, ValidCardCombo, NO_USER_ID,
 };
+use js_sys::Object;
 use log::*;
 use serde_derive::{Deserialize, Serialize};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use wasm_bindgen::JsCast;
+use web_sys::{FormData, HtmlFormElement, HtmlSelectElement};
 use yew::format::{Binary, Json};
 use yew::prelude::*;
 use yew::services::interval::IntervalTask;
@@ -59,15 +62,6 @@ struct State {
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
 const DISPLAY_NAME_STORAGE_KEY: &str = "yew.tichu.display_name";
 
-lazy_static! {
-    static ref WISHED_FOR_DECK: Deck = Deck::new();
-    static ref FILTERED_WISHED_FOR_DECK: Vec<&'static Card> = WISHED_FOR_DECK
-        .0
-        .iter()
-        .filter(|card| !card.suit.is_special())
-        .collect();
-}
-
 pub enum AppMsg {
     ConnectToWS,
     BeginPing,
@@ -89,7 +83,7 @@ pub enum AppMsg {
     AddSelectedPlayCard(usize),
     RemoveSelectedPlayCard(usize),
     SetUserIdToGiveDragonTo(Option<String>),
-    SetWishedForCard(Option<Card>),
+    SetWishedForCard(usize),
 }
 
 const PING_INTERVAL_MS: u64 = 5000;
@@ -387,8 +381,9 @@ impl Component for App {
                 self.state.user_id_to_give_dragon_to = user_id;
                 true
             }
-            AppMsg::SetWishedForCard(card) => {
-                self.state.wished_for_card = card;
+            AppMsg::SetWishedForCard(i) => {
+                let wished_for_card = Deck::get_wished_for_card_from_i(i);
+                self.state.wished_for_card = wished_for_card;
                 true
             }
         }
@@ -777,6 +772,7 @@ impl App {
                     <p>{"Participants: "} {self.view_participants()}</p>
                     <p>{"Owner: "} {self.debug_owner()}</p>
                     <p>{"Teams: "} {self.debug_teams()}</p>
+                    {self.debug_wished_for_card()}
                     <h2>{"Grand Tichus: "}</h2>
                     {self.view_debug_all_participants_grand_tichu()}
                     <br />
@@ -1420,22 +1416,42 @@ impl App {
         }
     }
 
-    fn view_wish_for_card_input(&self) -> Html {
-        let no_card: Option<Card> = None;
-        let no_card_string = format!("{:#?}", no_card);
+    fn debug_wished_for_card(&self) -> Html {
         html! {
             <>
+              <p>{"Wished for Card:"}</p>
+              <p>{format!("{:#?}", self.state.wished_for_card)}</p>
+            </>
+        }
+    }
+
+    fn view_wish_for_card_input(&self) -> Html {
+        html! {
+            <form
+            onsubmit=self.link.callback(move |e: FocusEvent| {
+                e.prevent_default();
+                let target = e.target().expect("Form submit event should have a target");
+                let html_form_element: HtmlFormElement = target.value_of().dyn_into().expect("Object from submit event should be an HtmlFormElement");
+                let select: HtmlSelectElement = html_form_element
+                    .query_selector("select")
+                    .expect("Form should have a select element")
+                    .unwrap().dyn_into().unwrap();
+                let i = select.selected_index();
+                AppMsg::SetWishedForCard(i as usize)
+            })>
                 <label for="wish-for-card">{"Wish for a card?"}</label>
                 <select name="wish-for-card" id="wish-for-card">
-                    <option value=no_card_string.clone()>{no_card_string.clone()}</option>
-                    {for FILTERED_WISHED_FOR_DECK.iter().map(|card| {
+                    {for Deck::wished_for_cards().iter().enumerate().map(|(i, card)| {
                         let card_string = format!("{:#?}", card);
                         html!{
-                            <option value=card_string.clone()>{card_string.clone()}</option>
+                            <option value=format!("{}", i)>
+                                {card_string.clone()}
+                            </option>
                         }
                     })}
                 </select>
-            </>
+                <button type="submit">{"Submit"}</button>
+            </form>
         }
     }
 

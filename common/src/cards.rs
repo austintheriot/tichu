@@ -257,6 +257,36 @@ impl Deck {
 
         cards
     }
+
+    /// "None" + All Standard Cards
+    pub fn wished_for_cards() -> Vec<Option<Card>> {
+        let mut cards = Deck::new()
+            .0
+            .into_iter()
+            .filter(|card| !card.suit.is_special())
+            .map(|card| Some(card))
+            .collect::<Vec<Option<Card>>>();
+        // first option is "None"
+        cards.insert(0, None);
+        cards
+    }
+
+    /// Find index of a card in the wished for possibilities
+    pub fn i_of_wished_for_card(card: &Option<Card>) -> Option<usize> {
+        Deck::wished_for_cards()
+            .iter()
+            .position(|wished_for_card| wished_for_card == card)
+    }
+
+    pub fn get_wished_for_card_from_i(i: usize) -> Option<Card> {
+        let wished_for_cards = Deck::wished_for_cards();
+        let card = wished_for_cards.get(i);
+        if let Some(card) = card {
+            card.clone()
+        } else {
+            None
+        }
+    }
 }
 
 const COMPARE_IDENTICAL_SPECIAL_CARDS: &str = "Can't compare identical special cards to each other";
