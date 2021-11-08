@@ -16,7 +16,8 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
-- Create inputs for user_id_to_give_dragon_to & wished_for_cards
+- Create input for user_id_to_give_dragon_to
+- Game state implementation for Pass move
 - move more front-end state checks into /common (in prep for bot player)
   
 - use "into" pattern more: 

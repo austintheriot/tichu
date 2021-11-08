@@ -4,17 +4,16 @@ use common::{
     clean_up_display_name, clean_up_game_code, get_card_combination, next_combo_beats_prev,
     sort_cards_for_hand, validate_display_name, validate_game_code, validate_team_name, CTSMsg,
     CallGrandTichuRequest, Card, CardSuit, CardTrade, Deck, ImmutableTeam, MutableTeam,
-    OtherPlayerOption, PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamOption,
-    TichuCallStatus, ValidCardCombo, NO_USER_ID,
+    OtherPlayerOption, PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamCategories,
+    TeamOption, TichuCallStatus, ValidCardCombo, NO_USER_ID,
 };
-use js_sys::Object;
 use log::*;
 use serde_derive::{Deserialize, Serialize};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use wasm_bindgen::JsCast;
-use web_sys::{FormData, HtmlFormElement, HtmlSelectElement};
+use web_sys::{HtmlFormElement, HtmlSelectElement};
 use yew::format::{Binary, Json};
 use yew::prelude::*;
 use yew::services::interval::IntervalTask;
@@ -772,6 +771,7 @@ impl App {
                     <p>{"Participants: "} {self.view_participants()}</p>
                     <p>{"Owner: "} {self.debug_owner()}</p>
                     <p>{"Teams: "} {self.debug_teams()}</p>
+                    {self.debug_user_id_to_give_dragon_to()}
                     {self.debug_wished_for_card()}
                     <h2>{"Grand Tichus: "}</h2>
                     {self.view_debug_all_participants_grand_tichu()}
@@ -1455,6 +1455,72 @@ impl App {
         }
     }
 
+    fn debug_user_id_to_give_dragon_to(&self) -> Html {
+        let user_id_to_give_dragon_to = &self.state.user_id_to_give_dragon_to;
+        html! {
+            <>
+              <p>{"User To Give Dragon To:"}</p>
+              <p>{format!("{:#?}", &user_id_to_give_dragon_to)}</p>
+              {if let Some(game_state) = &self.state.game_state {
+                if let Some(user_id_to_give_dragon_to) = user_id_to_give_dragon_to {
+                    html!{
+                        <p>{format!("{:#?}", game_state.get_user_by_user_id(&user_id_to_give_dragon_to).unwrap().display_name)}</p>
+                    }
+                } else {
+                    html!{}
+                }
+              } else {
+                  html!{}
+              }}
+            </>
+        }
+    }
+
+    fn view_choose_opponent(&self) -> Html {
+        let opponent_ids = if let Some(game_state) = &self.state.game_state {
+            if let TeamCategories {
+                opposing_team: Some(opposing_team),
+                ..
+            } = game_state.get_immutable_team_categories()
+            {
+                Some((
+                    opposing_team.user_ids[0].clone(),
+                    opposing_team.user_ids[1].clone(),
+                ))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        if let Some(game_state) = &self.state.game_state {
+            if let Some((opponent_id_0, opponent_id_1)) = opponent_ids {
+                let opponent_id_0_clone = opponent_id_0.clone();
+                let opponent_id_1_clone = opponent_id_1.clone();
+                html! {
+                    <>
+                        <p>{"Choose opponent"}</p>
+                        <button
+                            onclick=self.link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(Some(opponent_id_0.clone())))
+                        >
+                        {&game_state.get_user_by_user_id(&opponent_id_0_clone).unwrap().display_name}
+                        </button>
+                         <button
+                            onclick=self.link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(Some(opponent_id_1.clone())))
+                        >
+                        {&game_state.get_user_by_user_id(&opponent_id_1_clone).unwrap().display_name}
+                        </button>
+                    </>
+                }
+            } else {
+                html! {}
+            }
+        } else {
+            html! {}
+        }
+    }
+
     fn view_play(&self) -> Html {
         html! {
               <>
@@ -1468,6 +1534,9 @@ impl App {
                 <br />
                 <br />
                 {self.view_wish_for_card_input()}
+                <br />
+                <br />
+                {self.view_choose_opponent()}
                 <br />
                 <br />
                 <button
