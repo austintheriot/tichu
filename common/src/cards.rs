@@ -1,9 +1,8 @@
-use crate::rand::SeedableRng;
-use rand::prelude::SliceRandom;
-use rand::rngs::SmallRng;
+#[cfg(feature = "client")]
+use js_sys::Math::random;
+use rand::{prelude::SliceRandom, rngs::SmallRng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const NUM_PLAYERS: usize = 4;
 pub const TOTAL_CARDS: usize = 56;
@@ -223,6 +222,22 @@ impl Default for Deck {
     }
 }
 
+// only runs on client: uses Math.random to seed random number
+#[cfg(feature = "client")]
+fn get_random_u64() -> u64 {
+    (random() * 1_000_000 as f64) as u64
+}
+
+// only runs on server: uses SystemTime to seed random number
+#[cfg(not(feature = "client"))]
+fn get_random_u64() -> u64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_millis() as u64
+}
+
 impl Deck {
     /// Creates a new, full, sorted Deck (i.e. it is NOT shuffled)
     pub fn new() -> Deck {
@@ -230,12 +245,8 @@ impl Deck {
     }
 
     pub fn shuffle(&mut self) -> &mut Self {
-        let pseudo_rand_num = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis() as u64;
-        self.0
-            .shuffle(&mut SmallRng::seed_from_u64(pseudo_rand_num));
+        let rand_num = get_random_u64();
+        self.0.shuffle(&mut SmallRng::seed_from_u64(rand_num));
         self
     }
 

@@ -18,7 +18,7 @@ wasm-bindgen = "0.2.58"
 wasm-logger = "0.2"
 wee_alloc = { version = "0.4.4", optional = true }
 yew = {version = "0.18"}
-common = { path = "../common" }
+common = { path = "../common", features = ["client"] }
 js-sys = "0.3.54"
 anyhow = "1.0.44"
 bincode = "1.3.3"
