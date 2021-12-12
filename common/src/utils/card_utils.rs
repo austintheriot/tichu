@@ -187,7 +187,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                 .map(|card| (*card).clone())
                 .collect();
             let highest_value_card = cards_without_phoenix.last().expect("Should have non-Phoenix cards").clone();
-            cards_without_phoenix.push(highest_value_card.clone());
+            cards_without_phoenix.push(highest_value_card);
             adjusted_cards = cards_without_phoenix;
         }
 
@@ -420,7 +420,7 @@ pub fn next_combo_beats_prev(prev: &Option<&ValidCardCombo>, next: &ValidCardCom
           }
 
           // any standard card must be the same type and greater
-          (std::mem::discriminant(prev) == std::mem::discriminant(&next)) && (next > prev)
+          (std::mem::discriminant(*prev) == std::mem::discriminant(next)) && (next > prev)
     } else {
         // no card has yet been played, any combination can follow
         true

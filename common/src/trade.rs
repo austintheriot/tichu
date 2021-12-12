@@ -25,7 +25,7 @@ impl From<PrivateTrade> for PublicTrade {
         PublicTrade {
             small_tichus: private_trade.small_tichus.clone(),
             grand_tichus: private_trade.grand_tichus.clone(),
-            teams: private_trade.teams.clone(),
+            teams: private_trade.teams,
             submitted_trades,
         }
     }
@@ -38,7 +38,7 @@ impl From<PrivateGrandTichu> for PrivateTrade {
             deck: private_grand_tichu.deck.clone(),
             grand_tichus: private_grand_tichu.grand_tichus.clone(),
             small_tichus: private_grand_tichu.small_tichus.clone(),
-            teams: private_grand_tichu.teams.clone(),
+            teams: private_grand_tichu.teams,
             trades: [None, None, None, None],
         }
     }

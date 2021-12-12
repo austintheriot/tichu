@@ -660,19 +660,19 @@ impl PrivateGameState {
                 "Couldn't accept traded submitted by user {} because Game Stage is not Trade",
                 user_id
             );
-            return new_game_state;
+            new_game_state
         }
     }
 
-    pub fn pass(&self, user_id: &str, user_id_to_give_dragon_to: String) -> Self {
-        let new_game_state = self.clone();
+    pub fn pass(&self, _user_id: &str, _user_id_to_give_dragon_to: String) -> Self {
+        
 
         // if this is the final pass, user wins trick
         // if won and it contains a dragon, give trick to the user who it is intended for
 
         // else if not the final pass, merely save the pass and move the turn
 
-        new_game_state
+        self.clone()
     }
 
     pub fn play_cards(
@@ -727,7 +727,7 @@ impl PrivateGameState {
                         }
 
                         // put combo on table
-                        play_stage.table.push(next_combo.clone());
+                        play_stage.table.push(next_combo);
 
                         // user has now definitely played first card
                         let current_user_i = new_game_state

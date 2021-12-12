@@ -275,7 +275,7 @@ impl Deck {
             .0
             .into_iter()
             .filter(|card| !card.suit.is_special())
-            .map(|card| Some(card))
+            .map(Some)
             .collect::<Vec<Option<Card>>>();
         // first option is "None"
         cards.insert(0, None);

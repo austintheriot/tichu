@@ -27,10 +27,10 @@ impl From<PrivateUser> for PublicUser {
     fn from(private_user: PrivateUser) -> PublicUser {
         PublicUser {
             display_name: private_user.display_name.clone(),
-            has_played_first_card: private_user.has_played_first_card.clone(),
+            has_played_first_card: private_user.has_played_first_card,
             role: private_user.role.clone(),
             tricks: private_user.tricks.clone(),
-            user_id: private_user.user_id.clone(),
+            user_id: private_user.user_id,
         }
     }
 }
@@ -39,7 +39,7 @@ impl From<&PrivateUser> for PublicUser {
     fn from(private_user: &PrivateUser) -> PublicUser {
         PublicUser {
             display_name: private_user.display_name.clone(),
-            has_played_first_card: private_user.has_played_first_card.clone(),
+            has_played_first_card: private_user.has_played_first_card,
             role: private_user.role.clone(),
             tricks: private_user.tricks.clone(),
             user_id: private_user.user_id.clone(),

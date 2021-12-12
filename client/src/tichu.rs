@@ -1139,7 +1139,8 @@ impl App {
 
         let trade_to_person_display_name = {
             let public_other_players = &self.state.game_state.as_ref().unwrap().get_other_players();
-            let display_name = if let Some(public_other_players) = public_other_players {
+            
+            if let Some(public_other_players) = public_other_players {
                 match &trade_to_person {
                     OtherPlayerOption::Opponent1 => {
                         public_other_players.opponent_1.display_name.clone()
@@ -1153,8 +1154,7 @@ impl App {
                 }
             } else {
                 String::new()
-            };
-            display_name
+            }
         };
 
         return html! {
@@ -1268,7 +1268,7 @@ impl App {
             // game state is not instantiated
             return false;
         };
-        next_combo_beats_prev(&prev_combo, &next_combo)
+        next_combo_beats_prev(&prev_combo, next_combo)
     }
 
     fn is_current_users_turn(&self) -> bool {
@@ -1372,7 +1372,7 @@ impl App {
         if let Some(game_state) = &self.state.game_state {
             if let PublicGameStage::Play(play_state) = &game_state.stage {
                 let turn_user_id = &play_state.turn_user_id;
-                let turn_user = &game_state.get_user_by_user_id(&turn_user_id);
+                let turn_user = &game_state.get_user_by_user_id(turn_user_id);
                 if let Some(turn_user) = turn_user {
                     return html! {
                         <p>{&format!("Current turn: {}", turn_user.display_name)}</p>
@@ -1464,7 +1464,7 @@ impl App {
               {if let Some(game_state) = &self.state.game_state {
                 if let Some(user_id_to_give_dragon_to) = user_id_to_give_dragon_to {
                     html!{
-                        <p>{format!("{:#?}", game_state.get_user_by_user_id(&user_id_to_give_dragon_to).unwrap().display_name)}</p>
+                        <p>{format!("{:#?}", game_state.get_user_by_user_id(user_id_to_give_dragon_to).unwrap().display_name)}</p>
                     }
                 } else {
                     html!{}

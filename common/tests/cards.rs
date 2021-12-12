@@ -934,7 +934,7 @@ mod test_double {
             cards: vec![ /* omitted */],
         };
         let pair_of_2_example_2 = Pair {
-            value: card_value_of_2.clone(),
+            value: card_value_of_2,
             cards: vec![ /* omitted */],
         };
         assert_eq!(pair_of_2_example_1 == pair_of_2_example_2, true);
@@ -947,7 +947,7 @@ mod test_double {
             cards: vec![ /* omitted */],
         };
         let pair_of_2_example_4 = Pair {
-            value: card_value_of_13.clone(),
+            value: card_value_of_13,
             cards: vec![ /* omitted */],
         };
         assert_eq!(pair_of_2_example_3 == pair_of_2_example_4, true);
@@ -966,7 +966,7 @@ mod test_double {
             cards: vec![ /* omitted */],
         };
         let pair_of_2_example_2 = Pair {
-            value: card_value_of_2.clone(),
+            value: card_value_of_2,
             cards: vec![ /* omitted */],
         };
         assert_eq!(pair_of_2_example_1 == pair_of_2_example_2, true);
@@ -984,7 +984,7 @@ mod test_double {
             cards: vec![ /* omitted */],
         };
         let pair_of_2_example_2 = Pair {
-            value: card_value_of_2.clone(),
+            value: card_value_of_2,
             cards: vec![ /* omitted */],
         };
         assert_eq!(pair_of_2_example_1 < pair_of_2_example_2, true);
@@ -1010,7 +1010,7 @@ mod test_double {
                 },
                 Card {
                     suit: CardSuit::Dog,
-                    value: card_value_of_2.clone(),
+                    value: card_value_of_2,
                 },
             ],
         };

@@ -50,7 +50,7 @@ impl From<PrivateTrade> for PrivatePlay {
         PrivatePlay {
             small_tichus: private_trade.small_tichus.clone(),
             grand_tichus: private_trade.grand_tichus.clone(),
-            teams: private_trade.teams.clone(),
+            teams: private_trade.teams,
             table: vec![],
             // this value is set in game state on transition
             turn_user_id: String::from(""),
@@ -140,7 +140,7 @@ impl From<PrivatePlay> for PublicPlay {
             grand_tichus: private_play.grand_tichus.clone(),
             teams: private_play.teams.clone(),
             table: private_play.table.clone(),
-            turn_user_id: private_play.turn_user_id.clone(),
+            turn_user_id: private_play.turn_user_id,
         }
     }
 }
