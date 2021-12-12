@@ -5,6 +5,8 @@ CSS SOLUTIONS:
   - CSSinRust: https://crates.io/crates/css-in-rust
 - Yew resources: 
   - Awesome Yew: https://github.com/jetli/awesome-yew
+- By hand: 
+  - Just append raw css string to style tag in the head of the document
 
 UNIQUE FEATURES:
 - Add new special cards?
