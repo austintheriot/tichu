@@ -4,8 +4,8 @@ use common::{
     clean_up_display_name, clean_up_game_code, get_card_combination, next_combo_beats_prev,
     sort_cards_for_hand, validate_display_name, validate_game_code, validate_team_name, CTSMsg,
     CallGrandTichuRequest, Card, CardSuit, CardTrade, Deck, ImmutableTeam, MutableTeam,
-    OtherPlayerOption, PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamCategories,
-    TeamOption, TichuCallStatus, ValidCardCombo, NO_USER_ID,
+    OtherPlayerOption, PassWithUserId, PublicGameStage, PublicGameState, PublicUser, STCMsg,
+    TeamCategories, TeamOption, TichuCallStatus, ValidCardCombo, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -56,6 +56,7 @@ struct State {
     selected_play_cards: Vec<Card>,
     wished_for_card: Option<Card>,
     user_id_to_give_dragon_to: Option<String>,
+    show_user_id_to_give_dragon_to_form: bool,
 }
 
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
@@ -152,6 +153,7 @@ impl Component for App {
             trade_to_opponent2: None,
             selected_play_cards: Vec::new(),
             user_id_to_give_dragon_to: None,
+            show_user_id_to_give_dragon_to_form: false,
             wished_for_card: None,
         };
         Self {
@@ -1139,7 +1141,7 @@ impl App {
 
         let trade_to_person_display_name = {
             let public_other_players = &self.state.game_state.as_ref().unwrap().get_other_players();
-            
+
             if let Some(public_other_players) = public_other_players {
                 match &trade_to_person {
                     OtherPlayerOption::Opponent1 => {
@@ -1476,8 +1478,8 @@ impl App {
         }
     }
 
-    fn view_choose_opponent(&self) -> Html {
-        let opponent_ids = if let Some(game_state) = &self.state.game_state {
+    fn get_opponent_ids(&self) -> Option<(String, String)> {
+        if let Some(game_state) = &self.state.game_state {
             if let TeamCategories {
                 opposing_team: Some(opposing_team),
                 ..
@@ -1492,7 +1494,122 @@ impl App {
             }
         } else {
             None
-        };
+        }
+    }
+
+    fn get_user_must_select_user_id_to_give_dragon_to(&self) -> bool {
+        let opponent_ids = self.get_opponent_ids();
+        if let Some(game_state) = &self.state.game_state {
+            // game stage is Play
+            if let PublicGameStage::Play(play_state) = &game_state.stage {
+                // this is the last user to pass
+                let passes: Vec<&PassWithUserId> = play_state
+                    .passes
+                    .iter()
+                    .filter(|pass| pass.passed)
+                    .collect();
+                if passes.len() == 3 {
+                    // last trick has a dragon in it
+                    if play_state.table.iter().any(|combo| {
+                        combo
+                            .cards()
+                            .iter()
+                            .any(|card| card.suit == CardSuit::Dragon)
+                    }) {
+                        let (opponent_id_0, opponent_id_1) =
+                            opponent_ids.expect("Opponents should be found in state");
+                        // user has chosen SOME user to give the dragon to
+                        return if let Some(user_id_to_give_dragon_to) =
+                            &self.state.user_id_to_give_dragon_to
+                        {
+                            // user has chosen an opponent to give the dragon to
+                            if user_id_to_give_dragon_to == &opponent_id_0
+                                || user_id_to_give_dragon_to == &opponent_id_1
+                            {
+                                false
+                            } else {
+                                // user has chosen a person to give the dragon to, but it is not an opponent
+                                true
+                            }
+                        } else {
+                            // user has NOT chosen an opponent to give the dragon to
+                            true
+                        };
+                    }
+                }
+            }
+        }
+
+        false
+    }
+
+    fn get_user_has_selected_user_id_to_give_dragon_to(&self) -> bool {
+        let opponent_ids = self.get_opponent_ids();
+        if let Some(game_state) = &self.state.game_state {
+            // game stage is Play
+            if let PublicGameStage::Play(play_state) = &game_state.stage {
+                // this is the last user to pass
+                let passes: Vec<&PassWithUserId> = play_state
+                    .passes
+                    .iter()
+                    .filter(|pass| pass.passed)
+                    .collect();
+                if passes.len() == 3 {
+                    // last trick has a dragon in it
+                    if play_state.table.iter().any(|combo| {
+                        combo
+                            .cards()
+                            .iter()
+                            .any(|card| card.suit == CardSuit::Dragon)
+                    }) {
+                        let (opponent_id_0, opponent_id_1) =
+                            opponent_ids.expect("Opponents should be found in state");
+                        // user has chosen an opponent to give the dragon to
+                        return if let Some(user_id_to_give_dragon_to) =
+                            &self.state.user_id_to_give_dragon_to
+                        {
+                            if user_id_to_give_dragon_to == &opponent_id_0
+                                || user_id_to_give_dragon_to == &opponent_id_1
+                            {
+                                true
+                            } else {
+                                false
+                            }
+                        } else {
+                            false
+                        };
+                    }
+                }
+            }
+        }
+
+        false
+    }
+
+    fn get_can_pass(&self) -> bool {
+        if let Some(game_state) = &self.state.game_state {
+            // game stage is Play
+            if let PublicGameStage::Play(play_state) = &game_state.stage {
+                // it is the users turn
+                if play_state.turn_user_id == self.state.user_id {
+                    // user must choose an opponent but hasn't done so
+                    return if self.get_user_must_select_user_id_to_give_dragon_to()
+                        && !self.get_user_has_selected_user_id_to_give_dragon_to()
+                    {
+                        false
+                    } else {
+                        // user either need not choose an opponent or has already done so
+                        true
+                    };
+                }
+            }
+        }
+
+        false
+    }
+
+    fn view_choose_opponent(&self) -> Html {
+        let opponent_ids = self.get_opponent_ids();
 
         if let Some(game_state) = &self.state.game_state {
             if let Some((opponent_id_0, opponent_id_1)) = opponent_ids {
@@ -1501,15 +1618,48 @@ impl App {
                 html! {
                     <>
                         <p>{"Choose opponent"}</p>
+                        // opponent 0
+                        {if self.state.user_id_to_give_dragon_to == Some(opponent_id_0_clone.clone()) {
+                            html! {
+                                <button
+                                    onclick=self.link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(None))
+                                >
+                                    {format!("Deselect {}", &game_state.get_user_by_user_id(&opponent_id_0_clone).unwrap().display_name)}
+                                </button>
+                            }
+                        } else {
+                            html!{
+                                <button
+                                    onclick=self.link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(Some(opponent_id_0.clone())))
+                                >
+                                    {format!("Select {}", &game_state.get_user_by_user_id(&opponent_id_0_clone).unwrap().display_name)}
+                                </button>
+                            }
+                        }}
+                        // opponent 1
+                        {if self.state.user_id_to_give_dragon_to == Some(opponent_id_1_clone.clone()) {
+                            html! {
+                                <button
+                                    onclick=self.link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(None))
+                                >
+                                    {format!("Deselect {}", &game_state.get_user_by_user_id(&opponent_id_1_clone).unwrap().display_name)}
+                                </button>
+                            }
+                        } else {
+                            html!{
+                                <button
+                                    onclick=self.link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(Some(opponent_id_1.clone())))
+                                >
+                                    {format!("Select {}", &game_state.get_user_by_user_id(&opponent_id_1_clone).unwrap().display_name)}
+                                </button>
+                            }
+                        }}
+                        // pass (and send user_id info) once an opponent has been selected
                         <button
-                            onclick=self.link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(Some(opponent_id_0.clone())))
+                            onclick=self.link.callback(move |_| AppMsg::SendWSMsg(CTSMsgInternal::Pass))
+                            disabled=self.get_user_must_select_user_id_to_give_dragon_to() && !self.get_user_has_selected_user_id_to_give_dragon_to()
                         >
-                        {&game_state.get_user_by_user_id(&opponent_id_0_clone).unwrap().display_name}
-                        </button>
-                         <button
-                            onclick=self.link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(Some(opponent_id_1.clone())))
-                        >
-                        {&game_state.get_user_by_user_id(&opponent_id_1_clone).unwrap().display_name}
+                            {"Submit"}
                         </button>
                     </>
                 }
@@ -1536,7 +1686,16 @@ impl App {
                 {self.view_wish_for_card_input()}
                 <br />
                 <br />
+                <p>{"Debug self.view_choose_opponent:"}</p>
                 {self.view_choose_opponent()}
+                <br />
+                <br />
+                <p>{"Real self.view_choose_opponent:"}</p>
+                {if self.state.show_user_id_to_give_dragon_to_form {
+                    self.view_choose_opponent()
+                } else {
+                    html!{}
+                }}
                 <br />
                 <br />
                 <button
@@ -1897,8 +2056,21 @@ impl App {
                 false
             }
             CTSMsgInternal::Pass => {
-                // if this pass wins the trick and it contains a dragon, choose who to give the dragon to
-                todo!();
+                if !self.get_can_pass() {
+                    // user must select an opponent to give the dragon to
+                    if self.get_user_must_select_user_id_to_give_dragon_to()
+                        && !self.get_user_has_selected_user_id_to_give_dragon_to()
+                    {
+                        self.state.show_user_id_to_give_dragon_to_form = true;
+                    }
+                    return true;
+                }
+                self._send_ws_message(&CTSMsg::Pass {
+                    user_id_to_give_dragon_to: self.state.user_id_to_give_dragon_to.clone(),
+                });
+                self.state.user_id_to_give_dragon_to = None;
+                self.state.show_user_id_to_give_dragon_to_form = false;
+                true
             }
         }
     }

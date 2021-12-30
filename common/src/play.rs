@@ -121,6 +121,7 @@ pub struct PublicPlay {
     pub teams: ImmutableTeams,
     pub table: Vec<ValidCardCombo>,
     pub turn_user_id: String,
+    pub passes: [PassWithUserId; 4],
 }
 
 impl GetSmallTichu for PublicPlay {
@@ -136,11 +137,12 @@ impl GetSmallTichu for PublicPlay {
 impl From<PrivatePlay> for PublicPlay {
     fn from(private_play: PrivatePlay) -> Self {
         PublicPlay {
-            small_tichus: private_play.small_tichus.clone(),
-            grand_tichus: private_play.grand_tichus.clone(),
-            teams: private_play.teams.clone(),
-            table: private_play.table.clone(),
+            small_tichus: private_play.small_tichus,
+            grand_tichus: private_play.grand_tichus,
+            teams: private_play.teams,
+            table: private_play.table,
             turn_user_id: private_play.turn_user_id,
+            passes: private_play.passes,
         }
     }
 }
