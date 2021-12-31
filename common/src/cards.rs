@@ -308,6 +308,7 @@ pub struct Single {
     pub cards: Vec<Card>,
     /// Phoenixes receive a value 0.5 higher than the previous card
     pub value: CardValue,
+    pub user_id: String,
 }
 impl PartialOrd for Single {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -391,6 +392,7 @@ const NOOP_PAIR_ERROR: &str = "A pair cannot consist of special card values";
 pub struct Pair {
     pub value: CardValue,
     pub cards: Vec<Card>,
+    pub user_id: String,
 }
 impl PartialOrd for Pair {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -429,6 +431,7 @@ pub struct SequenceOfPairs {
     pub starting_value: CardValue,
     pub number_of_pairs: u8,
     pub cards: Vec<Card>,
+    pub user_id: String,
 }
 impl PartialOrd for SequenceOfPairs {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -472,6 +475,7 @@ const SPECIAL_CARD_TRIO_ERROR: &str = "Can't compare a Trio that contains specia
 pub struct Trio {
     pub value: CardValue,
     pub cards: Vec<Card>,
+    pub user_id: String,
 }
 impl PartialOrd for Trio {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -506,6 +510,7 @@ const SPECIAL_CARD_BOMB_OF_4_ERROR: &str = "Can't compare a Bomb of 4 that conta
 pub struct BombOf4 {
     pub value: CardValue,
     pub cards: Vec<Card>,
+    pub user_id: String,
 }
 impl PartialOrd for BombOf4 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -541,6 +546,7 @@ pub struct SequenceBomb {
     pub starting_value: CardValue,
     pub number_of_cards: u8,
     pub cards: Vec<Card>,
+    pub user_id: String,
 }
 
 impl PartialOrd for SequenceBomb {
@@ -567,6 +573,7 @@ impl Eq for SequenceBomb {}
 pub struct FullHouse {
     pub trio_value: CardValue,
     pub cards: Vec<Card>,
+    pub user_id: String,
 }
 impl PartialOrd for FullHouse {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -591,6 +598,7 @@ pub struct Sequence {
     pub starting_value: CardValue,
     pub number_of_cards: u8,
     pub cards: Vec<Card>,
+    pub user_id: String,
 }
 impl PartialOrd for Sequence {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {

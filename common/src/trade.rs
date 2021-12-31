@@ -44,6 +44,17 @@ impl From<PrivateGrandTichu> for PrivateTrade {
     }
 }
 
+impl PrivateTrade {
+    pub fn get_users_in_turn_order(&self) -> Vec<String> {
+        vec![
+            self.teams[0].user_ids[0].clone(),
+            self.teams[1].user_ids[0].clone(),
+            self.teams[0].user_ids[1].clone(),
+            self.teams[1].user_ids[1].clone(),
+        ]
+    }
+}
+
 impl GetSmallTichu for PrivateTrade {
     fn get_small_tichu(&self) -> &SmallTichuArray {
         &self.small_tichus

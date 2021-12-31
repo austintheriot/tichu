@@ -12,12 +12,14 @@ mod test_single_card {
                     value: CardValue(2)
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Jade,
                     value: CardValue(3)
                 }],
                 value: CardValue(3),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -28,12 +30,14 @@ mod test_single_card {
                     value: CardValue(2)
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Jade,
                     value: CardValue(3)
                 }],
                 value: CardValue(3),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -43,13 +47,15 @@ mod test_single_card {
                     suit: CardSuit::Sword,
                     value: CardValue(2)
                 }],
-                value: CardValue(2)
+                value: CardValue(2),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Jade,
                     value: CardValue(3)
                 }],
                 value: CardValue(3),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -62,12 +68,14 @@ mod test_single_card {
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -78,12 +86,14 @@ mod test_single_card {
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -94,12 +104,14 @@ mod test_single_card {
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -112,12 +124,14 @@ mod test_single_card {
                     value: CardValue(14),
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -128,12 +142,14 @@ mod test_single_card {
                     value: CardValue(14),
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -144,12 +160,14 @@ mod test_single_card {
                     value: CardValue(14),
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -164,13 +182,15 @@ mod test_single_card {
                     suit: CardSuit::Sword,
                     value: CardValue(2)
                 }],
-                value: CardValue(2)
+                value: CardValue(2),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Jade,
                     value: CardValue(3)
                 }],
                 value: CardValue(3),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -180,13 +200,15 @@ mod test_single_card {
                     suit: CardSuit::Sword,
                     value: CardValue(2)
                 }],
-                value: CardValue(2)
+                value: CardValue(2),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Jade,
                     value: CardValue(3)
                 }],
                 value: CardValue(3),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -196,13 +218,15 @@ mod test_single_card {
                     suit: CardSuit::Sword,
                     value: CardValue(2)
                 }],
-                value: CardValue(2)
+                value: CardValue(2),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Jade,
                     value: CardValue(3)
                 }],
                 value: CardValue(3),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -215,12 +239,14 @@ mod test_single_card {
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -231,12 +257,14 @@ mod test_single_card {
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -247,12 +275,14 @@ mod test_single_card {
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -265,12 +295,14 @@ mod test_single_card {
                     value: CardValue(14),
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -281,12 +313,14 @@ mod test_single_card {
                     value: CardValue(14),
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -297,12 +331,14 @@ mod test_single_card {
                     value: CardValue(14),
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(11)
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -317,13 +353,15 @@ mod test_single_card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
                 }],
-                value: CardValue::noop()
+                value: CardValue::noop(),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -334,12 +372,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -350,12 +390,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -368,12 +410,14 @@ mod test_single_card {
                     value: CardValue(2),
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -383,13 +427,15 @@ mod test_single_card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(7),
                 }],
-                value: CardValue(7)
+                value: CardValue(7),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -400,12 +446,14 @@ mod test_single_card {
                     value: CardValue(13),
                 }],
                 value: CardValue(13),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -424,12 +472,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -449,12 +499,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -474,12 +526,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -496,12 +550,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -512,12 +568,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -528,12 +586,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -546,12 +606,14 @@ mod test_single_card {
                     value: CardValue(2),
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -561,13 +623,15 @@ mod test_single_card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(7),
                 }],
-                value: CardValue(7)
+                value: CardValue(7),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -578,12 +642,14 @@ mod test_single_card {
                     value: CardValue(14),
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -602,12 +668,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -627,12 +695,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -652,12 +722,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -673,12 +745,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -689,12 +763,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -705,12 +781,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -725,12 +803,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -741,12 +821,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -757,12 +839,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -775,12 +859,14 @@ mod test_single_card {
                     value: CardValue(2),
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::MahJong,
                     value: CardValue::noop(),
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -791,12 +877,14 @@ mod test_single_card {
                     value: CardValue(7),
                 }],
                 value: CardValue(7),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::MahJong,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -807,12 +895,14 @@ mod test_single_card {
                     value: CardValue(13),
                 }],
                 value: CardValue(13),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::MahJong,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -828,12 +918,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -844,12 +936,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -860,12 +954,14 @@ mod test_single_card {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Pagoda,
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -878,12 +974,14 @@ mod test_single_card {
                     value: CardValue(2),
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             } < Single {
                 cards: vec![Card {
                     suit: CardSuit::Dog,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -894,12 +992,14 @@ mod test_single_card {
                     value: CardValue(7),
                 }],
                 value: CardValue(7),
+                user_id: "1".to_string(),
             } == Single {
                 cards: vec![Card {
                     suit: CardSuit::Dog,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             false
         );
@@ -910,12 +1010,14 @@ mod test_single_card {
                     value: CardValue(13),
                 }],
                 value: CardValue(13),
+                user_id: "1".to_string(),
             } > Single {
                 cards: vec![Card {
                     suit: CardSuit::Dog,
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             },
             true
         );
@@ -932,10 +1034,12 @@ mod test_double {
         let pair_of_2_example_1 = Pair {
             value: card_value_of_2.clone(),
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
         let pair_of_2_example_2 = Pair {
             value: card_value_of_2,
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
         assert_eq!(pair_of_2_example_1 == pair_of_2_example_2, true);
         assert_eq!(pair_of_2_example_1 < pair_of_2_example_2, false);
@@ -945,10 +1049,12 @@ mod test_double {
         let pair_of_2_example_3 = Pair {
             value: card_value_of_13.clone(),
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
         let pair_of_2_example_4 = Pair {
             value: card_value_of_13,
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
         assert_eq!(pair_of_2_example_3 == pair_of_2_example_4, true);
         assert_eq!(pair_of_2_example_3 < pair_of_2_example_4, false);
@@ -964,10 +1070,12 @@ mod test_double {
         let pair_of_2_example_1 = Pair {
             value: card_value_of_2.clone(),
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
         let pair_of_2_example_2 = Pair {
             value: card_value_of_2,
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
         assert_eq!(pair_of_2_example_1 == pair_of_2_example_2, true);
         std::panic::set_hook(original_panic_hook);
@@ -982,10 +1090,12 @@ mod test_double {
         let pair_of_2_example_1 = Pair {
             value: card_value_of_2.clone(),
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
         let pair_of_2_example_2 = Pair {
             value: card_value_of_2,
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
         assert_eq!(pair_of_2_example_1 < pair_of_2_example_2, true);
         std::panic::set_hook(original_panic_hook);
@@ -1000,6 +1110,7 @@ mod test_double {
         let pair_of_2_example_1 = Pair {
             value: card_value_of_2.clone(),
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
         let pair_of_2_example_2 = Pair {
             value: card_value_of_2.clone(),
@@ -1013,6 +1124,7 @@ mod test_double {
                     value: card_value_of_2,
                 },
             ],
+            user_id: "1".to_string(),
         };
         assert_eq!(pair_of_2_example_1 > pair_of_2_example_2, true);
         std::panic::set_hook(original_panic_hook);
@@ -1028,11 +1140,13 @@ mod test_sequence_of_pairs {
         let number_of_pairs = 2;
         let sequence_of_pairs_example_1 = SequenceOfPairs {
             starting_value: CardValue(2),
+            user_id: "1".to_string(),
             number_of_pairs,
             cards: vec![ /* omitted */],
         };
         let sequence_of_pairs_example_2 = SequenceOfPairs {
             starting_value: CardValue(2),
+            user_id: "1".to_string(),
             number_of_pairs,
             cards: vec![ /* omitted */],
         };
@@ -1041,6 +1155,7 @@ mod test_sequence_of_pairs {
             starting_value: CardValue(11),
             number_of_pairs,
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
 
         assert_eq!(
@@ -1079,17 +1194,20 @@ mod test_trio {
     fn it_should_compare_trios_correctly() {
         let trio_example_1 = Trio {
             value: CardValue(3),
+            user_id: "1".to_string(),
             cards: vec![ /* omitted */],
         };
 
         let trio_example_2 = Trio {
             value: CardValue(3),
+            user_id: "1".to_string(),
             cards: vec![ /* omitted */],
         };
 
         let trio_example_3 = Trio {
             value: CardValue(7),
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
 
         // example 1 : example 2
@@ -1112,17 +1230,20 @@ mod test_bomb_of_4 {
     fn it_should_compare_sequence_bombs_correctly() {
         let bomb_of_4_example_1 = BombOf4 {
             value: CardValue(3),
+            user_id: "1".to_string(),
             cards: vec![ /* omitted */],
         };
 
         let bomb_of_4_example_2 = BombOf4 {
             value: CardValue(3),
+            user_id: "1".to_string(),
             cards: vec![ /* omitted */],
         };
 
         let bomb_of_4_example_3 = BombOf4 {
             value: CardValue(7),
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
 
         // example 1 : example 2
@@ -1145,6 +1266,7 @@ mod test_sequence_bomb {
     fn it_should_compare_sequence_bombs_correctly() {
         let sequence_bomb_example_1 = SequenceBomb {
             starting_value: CardValue(3),
+            user_id: "1".to_string(),
             suit: CardSuit::Sword,
             number_of_cards: 5,
             cards: vec![ /* omitted */],
@@ -1152,6 +1274,7 @@ mod test_sequence_bomb {
 
         let sequence_bomb_example_2 = SequenceBomb {
             starting_value: CardValue(3),
+            user_id: "1".to_string(),
             suit: CardSuit::Pagoda,
             number_of_cards: 5,
             cards: vec![ /* omitted */],
@@ -1162,6 +1285,7 @@ mod test_sequence_bomb {
             suit: CardSuit::Star,
             number_of_cards: 4,
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
 
         // example 1 : example 2
@@ -1184,17 +1308,20 @@ mod test_full_house {
     fn it_should_compare_full_houses_correctly() {
         let full_house_example_1 = FullHouse {
             trio_value: CardValue(3),
+            user_id: "1".to_string(),
             cards: vec![ /* omitted */],
         };
 
         let full_house_example_2 = FullHouse {
             trio_value: CardValue(3),
+            user_id: "1".to_string(),
             cards: vec![ /* omitted */],
         };
 
         let full_house_example_3 = FullHouse {
             trio_value: CardValue(4),
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
 
         // example 1 : example 2
@@ -1334,12 +1461,14 @@ mod test_sequence {
     fn it_should_compare_sequences_correctly() {
         let sequence_example_1 = Sequence {
             starting_value: CardValue(3),
+            user_id: "1".to_string(),
             number_of_cards: 6,
             cards: vec![ /* omitted */],
         };
 
         let sequence_example_2 = Sequence {
             starting_value: CardValue(3),
+            user_id: "1".to_string(),
             number_of_cards: 6,
             cards: vec![ /* omitted */],
         };
@@ -1348,6 +1477,7 @@ mod test_sequence {
             starting_value: CardValue(4),
             number_of_cards: 6,
             cards: vec![ /* omitted */],
+            user_id: "1".to_string(),
         };
 
         // example 1 : example 2

@@ -1,4 +1,4 @@
-use crate::Card;
+use crate::{Card, ValidCardCombo};
 use serde::{Deserialize, Serialize};
 
 /// Placeholder for when a user has not been assigned an id yet
@@ -19,7 +19,7 @@ pub struct PublicUser {
     pub user_id: String,
     pub role: UserRole,
     pub display_name: String,
-    pub tricks: Vec<Vec<Card>>,
+    pub tricks: Vec<ValidCardCombo>,
     pub has_played_first_card: bool,
 }
 
@@ -54,7 +54,7 @@ pub struct PrivateUser {
     pub user_id: String,
     pub role: UserRole,
     pub display_name: String,
-    pub tricks: Vec<Vec<Card>>,
+    pub tricks: Vec<ValidCardCombo>,
     pub has_played_first_card: bool,
     pub hand: Vec<Card>,
 }

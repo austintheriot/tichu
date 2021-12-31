@@ -1,6 +1,6 @@
 use crate::{
-    Card, GetSmallTichu, ImmutableTeam, ImmutableTeams, PrivateTrade, SmallTichuArray,
-    TeamCategories, ValidCardCombo,
+    Card, GetSmallTichu, ImmutableTeam, ImmutableTeams, PrivateGameStage, PrivateGameState,
+    PrivateTrade, SmallTichuArray, TeamCategories, ValidCardCombo,
 };
 use serde::{Deserialize, Serialize};
 
@@ -24,6 +24,8 @@ pub struct PrivatePlay {
     pub user_id_to_give_dragon_to: Option<String>,
     pub wished_for_card: Option<Card>,
     pub passes: [PassWithUserId; 4],
+    /// Users who have not run out of cards: in turn order
+    pub users_in_play: Vec<String>,
 }
 
 impl From<PrivateTrade> for PrivatePlay {
@@ -47,6 +49,8 @@ impl From<PrivateTrade> for PrivatePlay {
             },
         ];
 
+        let users_in_play = private_trade.get_users_in_turn_order();
+
         PrivatePlay {
             small_tichus: private_trade.small_tichus.clone(),
             grand_tichus: private_trade.grand_tichus.clone(),
@@ -58,6 +62,7 @@ impl From<PrivateTrade> for PrivatePlay {
             wished_for_card: None,
             user_id_to_give_dragon_to: None,
             passes,
+            users_in_play,
         }
     }
 }
@@ -82,24 +87,49 @@ impl PrivatePlay {
         }
     }
 
+    pub fn get_users_in_turn_order(&self) -> Vec<&String> {
+        vec![
+            &self.teams[0].user_ids[0],
+            &self.teams[1].user_ids[0],
+            &self.teams[0].user_ids[1],
+            &self.teams[1].user_ids[1],
+        ]
+    }
+
+    pub fn get_is_user_out(&self, user_id: &str) -> bool {
+        self.users_in_play
+            .iter()
+            .all(|users_in_play_id| users_in_play_id != user_id)
+    }
+
     /// Pattern of turns:
     /// Teammate 1 -> Opponent 1 -> Teammate 2 -> Opponent 2
     pub fn get_next_turn_user_id(&self) -> &String {
-        let current_user_turn = &self.turn_user_id;
-        let teammate_1 = &self.teams[0].user_ids[0];
-        let opponent_1 = &self.teams[1].user_ids[0];
-        let teammate_2 = &self.teams[0].user_ids[1];
-        let opponent_2 = &self.teams[1].user_ids[1];
-
-        if current_user_turn == teammate_1 {
-            opponent_1
-        } else if current_user_turn == opponent_1 {
-            teammate_2
-        } else if current_user_turn == teammate_2 {
-            opponent_2
-        } else {
-            teammate_1
+        let mut users_in_turn_order = self.get_users_in_turn_order().clone();
+        let current_user_turn_id = &self.turn_user_id;
+        let current_user_turn_id_index = users_in_turn_order
+            .iter()
+            .position(|user_id| *user_id == current_user_turn_id)
+            .expect("User should be in list of participants");
+        // put current user at the beginning of the array and the reset are still in order
+        users_in_turn_order.rotate_left(current_user_turn_id_index);
+        // remove current user
+        users_in_turn_order.remove(0);
+        // remove all users who are out
+        let mut i = 0;
+        while i < users_in_turn_order.len() {
+            let user_id = users_in_turn_order.get(i).expect("User should be in Vec");
+            if self.get_is_user_out(user_id) {
+                users_in_turn_order.remove(i);
+            } else {
+                i += 1;
+            }
         }
+
+        let next_turn_user_id = users_in_turn_order
+            .get(0)
+            .expect("There should never be only one user left");
+        next_turn_user_id
     }
 }
 
@@ -122,6 +152,8 @@ pub struct PublicPlay {
     pub table: Vec<ValidCardCombo>,
     pub turn_user_id: String,
     pub passes: [PassWithUserId; 4],
+    /// Users who have not run out of cards: in turn order
+    pub users_in_play: Vec<String>,
 }
 
 impl GetSmallTichu for PublicPlay {
@@ -143,6 +175,7 @@ impl From<PrivatePlay> for PublicPlay {
             table: private_play.table,
             turn_user_id: private_play.turn_user_id,
             passes: private_play.passes,
+            users_in_play: private_play.users_in_play,
         }
     }
 }

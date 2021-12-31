@@ -42,6 +42,7 @@ pub enum STCMsg {
 
     /// after all submitted
     CardsPlayed,
+    UserPassed(String),
     PlayerReceivedDragon,
 
     /// Temporary end game: show scores, etc.

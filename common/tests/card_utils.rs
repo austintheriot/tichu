@@ -23,7 +23,7 @@ mod test_get_card_combination {
             suit: CardSuit::Sword,
             value: CardValue(2),
         }];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Single(Single {
             cards: returned_cards,
             ..
@@ -39,7 +39,7 @@ mod test_get_card_combination {
             suit: CardSuit::Dragon,
             value: CardValue::noop(),
         }];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Single(Single {
             cards: returned_cards,
             ..
@@ -54,7 +54,7 @@ mod test_get_card_combination {
             suit: CardSuit::MahJong,
             value: CardValue::noop(),
         }];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Single(Single {
             cards: returned_cards,
             ..
@@ -69,7 +69,7 @@ mod test_get_card_combination {
             suit: CardSuit::Phoenix,
             value: CardValue::noop(),
         }];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Single(Single {
             cards: returned_cards,
             ..
@@ -88,10 +88,11 @@ mod test_get_card_combination {
             suit: CardSuit::Phoenix,
             value: CardValue::noop(),
         }];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Single(Single {
             cards: returned_cards,
             value,
+            ..
         })) = combo
         {
             assert_eq!(returned_cards, cards);
@@ -112,12 +113,15 @@ mod test_get_card_combination {
                     value: CardValue(2),
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             })),
             &cards,
+            &"1".to_string(),
         );
         if let Some(ValidCardCombo::Single(Single {
             cards: returned_cards,
             value,
+            ..
         })) = combo
         {
             assert_eq!(returned_cards, cards);
@@ -137,12 +141,15 @@ mod test_get_card_combination {
                     value: CardValue(10),
                 }],
                 value: CardValue(10),
+                user_id: "1".to_string(),
             })),
             &cards,
+            &"1".to_string(),
         );
         if let Some(ValidCardCombo::Single(Single {
             cards: returned_cards,
             value,
+            ..
         })) = combo
         {
             assert_eq!(returned_cards, cards);
@@ -162,12 +169,15 @@ mod test_get_card_combination {
                     value: CardValue(14),
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             })),
             &cards,
+            &"1".to_string(),
         );
         if let Some(ValidCardCombo::Single(Single {
             cards: returned_cards,
             value,
+            ..
         })) = combo
         {
             assert_eq!(returned_cards, cards);
@@ -188,12 +198,15 @@ mod test_get_card_combination {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &cards,
+            &"1".to_string(),
         );
         if let Some(ValidCardCombo::Single(Single {
             cards: returned_cards,
             value,
+            ..
         })) = combo
         {
             assert_eq!(returned_cards, cards);
@@ -214,12 +227,15 @@ mod test_get_card_combination {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &cards,
+            &"1".to_string(),
         );
         if let Some(ValidCardCombo::Single(Single {
             cards: returned_cards,
             value,
+            ..
         })) = combo
         {
             assert_eq!(returned_cards, cards);
@@ -240,8 +256,10 @@ mod test_get_card_combination {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &cards,
+            &"1".to_string(),
         );
         assert_eq!(combo, None);
     }
@@ -259,10 +277,11 @@ mod test_get_card_combination {
                 value: CardValue(7),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Pair(Pair {
             cards: returned_cards,
             value,
+            ..
         })) = combo
         {
             assert_eq!(returned_cards, cards);
@@ -282,10 +301,11 @@ mod test_get_card_combination {
                 value: CardValue::noop(),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Pair(Pair {
             cards: returned_cards,
             value,
+            ..
         })) = combo
         {
             assert_eq!(returned_cards, cards);
@@ -312,10 +332,11 @@ mod test_get_card_combination {
                 value: CardValue(3),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Trio(Trio {
             cards: returned_cards,
             value,
+            ..
         })) = combo
         {
             assert_eq!(returned_cards, cards);
@@ -339,10 +360,11 @@ mod test_get_card_combination {
                 value: CardValue::noop(),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Trio(Trio {
             cards: returned_cards,
             value,
+            ..
         })) = combo
         {
             assert_eq!(returned_cards, cards);
@@ -365,10 +387,11 @@ mod test_get_card_combination {
                 value: CardValue(3),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Trio(Trio {
             cards: returned_cards,
             value,
+            ..
         })) = combo
         {
             assert_eq!(returned_cards, cards);
@@ -391,10 +414,11 @@ mod test_get_card_combination {
                 value: CardValue(3),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Trio(Trio {
             cards: returned_cards,
             value,
+            ..
         })) = combo
         {
             assert_eq!(returned_cards, cards);
@@ -425,11 +449,12 @@ mod test_get_card_combination {
                 value: CardValue(14),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
             starting_value,
             number_of_pairs,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(starting_value, CardValue(13));
@@ -458,11 +483,12 @@ mod test_get_card_combination {
                 value: CardValue(3),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
             starting_value,
             number_of_pairs,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(starting_value, CardValue(2));
@@ -491,10 +517,11 @@ mod test_get_card_combination {
                 value: CardValue(7),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::BombOf4(BombOf4 {
             value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(value, CardValue(7));
@@ -529,10 +556,11 @@ mod test_get_card_combination {
                 value: CardValue(14),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::FullHouse(FullHouse {
             trio_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(trio_value, CardValue(13));
@@ -564,10 +592,11 @@ mod test_get_card_combination {
                 value: CardValue(14),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::FullHouse(FullHouse {
             trio_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(trio_value, CardValue(14));
@@ -599,10 +628,11 @@ mod test_get_card_combination {
                 value: CardValue::noop(),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::FullHouse(FullHouse {
             trio_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(trio_value, CardValue(13));
@@ -634,10 +664,11 @@ mod test_get_card_combination {
                 value: CardValue::noop(),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::FullHouse(FullHouse {
             trio_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(trio_value, CardValue(14));
@@ -669,11 +700,12 @@ mod test_get_card_combination {
                 value: CardValue(7),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 5);
@@ -706,11 +738,12 @@ mod test_get_card_combination {
                 value: CardValue(7),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 5);
@@ -742,11 +775,12 @@ mod test_get_card_combination {
                 value: CardValue(7),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 5);
@@ -778,11 +812,12 @@ mod test_get_card_combination {
                 value: CardValue::noop(),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 5);
@@ -815,12 +850,13 @@ mod test_get_card_combination {
                 value: CardValue(7),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::SequenceBomb(SequenceBomb {
             number_of_cards,
             starting_value,
             cards: returned_cards,
             suit,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 5);
@@ -861,11 +897,12 @@ mod test_get_card_combination {
                 value: CardValue(8),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 6);
@@ -902,11 +939,12 @@ mod test_get_card_combination {
                 value: CardValue(8),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 6);
@@ -942,11 +980,12 @@ mod test_get_card_combination {
                 value: CardValue(8),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 6);
@@ -982,11 +1021,12 @@ mod test_get_card_combination {
                 value: CardValue::noop(),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 6);
@@ -1026,15 +1066,17 @@ mod test_get_card_combination {
                             suit: CardSuit::Pagoda,
                             value: CardValue(8),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
-                .unwrap()
+                .unwrap(),
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![ /* omitted */],
                 number_of_cards: 6,
                 starting_value: CardValue(3),
                 suit: CardSuit::Pagoda,
+                user_id: "1".to_string(),
             }))
         );
 
@@ -1065,11 +1107,12 @@ mod test_get_card_combination {
                 value: CardValue(14),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
             starting_value,
             number_of_pairs,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(starting_value, CardValue(12));
@@ -1109,7 +1152,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -1117,6 +1161,7 @@ mod test_get_card_combination {
                 starting_value: CardValue(12),
                 number_of_pairs: 3,
                 cards: vec![ /* omitted */],
+                user_id: "1".to_string(),
             }))
         );
         assert_eq!(
@@ -1148,13 +1193,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(12),
                 number_of_pairs: 3,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -1187,13 +1234,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Phoenix,
                             value: CardValue::noop(),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(12),
                 number_of_pairs: 3,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -1232,11 +1281,12 @@ mod test_get_card_combination {
                 value: CardValue(9),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 7);
@@ -1280,7 +1330,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Jade,
                             value: CardValue(9),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -1288,6 +1339,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 7,
                 starting_value: CardValue(4),
+                user_id: "1".to_string(),
             }))
         );
 
@@ -1322,12 +1374,13 @@ mod test_get_card_combination {
                 value: CardValue(9),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::SequenceBomb(SequenceBomb {
             number_of_cards,
             starting_value,
             cards: returned_cards,
             suit,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 7);
@@ -1376,11 +1429,12 @@ mod test_get_card_combination {
                 value: CardValue(10),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 8);
@@ -1425,11 +1479,12 @@ mod test_get_card_combination {
                 value: CardValue(10),
             },
         ];
-        let combo = get_card_combination(None, &cards);
+        let combo = get_card_combination(None, &cards, &"1".to_string());
         if let Some(ValidCardCombo::Sequence(Sequence {
             number_of_cards,
             starting_value,
             cards: returned_cards,
+            ..
         })) = combo
         {
             assert_eq!(number_of_cards, 8);
@@ -1477,7 +1532,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Pagoda,
                             value: CardValue(10),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -1486,6 +1542,7 @@ mod test_get_card_combination {
                 number_of_cards: 8,
                 starting_value: CardValue(3),
                 suit: CardSuit::Pagoda,
+                user_id: "1".to_string(),
             }))
         );
 
@@ -1527,13 +1584,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(11),
                 number_of_pairs: 4,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -1576,13 +1635,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(11),
                 number_of_pairs: 4,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -1623,13 +1684,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(11),
                 number_of_pairs: 4,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -1670,13 +1733,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Phoenix,
                             value: CardValue::noop(),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(11),
                 number_of_pairs: 4,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -1726,13 +1791,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Pagoda,
                             value: CardValue(11),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 number_of_cards: 9,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -1779,7 +1846,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Jade,
                             value: CardValue(11),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -1787,6 +1855,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 9,
                 starting_value: CardValue(4),
+                user_id: "1".to_string(),
             }))
         );
         assert_eq!(
@@ -1830,7 +1899,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Pagoda,
                             value: CardValue(11),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -1838,6 +1908,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 9,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
             }))
         );
         assert_eq!(
@@ -1881,7 +1952,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Phoenix,
                             value: CardValue::noop(),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -1889,6 +1961,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 9,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
             }))
         );
 
@@ -1934,7 +2007,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Pagoda,
                             value: CardValue(11),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -1943,6 +2017,7 @@ mod test_get_card_combination {
                 number_of_cards: 9,
                 starting_value: CardValue(3),
                 suit: CardSuit::Pagoda,
+                user_id: "1".to_string(),
             }))
         );
     }
@@ -1995,13 +2070,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Star,
                             value: CardValue(12),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 number_of_cards: 10,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -2052,7 +2129,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Jade,
                             value: CardValue(12),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -2060,6 +2138,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 10,
                 starting_value: CardValue(4),
+                user_id: "1".to_string(),
             }))
         );
         assert_eq!(
@@ -2107,7 +2186,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(12),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -2115,6 +2195,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 10,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
             }))
         );
         assert_eq!(
@@ -2162,7 +2243,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Phoenix,
                             value: CardValue::noop(),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -2170,6 +2252,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 10,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
             }))
         );
 
@@ -2219,7 +2302,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Pagoda,
                             value: CardValue(12),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -2228,6 +2312,7 @@ mod test_get_card_combination {
                 number_of_cards: 10,
                 starting_value: CardValue(3),
                 suit: CardSuit::Pagoda,
+                user_id: "1".to_string(),
             }))
         );
 
@@ -2277,13 +2362,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(10),
                 number_of_pairs: 5,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -2334,13 +2421,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(10),
                 number_of_pairs: 5,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -2389,13 +2478,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(10),
                 number_of_pairs: 5,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -2444,13 +2535,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Phoenix,
                             value: CardValue::noop(),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(10),
                 number_of_pairs: 5,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -2508,13 +2601,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Pagoda,
                             value: CardValue(13),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 number_of_cards: 11,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -2569,7 +2664,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Jade,
                             value: CardValue(13),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -2577,6 +2673,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 11,
                 starting_value: CardValue(4),
+                user_id: "1".to_string(),
             }))
         );
         assert_eq!(
@@ -2628,7 +2725,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(13),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -2636,6 +2734,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 11,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
             }))
         );
         assert_eq!(
@@ -2687,7 +2786,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Phoenix,
                             value: CardValue::noop(),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -2695,6 +2795,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 11,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
             }))
         );
 
@@ -2748,7 +2849,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Pagoda,
                             value: CardValue(13),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -2757,6 +2859,7 @@ mod test_get_card_combination {
                 number_of_cards: 11,
                 starting_value: CardValue(3),
                 suit: CardSuit::Pagoda,
+                user_id: "1".to_string(),
             }))
         );
     }
@@ -2817,13 +2920,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Jade,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 number_of_cards: 12,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -2882,7 +2987,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Jade,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -2890,6 +2996,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 12,
                 starting_value: CardValue(4),
+                user_id: "1".to_string(),
             }))
         );
         assert_eq!(
@@ -2945,7 +3052,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -2953,6 +3061,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 12,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
             }))
         );
         assert_eq!(
@@ -3008,7 +3117,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Phoenix,
                             value: CardValue::noop(),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -3016,6 +3126,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 12,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
             }))
         );
 
@@ -3073,7 +3184,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Pagoda,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -3082,6 +3194,7 @@ mod test_get_card_combination {
                 number_of_cards: 12,
                 starting_value: CardValue(3),
                 suit: CardSuit::Pagoda,
+                user_id: "1".to_string(),
             }))
         );
 
@@ -3139,13 +3252,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(9),
                 number_of_pairs: 12,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -3204,13 +3319,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(9),
                 number_of_pairs: 6,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -3267,13 +3384,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(9),
                 number_of_pairs: 6,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -3330,13 +3449,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Phoenix,
                             value: CardValue::noop(),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::SequenceOfPairs(SequenceOfPairs {
                 starting_value: CardValue(9),
                 number_of_pairs: 6,
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -3402,13 +3523,15 @@ mod test_get_card_combination {
                             suit: CardSuit::Jade,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
             std::mem::discriminant(&ValidCardCombo::Sequence(Sequence {
                 number_of_cards: 13,
                 starting_value: CardValue(2),
+                user_id: "1".to_string(),
                 cards: vec![ /* omitted */],
             }))
         );
@@ -3471,7 +3594,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Jade,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -3479,6 +3603,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 13,
                 starting_value: CardValue(3),
+                user_id: "1".to_string(),
             }))
         );
         assert_eq!(
@@ -3538,7 +3663,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Sword,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -3546,6 +3672,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 13,
                 starting_value: CardValue(2),
+                user_id: "1".to_string(),
             }))
         );
         assert_eq!(
@@ -3605,7 +3732,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Phoenix,
                             value: CardValue::noop(),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -3613,6 +3741,7 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 13,
                 starting_value: CardValue(2),
+                user_id: "1".to_string(),
             }))
         );
 
@@ -3674,7 +3803,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Pagoda,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -3683,6 +3813,7 @@ mod test_get_card_combination {
                 number_of_cards: 13,
                 starting_value: CardValue(3),
                 suit: CardSuit::Pagoda,
+                user_id: "1".to_string(),
             }))
         );
     }
@@ -3751,7 +3882,8 @@ mod test_get_card_combination {
                             suit: CardSuit::Jade,
                             value: CardValue(14),
                         },
-                    ]
+                    ],
+                    &"1".to_string(),
                 )
                 .unwrap()
             ),
@@ -3759,13 +3891,14 @@ mod test_get_card_combination {
                 cards: vec![ /* omitted */],
                 number_of_cards: 14,
                 starting_value: CardValue(2),
+                user_id: "1".to_string(),
             }))
         );
     }
 
     #[test]
     fn it_should_return_none_for_bogus_combos_length_2() {
-        assert_eq!(get_card_combination(None, &vec![]), None);
+        assert_eq!(get_card_combination(None, &vec![], &"1".to_string()), None);
 
         // two different cards
         assert_eq!(
@@ -3780,7 +3913,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(3),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -3798,7 +3932,8 @@ mod test_get_card_combination {
                         suit: CardSuit::MahJong,
                         value: CardValue::noop(),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -3814,7 +3949,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Dog,
                         value: CardValue::noop(),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -3830,7 +3966,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Dog,
                         value: CardValue::noop(),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -3848,7 +3985,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(11),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -3864,7 +4002,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Jade,
                         value: CardValue(6),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -3880,7 +4019,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Pagoda,
                         value: CardValue(14),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -3898,7 +4038,8 @@ mod test_get_card_combination {
                         suit: CardSuit::MahJong,
                         value: CardValue::noop(),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -3914,7 +4055,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Dragon,
                         value: CardValue::noop(),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -3930,7 +4072,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Dog,
                         value: CardValue::noop(),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -3955,7 +4098,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Jade,
                         value: CardValue(5),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -3977,7 +4121,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Jade,
                         value: CardValue(12),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -3999,7 +4144,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Jade,
                         value: CardValue(4),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4021,7 +4167,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Sword,
                         value: CardValue(11),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4050,7 +4197,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(9),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4076,7 +4224,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(9),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4102,7 +4251,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(5),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4128,7 +4278,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Phoenix,
                         value: CardValue::noop(),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4154,7 +4305,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(4),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4180,7 +4332,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Phoenix,
                         value: CardValue::noop(),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4206,7 +4359,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Jade,
                         value: CardValue(3),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4232,7 +4386,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Phoenix,
                         value: CardValue::noop(),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4265,7 +4420,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(7),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4295,7 +4451,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(7),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4325,7 +4482,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(3),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4355,7 +4513,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Phoenix,
                         value: CardValue::noop(),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4392,7 +4551,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(8),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4426,7 +4586,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(8),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4460,7 +4621,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(3),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4494,7 +4656,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(5),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4526,7 +4689,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(5),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4560,7 +4724,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(5),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4581,7 +4746,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(1),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4593,7 +4759,8 @@ mod test_get_card_combination {
                 &vec![Card {
                     suit: CardSuit::Dragon,
                     value: CardValue(2),
-                },]
+                },],
+                &"1".to_string(),
             ),
             None
         );
@@ -4605,7 +4772,8 @@ mod test_get_card_combination {
                 &vec![Card {
                     suit: CardSuit::Sword,
                     value: CardValue::noop(),
-                },]
+                },],
+                &"1".to_string(),
             ),
             None
         );
@@ -4623,7 +4791,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Sword,
                         value: CardValue(2),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4645,7 +4814,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Star,
                         value: CardValue(2),
                     }
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4675,7 +4845,8 @@ mod test_get_card_combination {
                         suit: CardSuit::Sword,
                         value: CardValue(15),
                     },
-                ]
+                ],
+                &"1".to_string(),
             ),
             None
         );
@@ -4817,10 +4988,12 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
-                value: CardValue(2)
+                value: CardValue(2),
+                user_id: "1".to_string(),
             })
         ));
         // dog
@@ -4831,10 +5004,12 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
-                value: CardValue(2)
+                value: CardValue(2),
+                user_id: "1".to_string(),
             })
         ));
         // phoenix
@@ -4845,10 +5020,12 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
-                value: CardValue(2)
+                value: CardValue(2),
+                user_id: "1".to_string(),
             })
         ));
         // dragon
@@ -4859,10 +5036,12 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
-                value: CardValue(2)
+                value: CardValue(2),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -4875,10 +5054,12 @@ mod test_next_combo_beats_prev {
                     value: CardValue(14),
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
-                value: CardValue(14)
+                value: CardValue(14),
+                user_id: "1".to_string(),
             })
         ));
         // big combos
@@ -4887,10 +5068,12 @@ mod test_next_combo_beats_prev {
                 cards: vec![/* omitted */],
                 number_of_cards: 13,
                 starting_value: CardValue(2),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
-                value: CardValue(14)
+                value: CardValue(14),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -4898,11 +5081,13 @@ mod test_next_combo_beats_prev {
         assert!(next_combo_beats_prev(
             &Some(&ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
-                value: CardValue(13)
+                value: CardValue(13),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
-                value: CardValue(14)
+                value: CardValue(14),
+                user_id: "1".to_string(),
             })
         ));
     }
@@ -4913,11 +5098,13 @@ mod test_next_combo_beats_prev {
         assert!(!next_combo_beats_prev(
             &Some(&ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
-                value: CardValue(13)
+                value: CardValue(13),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
-                value: CardValue(12)
+                value: CardValue(12),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -4928,10 +5115,12 @@ mod test_next_combo_beats_prev {
                 number_of_cards: 5,
                 starting_value: CardValue(2),
                 suit: CardSuit::Jade,
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
-                value: CardValue(12)
+                value: CardValue(12),
+                user_id: "1".to_string(),
             })
         ));
     }
@@ -4943,6 +5132,7 @@ mod test_next_combo_beats_prev {
             number_of_cards: 5,
             starting_value: CardValue(7),
             suit: CardSuit::Star,
+            user_id: "1".to_string(),
         });
 
         // any special card:
@@ -4954,6 +5144,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &sequence_bomb_example,
         ));
@@ -4965,6 +5156,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &sequence_bomb_example,
         ));
@@ -4976,6 +5168,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &sequence_bomb_example,
         ));
@@ -4987,6 +5180,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &sequence_bomb_example,
         ));
@@ -5000,6 +5194,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(14),
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             })),
             &sequence_bomb_example,
         ));
@@ -5009,6 +5204,7 @@ mod test_next_combo_beats_prev {
                 cards: vec![/* omitted */],
                 number_of_cards: 13,
                 starting_value: CardValue(2),
+                user_id: "1".to_string(),
             })),
             &sequence_bomb_example,
         ));
@@ -5018,6 +5214,7 @@ mod test_next_combo_beats_prev {
             &Some(&ValidCardCombo::BombOf4(BombOf4 {
                 cards: vec![/* omitted */],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             })),
             &sequence_bomb_example,
         ));
@@ -5029,12 +5226,14 @@ mod test_next_combo_beats_prev {
                 number_of_cards: 5,
                 starting_value: CardValue(7),
                 suit: CardSuit::Star,
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![/* omitted */],
                 number_of_cards: 6,
                 starting_value: CardValue(2),
                 suit: CardSuit::Jade,
+                user_id: "1".to_string(),
             }),
         ));
 
@@ -5045,12 +5244,14 @@ mod test_next_combo_beats_prev {
                 number_of_cards: 5,
                 starting_value: CardValue(7),
                 suit: CardSuit::Star,
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![/* omitted */],
                 number_of_cards: 5,
                 starting_value: CardValue(8),
                 suit: CardSuit::Jade,
+                user_id: "1".to_string(),
             }),
         ));
     }
@@ -5064,12 +5265,14 @@ mod test_next_combo_beats_prev {
                 number_of_cards: 6,
                 starting_value: CardValue(7),
                 suit: CardSuit::Star,
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![/* omitted */],
                 number_of_cards: 5,
                 starting_value: CardValue(8),
                 suit: CardSuit::Jade,
+                user_id: "1".to_string(),
             }),
         ));
 
@@ -5080,12 +5283,14 @@ mod test_next_combo_beats_prev {
                 number_of_cards: 5,
                 starting_value: CardValue(9),
                 suit: CardSuit::Star,
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::SequenceBomb(SequenceBomb {
                 cards: vec![/* omitted */],
                 number_of_cards: 5,
                 starting_value: CardValue(8),
                 suit: CardSuit::Jade,
+                user_id: "1".to_string(),
             }),
         ));
     }
@@ -5100,7 +5305,8 @@ mod test_next_combo_beats_prev {
                     suit: CardSuit::Jade,
                     value: CardValue(14)
                 }],
-                value: CardValue(14)
+                value: CardValue(14),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5108,6 +5314,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
         // against phoenix
@@ -5118,6 +5325,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5125,6 +5333,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
         // against MahJong
@@ -5135,6 +5344,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5142,6 +5352,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
         // against Dog
@@ -5152,6 +5363,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5159,6 +5371,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
     }
@@ -5178,7 +5391,8 @@ mod test_next_combo_beats_prev {
                         suit: CardSuit::Pagoda,
                         value: CardValue(2)
                     }
-                ]
+                ],
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5186,6 +5400,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
     }
@@ -5200,13 +5415,15 @@ mod test_next_combo_beats_prev {
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
                     suit: CardSuit::Phoenix,
                     value: CardValue::noop(),
                 }],
-                value: CardValue::noop()
+                value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5218,6 +5435,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5225,6 +5443,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5236,6 +5455,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5243,6 +5463,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
     }
@@ -5262,7 +5483,8 @@ mod test_next_combo_beats_prev {
                         suit: CardSuit::Pagoda,
                         value: CardValue(2)
                     }
-                ]
+                ],
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5270,6 +5492,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5281,6 +5504,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5288,6 +5512,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
     }
@@ -5303,6 +5528,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
     }
@@ -5317,6 +5543,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(2),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5324,6 +5551,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
     }
@@ -5339,6 +5567,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5350,6 +5579,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5357,6 +5587,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
     }
@@ -5371,6 +5602,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(2),
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5378,6 +5610,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
     }
@@ -5392,6 +5625,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(2)
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5399,6 +5633,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(3)
                 }],
                 value: CardValue(3),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5410,6 +5645,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5417,6 +5653,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(12)
                 }],
                 value: CardValue(12),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5428,6 +5665,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5435,6 +5673,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(2)
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5446,6 +5685,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5453,6 +5693,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(2)
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             })
         ));
     }
@@ -5467,6 +5708,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(2)
                 }],
                 value: CardValue(3),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5474,6 +5716,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(2)
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5485,6 +5728,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(3)
                 }],
                 value: CardValue(3),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5492,6 +5736,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(2)
                 }],
                 value: CardValue(3),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5509,6 +5754,7 @@ mod test_next_combo_beats_prev {
                     }
                 ],
                 value: CardValue(3),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5516,6 +5762,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(4)
                 }],
                 value: CardValue(4),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5527,6 +5774,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue(11),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5534,6 +5782,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(7)
                 }],
                 value: CardValue(7),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5545,6 +5794,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })),
             &ValidCardCombo::Single(Single {
                 cards: vec![Card {
@@ -5552,6 +5802,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             })
         ));
     }
@@ -5567,6 +5818,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(2)
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             })
         ));
         assert!(next_combo_beats_prev(
@@ -5577,6 +5829,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue(14)
                 }],
                 value: CardValue(14),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5589,6 +5842,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5601,6 +5855,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5613,6 +5868,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue(2),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5625,6 +5881,7 @@ mod test_next_combo_beats_prev {
                     value: CardValue::noop(),
                 }],
                 value: CardValue::noop(),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5634,6 +5891,7 @@ mod test_next_combo_beats_prev {
             &ValidCardCombo::FullHouse(FullHouse {
                 cards: vec![/* omitted */],
                 trio_value: CardValue(10),
+                user_id: "1".to_string(),
             })
         ));
 
@@ -5644,6 +5902,7 @@ mod test_next_combo_beats_prev {
                 cards: vec![/* omitted */],
                 number_of_cards: 10,
                 starting_value: CardValue(2),
+                user_id: "1".to_string(),
             })
         ));
     }

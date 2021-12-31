@@ -1,9 +1,10 @@
 use crate::{
     get_card_combination, get_new_game_code, next_combo_beats_prev, sort_cards_for_hand,
     user::UserRole, CallGrandTichuRequest, Card, CardSuit, Deck, GetSmallTichu, ImmutableTeam,
-    MutableTeam, OtherPlayers, PrivateGameStage, PrivateGrandTichu, PrivatePlay, PrivateUser,
-    PublicGameStage, PublicUser, SubmitTrade, TeamCategories, TeamOption, TichuCallStatus,
-    UserIdWithTichuCallStatus, NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
+    MutableTeam, OtherPlayers, PassWithUserId, PrivateGameStage, PrivateGrandTichu, PrivatePlay,
+    PrivateUser, PublicGameStage, PublicUser, SubmitTrade, TeamCategories, TeamOption,
+    TichuCallStatus, UserIdWithTichuCallStatus, ValidCardCombo, NUM_CARDS_AFTER_GRAND_TICHU,
+    NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -664,15 +665,89 @@ impl PrivateGameState {
         }
     }
 
-    pub fn pass(&self, _user_id: &str, _user_id_to_give_dragon_to: String) -> Self {
-        
+    pub fn get_number_of_users_who_have_passed(&self) -> Result<usize, String> {
+        if let PrivateGameStage::Play(play_state) = &self.stage {
+            let passed_users: Vec<&PassWithUserId> = play_state
+                .passes
+                .iter()
+                .filter(|pass| pass.passed)
+                .collect();
+            return Ok(passed_users.len());
+        }
 
-        // if this is the final pass, user wins trick
-        // if won and it contains a dragon, give trick to the user who it is intended for
+        Err(String::from(
+            "Can't get number of passes when game stage is not PlayStage",
+        ))
+    }
+
+    pub fn pass(&self, _user_id: &str, _user_id_to_give_dragon_to: Option<String>) -> Self {
+        todo!();
+        let mut new_game_state = self.clone();
+
+        let results = if let PrivateGameStage::Play(play_state) = &mut new_game_state.stage {
+            if self.get_number_of_users_who_have_passed() == Ok(3) {
+                let next_user_id = play_state.get_next_turn_user_id();
+                let next_user = &new_game_state.get_user_by_user_id(next_user_id);
+                let next_user = next_user.expect("Next user should be in game state");
+                (true, Some(next_user.to_owned()), Some(play_state))
+            } else {
+                (false, None, None)
+            }
+        } else {
+            (false, None, None)
+        };
+
+        // if this is the final pass, next user wins the trick,so move them into the user's tricks
+        if let (true, Some(mut next_user), Some(play_state)) = results {
+            let last_trick_contains_dragon = {
+                play_state
+                    .table
+                    .get(0)
+                    .expect("Table should have at least one combo if this is the final pass")
+                    .cards()
+                    .iter()
+                    .any(|card| card.suit == CardSuit::Dragon)
+            };
+
+            // if it contains a dragon, give trick to the user who the winner chose
+            if last_trick_contains_dragon {
+                todo!();
+            } else {
+                // give it to the user who played the last trick
+                todo!();
+
+                // assumes the user who should get the trick is next in order, but that may not be the case
+                // if the user went out when they played their cards
+                // let mut current_table_cards: Vec<ValidCardCombo> = play_state.table.drain(..).collect();
+                // play_state.table = vec![];
+                // next_user.tricks.append(&mut current_table_cards);
+            }
+        }
+
+        // if only teammates are left, then it is a double victory
+        todo!();
+
+        // if only one person is left then the round is over
+        todo!();
+
+        // if round is over, and game is over, then move to scoreboard?
 
         // else if not the final pass, merely save the pass and move the turn
 
-        self.clone()
+        new_game_state
+    }
+
+    pub fn get_user_by_user_id(&self, user_id: &str) -> Option<&PrivateUser> {
+        self.participants
+            .iter()
+            .find(|user| (*user.user_id == *user_id))
+    }
+
+    pub fn get_user_is_out_of_cards(&self, user_id: &str) -> bool {
+        let user = self
+            .get_user_by_user_id(user_id)
+            .expect("User should exist in game state");
+        user.hand.is_empty()
     }
 
     pub fn play_cards(
@@ -684,16 +759,17 @@ impl PrivateGameState {
         let mut new_game_state = self.clone();
 
         // must be play stage
-        if let PrivateGameStage::Play(play_stage) = &mut new_game_state.stage {
-            let next_combo = get_card_combination(play_stage.table.last(), &next_cards);
+        if let PrivateGameStage::Play(new_play_stage) = &mut new_game_state.stage {
+            let next_combo =
+                get_card_combination(new_play_stage.table.last(), &next_cards, user_id);
             if let Some(next_combo) = next_combo {
                 // must be the player's turn (unless a bomb)
-                if play_stage.turn_user_id == user_id {
-                    let prev_combo = play_stage.table.last();
+                if new_play_stage.turn_user_id == user_id {
+                    let prev_combo = new_play_stage.table.last();
                     // must be a valid play based on the previous card (or no card)
                     if next_combo_beats_prev(&prev_combo, &next_combo) {
                         // if there is a wish and the user can play it, does this combo contain it?
-                        if let Some(wished_for_card) = &play_stage.wished_for_card {
+                        if let Some(wished_for_card) = &new_play_stage.wished_for_card {
                             let user = new_game_state
                                 .participants
                                 .iter()
@@ -709,7 +785,7 @@ impl PrivateGameState {
 
                                     if combo_contains_wish {
                                         // player is playing wish, so erase wished-for card
-                                        play_stage.wished_for_card = None;
+                                        new_play_stage.wished_for_card = None;
                                     } else {
                                         eprintln!(
                                             "Couldn't accept card play submitted by user {} because user can play wished-for card but didn't",
@@ -727,28 +803,47 @@ impl PrivateGameState {
                         }
 
                         // put combo on table
-                        play_stage.table.push(next_combo);
+                        new_play_stage.table.push(next_combo);
 
-                        // user has now definitely played first card
+                        // get current user
                         let current_user_i = new_game_state
                             .participants
                             .iter()
-                            .position(|participant| participant.user_id == user_id);
-                        if let Some(current_user_i) = current_user_i {
-                            new_game_state.participants[current_user_i].has_played_first_card =
-                                true;
+                            .position(|participant| participant.user_id == user_id)
+                            .expect("Current user should be in list of participants");
+
+                        // user has now definitely played first card
+                        let mut current_user = &mut new_game_state.participants[current_user_i];
+                        current_user.has_played_first_card = true;
+
+                        // if user is out of cards, remove them from users_in_play
+                        if current_user.hand.is_empty() {
+                            new_play_stage.users_in_play = new_play_stage
+                                .users_in_play
+                                .iter()
+                                .filter(|user_id_in_play| *user_id_in_play == user_id)
+                                .map(|user_id_in_play| user_id_in_play.to_owned())
+                                .collect();
                         }
 
                         // user is now the winning user
-                        play_stage.winning_user_id.replace(user_id.to_string());
+                        new_play_stage.winning_user_id.replace(user_id.to_string());
 
                         // if user has wished for a card, save it
                         if let Some(wished_for_card) = wished_for_card {
-                            play_stage.wished_for_card.replace(wished_for_card);
+                            new_play_stage.wished_for_card.replace(wished_for_card);
                         }
 
-                        // move turn to next user
-                        play_stage.turn_user_id = play_stage.get_next_turn_user_id().clone();
+                        // if only teammates are left, then it is a double victory, return
+                        todo!();
+
+                        // if only one person is left then the round is over, return
+                        todo!();
+
+                        // if we've gotten this far
+                        // there should always be users left in play so, move to the next user
+                        let next_user_id = new_play_stage.get_next_turn_user_id();
+                        new_play_stage.turn_user_id = next_user_id.clone();
                     } else {
                         eprintln!(
                             "Couldn't accept card play submitted by user {} because combo does not beat combo on the table",

@@ -1,13 +1,13 @@
 use crate::{BombOf4, Card, CardSuit, CardValue, FullHouse, MAX_CARDS_IN_HAND, Pair, Sequence, SequenceBomb, SequenceOfPairs, Single, Trio, ValidCardCombo};
 
-// TODO: account for single special cards and Phoenix wild card
-pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Card>) -> Option<ValidCardCombo> {
+pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Card>, user_id_who_played_cards: &str) -> Option<ValidCardCombo> {
     let original_cards = cards;
     let mut cards = cards.clone();
     let mut includes_phoenix = false;
     let mut includes_non_phoenix_special_card = false;
     let mut value_out_of_range = false;
     let mut identical_cards_found = false;
+    let user_id =  user_id_who_played_cards.to_owned();
 
     sort_cards_for_hand(&mut cards);
 
@@ -72,6 +72,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                             cards: vec![card.clone()],
                             // any card can beat the Phoenix when it's led
                             value: CardValue::min().minus(1),
+                            user_id,
                         })),
                         // invalid play
                         CardSuit::Dragon | CardSuit::Phoenix=> None,
@@ -79,6 +80,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                         _ =>  Some(ValidCardCombo::Single(Single{
                             cards: vec![card.clone()],
                             value: prev_single.value.clone(),
+                            user_id,
                         })),
                     }
                 } else {
@@ -91,6 +93,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                     cards: vec![card.clone()],
                     // any card can beat the Phoenix when it's led
                     value: CardValue::min().minus(1),
+                    user_id: user_id.into(),
                 }))
             }
         }
@@ -98,6 +101,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
         return Some(ValidCardCombo::Single(Single{
             cards: vec![card.clone()],
             value: card.value.clone(),
+            user_id,
         }));
     }
 
@@ -108,6 +112,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                 Some(ValidCardCombo::Pair(Pair {
                     cards: original_cards.clone(),
                     value: card_0.value.clone(),
+                    user_id,
                 }))
             }
             // pair with 1 standard card and 1 Phoenix
@@ -116,6 +121,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                 Some(ValidCardCombo::Pair(Pair {
                     cards: original_cards.clone(),
                     value: std_card.unwrap().value.clone(),
+                    user_id,
                 }))
             } else {
                 None
@@ -132,6 +138,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                 Some(ValidCardCombo::Trio(Trio {
                     cards: original_cards.clone(),
                     value: card_0.value.clone(),
+                    user_id,
                 }))
             } else if includes_phoenix {
                 let std_cards: Vec<&Card> = cards
@@ -143,6 +150,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                         Some(ValidCardCombo::Trio(Trio {
                             cards: original_cards.clone(),
                             value: std_card_0.value.clone(),
+                            user_id,
                         }))
                     } else {
                         None
@@ -168,6 +176,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                 return Some(ValidCardCombo::BombOf4(BombOf4 {
                     cards: original_cards.clone(),
                     value: card_0.value.clone(),
+                    user_id,
                 }));
             }
 
@@ -200,6 +209,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                 return Some(ValidCardCombo::FullHouse(FullHouse {
                     cards: original_cards.clone(),
                     trio_value: card_0.value.clone(),
+                    user_id
                 }));
             }
             // full house (last 3 are equal)
@@ -210,6 +220,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                 return Some(ValidCardCombo::FullHouse(FullHouse {
                     cards: original_cards.clone(),
                     trio_value: card_2.value.clone(),
+                    user_id
                 }));
             }
 
@@ -285,6 +296,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                     number_of_cards: original_cards.len() as u8,
                     starting_value: cards[0].value.clone(),
                     suit: cards[0].suit.clone(),
+                    user_id,
                 }))
             } else {
                 // non-bomb sequence
@@ -292,6 +304,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                     cards: original_cards.clone(),
                     number_of_cards: original_cards.len() as u8,
                     starting_value: cards[0].value.clone(),
+                    user_id,
                 }))
             };
         }
@@ -373,6 +386,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                 cards: original_cards.clone(),
                 starting_value: cards[0].value.clone(),
                 number_of_pairs: cards.len() as u8 / 2,
+                user_id,
             }));
         }
     }
@@ -407,9 +421,9 @@ pub fn next_combo_beats_prev(prev: &Option<&ValidCardCombo>, next: &ValidCardCom
           }
 
           // Standard single on top of Phoenix single
-          if let ValidCardCombo::Single(Single{ cards: prev_cards, value: prev_value, }) = &prev {
+          if let ValidCardCombo::Single(Single{ cards: prev_cards, value: prev_value, .. }) = &prev {
               if let Some(Card { suit: CardSuit::Phoenix, .. }) = prev_cards.first() {
-                if let ValidCardCombo::Single(Single{ cards: next_cards, value: next_value, } ) = &next {
+                if let ValidCardCombo::Single(Single{ cards: next_cards, value: next_value, .. } ) = &next {
                     if let Some(Card { suit: next_suit, ..}) = next_cards.first() {
                         if !next_suit.is_special() {
                             return next_value > prev_value
