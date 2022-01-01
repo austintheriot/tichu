@@ -69,6 +69,6 @@ pub enum OtherPlayerOption {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct TeamCategories<Team> {
-    pub current_team: Option<Team>,
-    pub opposing_team: Option<Team>,
+    pub current_team: Team,
+    pub opposing_team: Team,
 }

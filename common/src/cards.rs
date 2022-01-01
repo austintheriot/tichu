@@ -670,4 +670,17 @@ impl ValidCardCombo {
             ValidCardCombo::SequenceBomb(sequence_bomb) => &sequence_bomb.cards,
         }
     }
+
+    pub fn user_id(&self) -> &String {
+        match &self {
+            ValidCardCombo::Single(single) => &single.user_id,
+            ValidCardCombo::Pair(pair) => &pair.user_id,
+            ValidCardCombo::Trio(trio) => &trio.user_id,
+            ValidCardCombo::BombOf4(bomb_of_4) => &bomb_of_4.user_id,
+            ValidCardCombo::FullHouse(full_house) => &full_house.user_id,
+            ValidCardCombo::Sequence(sequence) => &sequence.user_id,
+            ValidCardCombo::SequenceOfPairs(sequence_of_pairs) => &sequence_of_pairs.user_id,
+            ValidCardCombo::SequenceBomb(sequence_bomb) => &sequence_bomb.user_id,
+        }
+    }
 }

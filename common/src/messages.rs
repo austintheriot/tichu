@@ -104,11 +104,10 @@ pub enum CTSMsg {
     PlayCards {
         cards: Vec<Card>,
         wished_for_card: Option<Card>,
-    },
-
-    Pass {
         user_id_to_give_dragon_to: Option<String>,
     },
+
+    Pass,
 
     Ping,
     Pong,

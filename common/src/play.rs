@@ -69,17 +69,21 @@ impl From<PrivateTrade> for PrivatePlay {
 
 impl PrivatePlay {
     pub fn get_turn_user_team_categories(&self) -> TeamCategories<&ImmutableTeam> {
-        let current_team = self.teams.iter().find(|team| {
-            team.user_ids
-                .iter()
-                .any(|user_id| *user_id == self.turn_user_id)
-        });
+        let current_team = self
+            .teams
+            .iter()
+            .find(|team| {
+                team.user_ids
+                    .iter()
+                    .any(|user_id| *user_id == self.turn_user_id)
+            })
+            .expect("Current team should be in state");
 
-        let opposing_team = if let Some(current_team) = current_team {
-            self.teams.iter().find(|team| *team.id != current_team.id)
-        } else {
-            None
-        };
+        let opposing_team = self
+            .teams
+            .iter()
+            .find(|team| *team.id != current_team.id)
+            .expect("Opposing team should be in state");
 
         TeamCategories {
             current_team,

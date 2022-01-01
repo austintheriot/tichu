@@ -7,7 +7,10 @@ use crate::{
     NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{
+    borrow::{Borrow, BorrowMut},
+    collections::HashMap,
+};
 use uuid::Uuid;
 
 /// The primary game state for every game of Tichu stored on the server.
@@ -680,61 +683,105 @@ impl PrivateGameState {
         ))
     }
 
-    pub fn pass(&self, _user_id: &str, _user_id_to_give_dragon_to: Option<String>) -> Self {
-        todo!();
+    pub fn get_only_turn_users_teammates_are_in_play(&self) -> bool {
+        if let PrivateGameStage::Play(play_state) = &self.stage {
+            let TeamCategories { current_team, .. } = play_state.get_turn_user_team_categories();
+            play_state.users_in_play.iter().all(|user_id_in_play| {
+                current_team
+                    .user_ids
+                    .iter()
+                    .any(|team_user_id| team_user_id == user_id_in_play)
+            })
+        } else {
+            false
+        }
+    }
+
+    pub fn pass(&self, user_id: &str) -> Self {
         let mut new_game_state = self.clone();
 
-        let results = if let PrivateGameStage::Play(play_state) = &mut new_game_state.stage {
-            if self.get_number_of_users_who_have_passed() == Ok(3) {
-                let next_user_id = play_state.get_next_turn_user_id();
-                let next_user = &new_game_state.get_user_by_user_id(next_user_id);
-                let next_user = next_user.expect("Next user should be in game state");
-                (true, Some(next_user.to_owned()), Some(play_state))
-            } else {
-                (false, None, None)
-            }
-        } else {
-            (false, None, None)
-        };
+        let is_final_pass = new_game_state.get_number_of_users_who_have_passed() == Ok(3);
 
-        // if this is the final pass, next user wins the trick,so move them into the user's tricks
-        if let (true, Some(mut next_user), Some(play_state)) = results {
-            let last_trick_contains_dragon = {
-                play_state
-                    .table
-                    .get(0)
-                    .expect("Table should have at least one combo if this is the final pass")
-                    .cards()
-                    .iter()
-                    .any(|card| card.suit == CardSuit::Dragon)
+        let new_play_state =
+            if let PrivateGameStage::Play(new_play_state) = &mut new_game_state.stage {
+                new_play_state
+            } else {
+                return new_game_state;
             };
 
-            // if it contains a dragon, give trick to the user who the winner chose
-            if last_trick_contains_dragon {
-                todo!();
-            } else {
-                // give it to the user who played the last trick
-                todo!();
+        // if this is the final pass, next user wins the trick,so move them into the user's tricks
+        if is_final_pass {
+            let last_trick = new_play_state
+                .table
+                .get(0)
+                .expect("Table should have at least one combo if this is the final pass");
+            let last_trick_contains_dragon = last_trick
+                .cards()
+                .iter()
+                .any(|card| card.suit == CardSuit::Dragon);
 
-                // assumes the user who should get the trick is next in order, but that may not be the case
-                // if the user went out when they played their cards
-                // let mut current_table_cards: Vec<ValidCardCombo> = play_state.table.drain(..).collect();
-                // play_state.table = vec![];
-                // next_user.tricks.append(&mut current_table_cards);
+            let receiving_user_id = if last_trick_contains_dragon {
+                // if it contains a dragon, give trick to the user who the winner chose
+                new_play_state
+                .user_id_to_give_dragon_to
+                .as_ref()
+                .expect("If someone won with the dragon, then the user has to have picked a user to give it to")
+                .clone()
+            } else {
+                // if it does not contains a dragon, give it to the user who played the last trick
+                last_trick.user_id().clone()
+            };
+
+            // remove trick from table and give to receiving user
+            let receiving_user = new_game_state
+                .participants
+                .iter_mut()
+                .find(|user| (*user.user_id == *receiving_user_id))
+                .expect("Receiving user should be in the game");
+            let mut current_table_cards: Vec<ValidCardCombo> =
+                new_play_state.table.drain(..).collect();
+            receiving_user.tricks.append(&mut current_table_cards);
+
+            // if round is over get if only teammates are left in play
+            let TeamCategories { current_team, .. } =
+                new_play_state.get_turn_user_team_categories();
+            let only_turn_users_teammates_are_in_play =
+                new_play_state.users_in_play.iter().all(|user_id_in_play| {
+                    current_team
+                        .user_ids
+                        .iter()
+                        .any(|team_user_id| team_user_id == user_id_in_play)
+                });
+
+            // plain round (plain)
+            if (new_play_state.users_in_play.len() == 1)
+                // plain round (double victory)
+                || (new_play_state.users_in_play.len() == 2
+                    && only_turn_users_teammates_are_in_play)
+            {
+                return self.round_over();
             }
         }
 
-        // if only teammates are left, then it is a double victory
-        todo!();
-
-        // if only one person is left then the round is over
-        todo!();
-
-        // if round is over, and game is over, then move to scoreboard?
-
         // else if not the final pass, merely save the pass and move the turn
+        let users_index = new_play_state
+            .passes
+            .iter()
+            .position(|pass| pass.user_id == user_id)
+            .expect("User should be in the passes state");
+        new_play_state.passes[users_index].passed = true;
+        new_play_state.turn_user_id = new_play_state.get_next_turn_user_id().clone();
 
         new_game_state
+    }
+
+    fn round_over(&self) -> Self {
+        // if only one person is left then the round is over (plain over)
+        // else if only 2 users who are on the same team are left, then it is a double victory
+
+        // if point goal has been met then game is over, so move to to scoreboard
+        // else start next round
+        todo!();
     }
 
     pub fn get_user_by_user_id(&self, user_id: &str) -> Option<&PrivateUser> {
@@ -755,6 +802,7 @@ impl PrivateGameState {
         user_id: &str,
         next_cards: Vec<Card>,
         wished_for_card: Option<Card>,
+        user_id_to_give_dragon_to: Option<String>,
     ) -> Self {
         let mut new_game_state = self.clone();
 
@@ -763,8 +811,11 @@ impl PrivateGameState {
             let next_combo =
                 get_card_combination(new_play_stage.table.last(), &next_cards, user_id);
             if let Some(next_combo) = next_combo {
+                let is_bomb = todo!();
+                // if is a bomb, then it must become that users' turn (and the others must pass as usual)
+
                 // must be the player's turn (unless a bomb)
-                if new_play_stage.turn_user_id == user_id {
+                if new_play_stage.turn_user_id == user_id || is_bomb {
                     let prev_combo = new_play_stage.table.last();
                     // must be a valid play based on the previous card (or no card)
                     if next_combo_beats_prev(&prev_combo, &next_combo) {
@@ -801,6 +852,8 @@ impl PrivateGameState {
                                 );
                             }
                         }
+
+                        // if user played a dragon, save who they want to give it to if they win
 
                         // put combo on table
                         new_play_stage.table.push(next_combo);
@@ -887,73 +940,65 @@ pub struct PublicGameState {
 }
 
 impl PublicGameState {
-    pub fn get_mutable_team_categories(&self) -> TeamCategories<&MutableTeam> {
+    pub fn get_mutable_team_categories(&self) -> Option<TeamCategories<&MutableTeam>> {
         if let PublicGameStage::Teams(mutable_teams) = &self.stage {
-            let current_team = mutable_teams.iter().find(|team| {
-                team.user_ids
-                    .iter()
-                    .any(|user_id| *user_id == self.current_user.user_id)
-            });
+            let current_team = mutable_teams
+                .iter()
+                .find(|team| {
+                    team.user_ids
+                        .iter()
+                        .any(|user_id| *user_id == self.current_user.user_id)
+                })
+                .expect("Current user's team should be in state");
 
-            let opposing_team = if let Some(current_team) = current_team {
-                mutable_teams
-                    .iter()
-                    .find(|team| *team.id != current_team.id)
-            } else {
-                None
-            };
+            let opposing_team = mutable_teams
+                .iter()
+                .find(|team| *team.id != current_team.id)
+                .expect("Opposing team should be in state");
 
-            TeamCategories {
+            Some(TeamCategories {
                 current_team,
                 opposing_team,
-            }
+            })
         } else {
-            TeamCategories {
-                current_team: None,
-                opposing_team: None,
-            }
+            None
         }
     }
 
-    pub fn get_immutable_team_categories(&self) -> TeamCategories<&ImmutableTeam> {
+    pub fn get_immutable_team_categories(&self) -> Option<TeamCategories<&ImmutableTeam>> {
         let immutable_teams = match &self.stage {
             PublicGameStage::Trade(trade) => &trade.teams,
             PublicGameStage::Play(play) => &play.teams,
-            _ => {
-                return TeamCategories {
-                    current_team: None,
-                    opposing_team: None,
-                }
-            }
+            _ => return None,
         };
 
-        let current_team = immutable_teams.iter().find(|team| {
-            team.user_ids
-                .iter()
-                .any(|user_id| *user_id == self.current_user.user_id)
-        });
+        let current_team = immutable_teams
+            .iter()
+            .find(|team| {
+                team.user_ids
+                    .iter()
+                    .any(|user_id| *user_id == self.current_user.user_id)
+            })
+            .expect("Current user's team should be in state");
 
-        let opposing_team = if let Some(current_team) = current_team {
-            immutable_teams
-                .iter()
-                .find(|team| *team.id != current_team.id)
-        } else {
-            None
-        };
+        let opposing_team = immutable_teams
+            .iter()
+            .find(|team| *team.id != current_team.id)
+            .expect("Opposing team should be in state");
 
-        TeamCategories {
+        Some(TeamCategories {
             current_team,
             opposing_team,
-        }
+        })
     }
 
     pub fn get_other_players(&self) -> Option<OtherPlayers<PublicUser>> {
         let team_categories = self.get_immutable_team_categories();
 
-        if let TeamCategories {
-            current_team: Some(current_team),
-            opposing_team: Some(opposing_team),
-        } = team_categories
+        if let Some(TeamCategories {
+            current_team,
+            opposing_team,
+        }) = team_categories
         {
             Some(OtherPlayers::<PublicUser> {
                 opponent_1: {
