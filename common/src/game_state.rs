@@ -742,22 +742,28 @@ impl PrivateGameState {
                 new_play_state.table.drain(..).collect();
             receiving_user.tricks.append(&mut current_table_cards);
 
-            // if round is over get if only teammates are left in play
-            let TeamCategories { current_team, .. } =
-                new_play_state.get_turn_user_team_categories();
-            let only_turn_users_teammates_are_in_play =
+            // if round is over, get if only team is left in play
+            let TeamCategories {
+                current_team,
+                opposing_team,
+            } = new_play_state.get_turn_user_team_categories();
+            let only_one_team_is_in_play =
                 new_play_state.users_in_play.iter().all(|user_id_in_play| {
                     current_team
                         .user_ids
                         .iter()
                         .any(|team_user_id| team_user_id == user_id_in_play)
+                }) || new_play_state.users_in_play.iter().all(|user_id_in_play| {
+                    opposing_team
+                        .user_ids
+                        .iter()
+                        .any(|team_user_id| team_user_id == user_id_in_play)
                 });
-
-            // plain round (plain)
+            // round over (plain)
             if (new_play_state.users_in_play.len() == 1)
-                // plain round (double victory)
+                // round over (double victory)
                 || (new_play_state.users_in_play.len() == 2
-                    && only_turn_users_teammates_are_in_play)
+                    && only_one_team_is_in_play)
             {
                 return self.round_over();
             }
@@ -811,8 +817,7 @@ impl PrivateGameState {
             let next_combo =
                 get_card_combination(new_play_stage.table.last(), &next_cards, user_id);
             if let Some(next_combo) = next_combo {
-                let is_bomb = todo!();
-                // if is a bomb, then it must become that users' turn (and the others must pass as usual)
+                let is_bomb = next_combo.is_bomb();
 
                 // must be the player's turn (unless a bomb)
                 if new_play_stage.turn_user_id == user_id || is_bomb {
@@ -854,6 +859,9 @@ impl PrivateGameState {
                         }
 
                         // if user played a dragon, save who they want to give it to if they win
+                        if next_cards.iter().any(|card| card.suit == CardSuit::Dragon) {
+                            new_play_stage.user_id_to_give_dragon_to = user_id_to_give_dragon_to;
+                        }
 
                         // put combo on table
                         new_play_stage.table.push(next_combo);
@@ -882,16 +890,44 @@ impl PrivateGameState {
                         // user is now the winning user
                         new_play_stage.winning_user_id.replace(user_id.to_string());
 
-                        // if user has wished for a card, save it
-                        if let Some(wished_for_card) = wished_for_card {
-                            new_play_stage.wished_for_card.replace(wished_for_card);
+                        // if user play mahjong and has wished for a card, save it
+                        let user_played_mah_jong =
+                            next_cards.iter().any(|card| card.suit == CardSuit::MahJong);
+                        if user_played_mah_jong {
+                            new_play_stage.wished_for_card = wished_for_card;
                         }
 
-                        // if only teammates are left, then it is a double victory, return
-                        todo!();
+                        // if is a bomb, then it must become that users' turn (and the others must pass as usual)
+                        if is_bomb {
+                            new_play_stage.turn_user_id = user_id.into();
+                        }
 
-                        // if only one person is left then the round is over, return
-                        todo!();
+                        // if round is over get if only teammates are left in play
+                        let TeamCategories {
+                            current_team,
+                            opposing_team,
+                            ..
+                        } = new_play_stage.get_turn_user_team_categories();
+                        let only_one_team_is_in_play =
+                            new_play_stage.users_in_play.iter().all(|user_id_in_play| {
+                                current_team
+                                    .user_ids
+                                    .iter()
+                                    .any(|team_user_id| team_user_id == user_id_in_play)
+                            }) || new_play_stage.users_in_play.iter().all(|user_id_in_play| {
+                                opposing_team
+                                    .user_ids
+                                    .iter()
+                                    .any(|team_user_id| team_user_id == user_id_in_play)
+                            });
+                        // round over (plain)
+                        if (new_play_stage.users_in_play.len() == 1)
+                            // round over (double victory)
+                            || (new_play_stage.users_in_play.len() == 2
+                                && only_one_team_is_in_play)
+                        {
+                            return self.round_over();
+                        }
 
                         // if we've gotten this far
                         // there should always be users left in play so, move to the next user
