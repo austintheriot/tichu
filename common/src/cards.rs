@@ -20,6 +20,7 @@ pub const CARD_VALUE_MAX: u8 = 14; // Ace
 pub struct CardValue(pub u8);
 
 impl CardValue {
+    /// noop is used for Special cards, because their value is implied in their Suit
     pub fn noop() -> Self {
         CardValue(CARD_VALUE_NOOP)
     }

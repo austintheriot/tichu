@@ -5908,11 +5908,38 @@ mod test_next_combo_beats_prev {
     }
 }
 
-mod test_recursive_permutation {
-    use common::recursive_permutation;
+mod test_get_user_can_play_wished_for_card {
+    use common::{
+        get_user_can_play_wished_for_card, Card, CardSuit, CardValue, Single, ValidCardCombo,
+    };
 
     #[test]
-    fn it_should_correct_boolean() {
-        assert_eq!(recursive_permutation(vec![0, 1, 2, 3]), vec![vec![]]);
+    fn it_should_return_correct_boolean() {
+        let prev_combo = ValidCardCombo::Single(Single {
+            cards: vec![ /* omitted */],
+            user_id: "".to_string(),
+            value: CardValue(2),
+        });
+        let users_hand = vec![
+            Card {
+                suit: CardSuit::Dragon,
+                value: CardValue::noop(),
+            },
+            Card {
+                suit: CardSuit::Sword,
+                value: CardValue(3),
+            },
+            Card {
+                suit: CardSuit::Jade,
+                value: CardValue(3),
+            },
+        ];
+        let wished_for_card = Card {
+            suit: CardSuit::Jade,
+            value: CardValue(3),
+        };
+        let result =
+            get_user_can_play_wished_for_card(Some(&prev_combo), &users_hand, &wished_for_card);
+        assert!(result);
     }
 }

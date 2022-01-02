@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::{BombOf4, Card, CardSuit, CardValue, FullHouse, MAX_CARDS_IN_HAND, Pair, Sequence, SequenceBomb, SequenceOfPairs, Single, Trio, ValidCardCombo};
 
 pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Card>, user_id_who_played_cards: &str) -> Option<ValidCardCombo> {
@@ -451,44 +453,138 @@ pub fn sort_cards_for_hand(cards: &mut Vec<Card>) {
     });
 }
 
+// todo!() --- allow returning early from recursive permutation
 pub fn get_user_can_play_wished_for_card(prev_combo: Option<&ValidCardCombo>, users_hand: &Vec<Card>, wished_for_card: &Card) -> bool {
-    let valid_card_combos: Vec<ValidCardCombo> = Vec::new();
+    // if user does not have the wished for card, return false
+    if !users_hand.iter().any(|card| card.value == wished_for_card.value) {
+        return false
+    }
 
-    // if user does not have wished for card, return false
-    // else:
-    // create every possible combination of cards that includes the wished for card
-    // iterate through combinations until a valid combo is found, return true
-    // if none is found, return false
-    todo!();
+    // don't need to check combinations that don't include the wished for card 
+    // or any combinations that aren't valid
+    let all_valid_combos = recursive_permutation(users_hand, &|cards| {
+        cards.iter().any(|card| card.value == wished_for_card.value)
+        && get_card_combination(prev_combo, cards, &String::from("")).is_some()
+    });
+    
+    return all_valid_combos.len() > 0;
 }
 
-pub fn recursive_permutation(array: Vec<u8>) -> Vec<Vec<u8>> {
-	let mut permutations: Vec<Vec<u8>> = Vec::new();
+/// Produces every combination of every size of vector elements without repeating any elements in the same vector.
+/// `filter` allows only keeping certain combinations as they are created to avoid using excess memory by saving unneeded combinations.
+//
+/// start from 0 or 1 element vectors 
+/// add in the other elements at every possible index
+/// save the original, small vectors (to create every length combination)
+pub fn recursive_permutation<T: Clone + Debug>(array: &Vec<T>, filter: &dyn Fn(&Vec<T>) -> bool) -> Vec<Vec<T>> {
+	let mut permutations: Vec<Vec<T>> = Vec::new();
 
-	//base case
-	if array.is_empty() {
+     // base cases: 
+	if array.is_empty()  {
 		return permutations;
-	}
+	} else if array.len() == 1 {
+        return vec![vec![array.first().expect("Array has one element, so first should be defined").clone()]];
+    }
+    
+	let first_vec = array[0..1].to_vec();
+	let remaining_vecs = array[1..].to_vec();
+	let vecs = recursive_permutation(&remaining_vecs, filter);
 
-	let first_vec = array[0..1].to_vec(); //get first character
-	let remaining_vecs = array[1..].to_vec(); //remove first character
-	let vecs = recursive_permutation(remaining_vecs); //get combinations for substrings
+    for vec in vecs.iter() {
+        for i in 0..vec.len() + 1 {
+            let mut s = Vec::new();
+            s.append(&mut vec[0..i].to_vec());
+            s.append(&mut first_vec.clone());
+            s.append(&mut vec[i..].to_vec());
 
-    if vecs.is_empty() {
-        permutations.push(first_vec);
-    } else {
-        for vec in vecs.iter() {
-            for i in 0..vec.len() + 1 {
-                let mut s = Vec::new();
-                s.append(&mut vec[0..i].to_vec());
-                s.append(&mut first_vec.clone());
-                s.append(&mut vec[i..].to_vec());
+            if filter(&s) {
                 permutations.push(s);
             }
         }
     }
 
+    // keep the original, smaller the original vecs as well
+    if filter(&first_vec) {
+        permutations.push(first_vec);
+    }
+    for vec in vecs {
+        if filter(&vec) {
+            permutations.push(vec);
+        }
+    }
+    
    
-
 	return permutations;
 }
+
+mod test_recursive_permutation {
+    use crate::recursive_permutation;
+
+    #[test]
+    fn it_should_correct_boolean() {
+        let result = recursive_permutation(&vec![0, 1], &|_| true);
+        assert_eq!(result.len(), 4);
+        assert!(result.contains(&vec![0]));
+        assert!(result.contains(&vec![1]));
+        assert!(result.contains(&vec![0, 1]));
+        assert!(result.contains(&vec![1, 0]));
+
+        let result = recursive_permutation(&vec![0, 1, 2], &|_| true);
+        assert_eq!(result.len(), 15);
+        assert!(result.contains(&vec![0]));
+        assert!(result.contains(&vec![1]));
+        assert!(result.contains(&vec![2]));
+        assert!(result.contains(&vec![0, 1]));
+        assert!(result.contains(&vec![1, 0]));
+        assert!(result.contains(&vec![0, 2]));
+        assert!(result.contains(&vec![2, 0]));
+        assert!(result.contains(&vec![1, 2]));
+        assert!(result.contains(&vec![2, 1]));
+        assert!(result.contains(&vec![0, 1, 2]));
+        assert!(result.contains(&vec![0, 2, 1]));
+        assert!(result.contains(&vec![1, 0, 2]));
+        assert!(result.contains(&vec![1, 2, 0]));
+        assert!(result.contains(&vec![2, 0, 1]));
+        assert!(result.contains(&vec![2, 1, 0]));
+    }
+
+    #[test]
+    fn it_should_work_with_filter() {
+        let result = recursive_permutation(&vec![0, 1, 2], &|_| false);
+        assert!(result.is_empty());
+
+        let result = recursive_permutation(&vec![0, 1, 2], &|vec| {
+            if let Some(first) = vec.first() {
+                *first == 1
+            } else {
+                false
+            }
+        });
+        assert_eq!(result.len(), 5);
+        assert!(result.contains(&vec![1]));
+        assert!(result.contains(&vec![1, 0]));
+        assert!(result.contains(&vec![1, 2]));
+        assert!(result.contains(&vec![1, 0, 2]));
+        assert!(result.contains(&vec![1, 2, 0]));
+        
+        let result = recursive_permutation(&vec![0, 1], &|vec| vec.len() >= 2);
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&vec![0, 1]));
+        assert!(result.contains(&vec![1, 0]));
+
+        let result = recursive_permutation(&vec![0, 1, 2], &|vec| vec.contains(&2));
+        assert_eq!(result.len(), 11);
+        assert!(result.contains(&vec![2]));
+        assert!(result.contains(&vec![0, 2]));
+        assert!(result.contains(&vec![2, 0]));
+        assert!(result.contains(&vec![1, 2]));
+        assert!(result.contains(&vec![2, 1]));
+        assert!(result.contains(&vec![0, 1, 2]));
+        assert!(result.contains(&vec![0, 2, 1]));
+        assert!(result.contains(&vec![1, 0, 2]));
+        assert!(result.contains(&vec![1, 2, 0]));
+        assert!(result.contains(&vec![2, 0, 1]));
+        assert!(result.contains(&vec![2, 1, 0]));
+    }
+}
+
