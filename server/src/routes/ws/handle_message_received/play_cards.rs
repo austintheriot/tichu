@@ -7,6 +7,7 @@ pub async fn play_cards(
     user_id: &str,
     cards: Vec<Card>,
     wished_for: Option<Card>,
+    user_id_to_give_dragon_to: Option<String>,
     connections: &Connections,
     games: &Games,
     game_codes: &GameCodes,
@@ -39,7 +40,8 @@ pub async fn play_cards(
     };
 
     // update game state
-    let new_game_state = game_state.play_cards(user_id, cards, wished_for);
+    let new_game_state =
+        game_state.play_cards(user_id, cards, wished_for, user_id_to_give_dragon_to);
     *game_state = new_game_state.clone();
 
     drop(write_games);

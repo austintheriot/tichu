@@ -1297,7 +1297,7 @@ impl App {
     fn view_is_valid_combo(&self) -> Html {
         html!(
             <p>
-            {if get_card_combination(self.get_prev_played_combo(), &self.state.selected_play_cards).is_some() {
+            {if get_card_combination(self.get_prev_played_combo(), &self.state.selected_play_cards, &self.state.user_id).is_some() {
                 "Valid combination"
             } else {
                 "Invalid combination"
@@ -1311,11 +1311,23 @@ impl App {
         let combo = get_card_combination(
             self.get_prev_played_combo(),
             &self.state.selected_play_cards,
+            &self.state.user_id,
         );
+
+        let combo_contains_dragon = self
+            .state
+            .selected_play_cards
+            .iter()
+            .any(|card| card.suit == CardSuit::Dragon);
+        let user_has_chosen_a_user_to_given_dragon_to =
+            self.state.user_id_to_give_dragon_to.is_some();
+
         if let Some(combo) = combo {
             self.stage_is_play()
                 && (self.is_current_users_turn() || combo.is_bomb())
                 && self.hand_beats_combo_on_table(&combo)
+                && (!combo_contains_dragon
+                    || combo_contains_dragon && user_has_chosen_a_user_to_given_dragon_to)
         } else {
             // cards are not a valid combo
             false
@@ -1429,20 +1441,19 @@ impl App {
 
     fn view_wish_for_card_input(&self) -> Html {
         html! {
-            <form
-            onsubmit=self.link.callback(move |e: FocusEvent| {
-                e.prevent_default();
-                let target = e.target().expect("Form submit event should have a target");
-                let html_form_element: HtmlFormElement = target.value_of().dyn_into().expect("Object from submit event should be an HtmlFormElement");
-                let select: HtmlSelectElement = html_form_element
-                    .query_selector("select")
-                    .expect("Form should have a select element")
-                    .unwrap().dyn_into().unwrap();
-                let i = select.selected_index();
-                AppMsg::SetWishedForCard(i as usize)
-            })>
+            <>
                 <label for="wish-for-card">{"Wish for a card?"}</label>
-                <select name="wish-for-card" id="wish-for-card">
+                <select name="wish-for-card" id="wish-for-card"
+                oninput=self.link.callback(move |e: InputData| {
+                        let target = e.event.target().expect("Select input event should have a target");
+                        let html_select_element: HtmlSelectElement = target
+                            .value_of()
+                            .dyn_into()
+                            .expect("Object from input event should be an HtmlSelectElement");
+                        let i = html_select_element.selected_index();
+                        AppMsg::SetWishedForCard(i as usize)
+                    })
+                >
                     {for Deck::wished_for_cards().iter().enumerate().map(|(i, card)| {
                         let card_string = format!("{:#?}", card);
                         html!{
@@ -1452,8 +1463,7 @@ impl App {
                         }
                     })}
                 </select>
-                <button type="submit">{"Submit"}</button>
-            </form>
+            </>
         }
     }
 
@@ -1480,10 +1490,8 @@ impl App {
 
     fn get_opponent_ids(&self) -> Option<(String, String)> {
         if let Some(game_state) = &self.state.game_state {
-            if let TeamCategories {
-                opposing_team: Some(opposing_team),
-                ..
-            } = game_state.get_immutable_team_categories()
+            if let Some(TeamCategories { opposing_team, .. }) =
+                game_state.get_immutable_team_categories()
             {
                 Some((
                     opposing_team.user_ids[0].clone(),
@@ -1683,7 +1691,11 @@ impl App {
                 {self.view_cards_on_table()}
                 <br />
                 <br />
-                {self.view_wish_for_card_input()}
+                {if self.state.selected_play_cards.iter().any(|card| card.suit == CardSuit::MahJong) {
+                    self.view_wish_for_card_input()
+                } else {
+                    html!{}
+                }}
                 <br />
                 <br />
                 <p>{"Debug self.view_choose_opponent:"}</p>
@@ -1818,6 +1830,7 @@ impl App {
                 STCMsg::PlayerReceivedDragon => {}
                 STCMsg::GameEnded => {}
                 STCMsg::GameEndedFinal => {}
+                STCMsg::UserPassed(_) => {}
             },
         }
 
@@ -2035,23 +2048,24 @@ impl App {
                 }
 
                 let cards = self.state.selected_play_cards.clone();
-                let mut cards_include_mahjong = false;
-                for card in self.state.selected_play_cards.iter() {
-                    if card.suit == CardSuit::MahJong {
-                        cards_include_mahjong = true;
-                        break;
-                    }
+                let cards_include_mahjong = self
+                    .state
+                    .selected_play_cards
+                    .iter()
+                    .any(|card| card.suit == CardSuit::MahJong);
+
+                let wished_for_card = self.state.wished_for_card.clone();
+                if cards_include_mahjong {
+                    self.state.wished_for_card = None;
                 }
 
-                let wished_for_card = if cards_include_mahjong {
-                    todo!();
-                } else {
-                    self.state.wished_for_card.clone()
-                };
+                let user_id_to_give_dragon_to = self.state.user_id_to_give_dragon_to.clone();
+                self.state.user_id_to_give_dragon_to = None;
 
                 self._send_ws_message(&CTSMsg::PlayCards {
                     cards,
                     wished_for_card,
+                    user_id_to_give_dragon_to,
                 });
                 false
             }
@@ -2065,9 +2079,7 @@ impl App {
                     }
                     return true;
                 }
-                self._send_ws_message(&CTSMsg::Pass {
-                    user_id_to_give_dragon_to: self.state.user_id_to_give_dragon_to.clone(),
-                });
+                self._send_ws_message(&CTSMsg::Pass);
                 self.state.user_id_to_give_dragon_to = None;
                 self.state.show_user_id_to_give_dragon_to_form = false;
                 true

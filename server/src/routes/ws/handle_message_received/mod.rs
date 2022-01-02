@@ -4,6 +4,7 @@ mod create_game;
 mod join_game_with_game_code;
 mod leave_game;
 mod move_to_team;
+mod pass;
 mod ping;
 mod play_cards;
 mod pong;
@@ -18,6 +19,7 @@ use create_game::create_game;
 use join_game_with_game_code::join_game_with_game_code;
 use leave_game::leave_game;
 use move_to_team::move_to_team;
+use pass::pass;
 use ping::ping;
 use play_cards::play_cards;
 use pong::pong;
@@ -103,17 +105,21 @@ pub async fn handle_message_received(
         CTSMsg::PlayCards {
             cards,
             wished_for_card,
+            user_id_to_give_dragon_to,
         } => {
             play_cards(
                 &user_id,
                 cards,
                 wished_for_card,
+                user_id_to_give_dragon_to,
                 &connections,
                 &games,
                 &game_codes,
             )
             .await;
         }
-        CTSMsg::Pass { .. } => todo!(),
+        CTSMsg::Pass => {
+            pass(&user_id, &connections, &games, &game_codes).await;
+        }
     }
 }
