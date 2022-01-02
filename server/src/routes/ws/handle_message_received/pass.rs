@@ -32,7 +32,10 @@ pub async fn pass(user_id: &str, connections: &Connections, games: &Games, game_
     };
 
     // update game state
-    let new_game_state = game_state.pass(user_id);
+    let new_game_state = match game_state.pass(user_id) {
+        Ok(updated_game_state) => updated_game_state,
+        Err(err) => return eprintln!("{}", err),
+    };
     *game_state = new_game_state.clone();
 
     drop(write_games);

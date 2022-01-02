@@ -55,14 +55,14 @@ impl PrivateGameState {
     }
 
     /// Adds a user to the game.
-    pub fn add_user(&self, user_id: String, display_name: String) -> PrivateGameState {
+    pub fn add_user(&self, user_id: String, display_name: String) -> Result<Self, String> {
         let current_participants = self.participants.len();
         let game_has_max_participants = current_participants == 4;
         let is_lobby = matches!(self.stage, PrivateGameStage::Lobby);
 
         // don't add any more than 4 users at a time
         if !is_lobby || game_has_max_participants {
-            return self.clone();
+            return Err("Can't add more than 4 participants in a room at once".to_string());
         }
 
         let participant = PrivateUser {
@@ -105,11 +105,11 @@ impl PrivateGameState {
         new_game_state.participants = new_participants;
         new_game_state.stage = new_stage;
 
-        new_game_state
+        Ok(new_game_state)
     }
 
     /// Removes a uer from the game.
-    pub fn remove_user(&self, user_id: &str) -> PrivateGameState {
+    pub fn remove_user(&self, user_id: &str) -> Result<Self, String> {
         let mut new_participants = self.participants.clone();
 
         // filter out removed user
@@ -118,11 +118,12 @@ impl PrivateGameState {
         // clone old game state and update only what's necessary
         let mut new_game_state = self.clone();
         new_game_state.participants = new_participants;
-        new_game_state
+
+        Ok(new_game_state)
     }
 
     /// Reassigns ownership of the game to a different user.
-    pub fn reassign_owner(&self) -> PrivateGameState {
+    pub fn reassign_owner(&self) -> Result<Self, String> {
         // clone old game state and update only what's necessary
         let mut new_game_state = self.clone();
         let mut new_owner = new_game_state
@@ -134,14 +135,14 @@ impl PrivateGameState {
             Some(new_owner) => {
                 new_owner.role = UserRole::Owner;
                 new_game_state.owner_id = new_owner.user_id.clone();
-                new_game_state
+                Ok(new_game_state)
             }
-            None => new_game_state,
+            None => Err("Couldn't find new owner in list of participants".to_string()),
         }
     }
 
     /// Converts game state that only the server can see into state relevant for a specific user.
-    pub fn to_public_game_state(&self, current_user_id: &str) -> Option<PublicGameState> {
+    pub fn to_public_game_state(&self, current_user_id: &str) -> Result<PublicGameState, String> {
         let mut public_participants: Vec<PublicUser> = Vec::with_capacity(4);
         let mut current_user = None;
         for private_participant in self.participants.iter() {
@@ -156,8 +157,7 @@ impl PrivateGameState {
         let mut current_user = if let Some(current_user) = current_user {
             current_user
         } else {
-            eprintln!("Can't convert PrivateGameState to PublicGameState, because current user does not exist in list of participants");
-            return None;
+            return Err(format!("Can't convert PrivateGameState to PublicGameState, because current user does not exist in list of participants"));
         };
 
         // sort users hand just in case
@@ -172,7 +172,7 @@ impl PrivateGameState {
             current_user,
         };
 
-        Some(public_game_state)
+        Ok(public_game_state)
     }
 
     /// Moves a user into a specific team.
@@ -180,11 +180,10 @@ impl PrivateGameState {
         &self,
         team_to_move_to: &TeamOption,
         current_user_id: &str,
-    ) -> PrivateGameState {
+    ) -> Result<Self, String> {
         let mut new_state = self.clone();
         match &mut new_state.stage {
             PrivateGameStage::Teams(teams) => {
-                //if user is on the team they want to move to already, return
                 let new_team = match team_to_move_to {
                     TeamOption::TeamA => &teams[0],
                     TeamOption::TeamB => &teams[1],
@@ -209,11 +208,19 @@ impl PrivateGameState {
                         TeamOption::TeamB => &mut teams[1],
                     };
                     new_team.user_ids.push(current_user_id.to_string());
+                } else {
+                    return Err(format!(
+                        "Can't move {} to new team because user is already on team",
+                        current_user_id
+                    ));
                 }
-                new_state
+                Ok(new_state)
             }
             // game stage is not teams, can't move teams
-            _ => new_state,
+            _ => Err(format!(
+                "Can't move {} to new team because game stage is not Teams",
+                current_user_id
+            )),
         }
     }
 
@@ -226,7 +233,7 @@ impl PrivateGameState {
         team_to_rename: &TeamOption,
         current_user_id: &str,
         new_team_a_name: &str,
-    ) -> PrivateGameState {
+    ) -> Result<Self, String> {
         let mut new_state = self.clone();
         match &mut new_state.stage {
             PrivateGameStage::Teams(teams) => {
@@ -246,25 +253,32 @@ impl PrivateGameState {
                         TeamOption::TeamB => &mut teams[1],
                     };
                     team_to_rename.team_name = new_team_a_name.to_string();
+                    Ok(new_state)
+                } else {
+                    Err(format!(
+                        "Can't rename team for {} because user is not on the team they want to rename",
+                        current_user_id
+                    ))
                 }
-                new_state
             }
             // game stage is not teams, can't rename any team
-            _ => new_state,
+            _ => Err(format!(
+                "Can't rename team for {} because game stage is not Teams",
+                current_user_id
+            )),
         }
     }
 
     /// Move from Teams stage to Grand Tichu stage
-    pub fn start_grand_tichu(&self, requesting_user_id: &str) -> PrivateGameState {
+    pub fn start_grand_tichu(&self, requesting_user_id: &str) -> Result<Self, String> {
         let mut new_game_state = self.clone();
 
         // requesting user must be the owner
         if new_game_state.owner_id != requesting_user_id {
-            eprintln!(
+            return Err(format!(
                 "User {} cannot start Grand Tichu stage because the user is not the owner. Ignoring request.",
                 requesting_user_id,
-            );
-            return new_game_state;
+            ));
         }
 
         match &new_game_state.stage {
@@ -382,30 +396,27 @@ impl PrivateGameState {
                             new_game_state.stage =
                                 PrivateGameStage::GrandTichu(Box::new(grand_tichu_game_state));
 
-                            new_game_state
+                            Ok(new_game_state)
                         }
                         _ => {
-                            eprintln!(
+                            return Err(format!(
                                 "Could not convert MutableTeams to ImmutableTeams. Ignoring request to start Grand Tichu stage by user {}",
                                 requesting_user_id,
-                            );
-                            new_game_state
+                            ));
                         }
                     }
                 } else {
-                    eprintln!(
+                    return Err(format!(
                         "Teams are not ready to start game. Ignoring request to start Grand Tichu stage by user {}",
                         requesting_user_id,
-                    );
-                    new_game_state
+                    ));
                 }
             }
             _ => {
-                eprintln!(
+                return Err(format!(
                     "Game stage is not currently teams. Ignoring request to start by user {}",
                     requesting_user_id,
-                );
-                new_game_state
+                ));
             }
         }
     }
@@ -417,7 +428,7 @@ impl PrivateGameState {
         &self,
         call_grand_tichu_request: &CallGrandTichuRequest,
         user_id: &str,
-    ) -> PrivateGameState {
+    ) -> Result<Self, String> {
         let mut new_game_state = self.clone();
 
         // game stage must be GrandTichu
@@ -429,15 +440,13 @@ impl PrivateGameState {
                     .position(|user_call_status| *user_call_status.user_id == *user_id);
                 match i {
                     None => {
-                        eprintln!("Couldn't find user's call status in GrandTichu call stage. Ignoring request to call Grand Tichu from user {}", user_id);
-                        return new_game_state;
+                        return Err(format!("Couldn't find user's call status in GrandTichu call stage. Ignoring request to call Grand Tichu from user {}", user_id));
                     }
                     Some(i) => {
                         let grand_tichus = &mut grand_tichu_state.grand_tichus;
                         let user_call_status = &grand_tichus[i];
                         if user_call_status.tichu_call_status != TichuCallStatus::Undecided {
-                            eprintln!("User has already declared or declined Grand Tichu. Ignoring request to call Grand Tichu from user {}", user_id);
-                            return new_game_state;
+                            return Err(format!("User has already declared or declined Grand Tichu. Ignoring request to call Grand Tichu from user {}", user_id));
                         }
                         grand_tichus[i] = UserIdWithTichuCallStatus {
                             user_id: user_id.to_string(),
@@ -457,34 +466,35 @@ impl PrivateGameState {
                             }
                         }
                         if grand_tichus_called >= 4 {
-                            new_game_state = new_game_state.start_trade()
+                            new_game_state = match new_game_state.start_trade() {
+                                Ok(traded_started_state) => traded_started_state,
+                                Err(error) => return Err(error),
+                            }
                         }
                     }
                 }
             }
             _ => {
-                eprintln!("Can't call Grand Tichu when game stage is not GrandTichu. Ignoring request from user {}", user_id);
-                return new_game_state;
+                return Err(format!("Can't call Grand Tichu when game stage is not GrandTichu. Ignoring request from user {}", user_id));
             }
         }
 
-        new_game_state
+        Ok(new_game_state)
     }
 
     /// Saves user's Small Tichu choice
     ///
     /// User can only CALL small tichu. Cannot decline.
-    pub fn call_small_tichu(&self, user_id: &str) -> PrivateGameState {
+    pub fn call_small_tichu(&self, user_id: &str) -> Result<Self, String> {
         let mut new_game_state = self.clone();
 
         // game stage cannot be lobby, teams, or scoreboard
         let small_tichus = match &mut new_game_state.stage {
             PrivateGameStage::Lobby | PrivateGameStage::Teams(_) | PrivateGameStage::Scoreboard => {
-                eprintln!(
+                return Err(format!(
                     "Can't call Small Tichu when game is not active. Ignoring request from user {}",
                     user_id
-                );
-                return new_game_state;
+                ));
             }
             PrivateGameStage::GrandTichu(grand_tichu_state) => {
                 grand_tichu_state.get_small_tichu_mut()
@@ -498,14 +508,12 @@ impl PrivateGameState {
             .position(|user_call_status| *user_call_status.user_id == *user_id);
         match i {
             None => {
-                eprintln!("Couldn't find user's call status in call stage state. Ignoring request to call Small Tichu from user {}", user_id);
-                return new_game_state;
+                return Err(format!("Couldn't find user's call status in call stage state. Ignoring request to call Small Tichu from user {}", user_id));
             }
             Some(i) => {
                 let user_call_status = &small_tichus[i];
                 if user_call_status.tichu_call_status != TichuCallStatus::Undecided {
-                    eprintln!("User is not in Undecided state about Small Tichu. Ignoring request to call Small Tichu from user {}", user_id);
-                    return new_game_state;
+                    return Err(format!("User is not in Undecided state about Small Tichu. Ignoring request to call Small Tichu from user {}", user_id));
                 }
                 small_tichus[i] = UserIdWithTichuCallStatus {
                     user_id: user_id.to_string(),
@@ -514,14 +522,12 @@ impl PrivateGameState {
             }
         }
 
-        new_game_state
+        Ok(new_game_state)
     }
 
     /// Start trade occurs automatically after last Grand Tichu is either Called or Denied
     /// Mutates self rather than cloning game state, since it only occurs in conjunction with CallGrandTichu
-    fn start_trade(mut self) -> Self {
-        eprintln!("Moving game stage from GrandTichu to to Trade");
-
+    fn start_trade(mut self) -> Result<Self, String> {
         // must currently be in Grand Tichu stage
         if let PrivateGameStage::GrandTichu(mut grand_tichu) = self.stage {
             // deal the rest of the cards to each player
@@ -536,15 +542,15 @@ impl PrivateGameState {
             // move game stage to Trade game stage
             self.stage = PrivateGameStage::Trade(Box::new((*grand_tichu).into()));
         } else {
-            eprintln!("Can't start trade when not in Grand Tichu stage");
+            return Err(format!("Can't start trade when not in Grand Tichu stage"));
         }
-        self
+        Ok(self)
     }
 
     /// Saves a user's trade choice.
     ///
     /// These trades are actually committed/enacted once all users have submitted their trades.
-    pub fn submit_trade(&self, user_id: &str, submit_trade: &SubmitTrade) -> PrivateGameState {
+    pub fn submit_trade(&self, user_id: &str, submit_trade: &SubmitTrade) -> Result<Self, String> {
         let mut new_game_state = self.clone();
 
         // Must be Trade stage
@@ -557,21 +563,18 @@ impl PrivateGameState {
             let user = if let Some(i) = i {
                 &mut new_game_state.participants[i]
             } else {
-                eprintln!("Couldn't accept traded submitted by user {user_id} because user could not be found in participants");
-                return new_game_state;
+                return Err(format!("Couldn't accept traded submitted by user {user_id} because user could not be found in participants"));
             };
 
             for trade in submit_trade {
                 // User must actually have those cards in their hand
                 if !user.hand.iter().any(|card| *card == trade.card) {
-                    eprintln!("Couldn't accept traded submitted by user {} because user does {:?}, which they are trying to trade", user_id, trade.card);
-                    return new_game_state;
+                    return Err(format!("Couldn't accept traded submitted by user {} because user does {:?}, which they are trying to trade", user_id, trade.card));
                 }
 
                 // Trade must not be to self
                 if trade.to_user_id == user_id {
-                    eprintln!("Couldn't accept traded submitted by user {} because user is trying to trade to self", user_id);
-                    return new_game_state;
+                    return Err( format!("Couldn't accept traded submitted by user {} because user is trying to trade to self", user_id));
                 }
 
                 // Trade must be to a valid participant who is on a team
@@ -584,8 +587,7 @@ impl PrivateGameState {
                     }
                 }
                 if !recipient_found_in_teams {
-                    eprintln!("Couldn't accept traded submitted by user {} because the person the user is trying to trade to was not found in the teams", user_id);
-                    return new_game_state;
+                    return Err(format!("Couldn't accept traded submitted by user {} because the person the user is trying to trade to was not found in the teams", user_id));
                 }
             }
 
@@ -597,8 +599,7 @@ impl PrivateGameState {
             if let Some(free_index) = free_index {
                 trade_stage.trades[free_index] = Some(submit_trade.clone());
             } else {
-                eprintln!("Couldn't accept traded submitted by user {} because no free index was found to save to in the Trade state `trades` array", user_id);
-                return new_game_state;
+                return Err(format!("Couldn't accept traded submitted by user {} because no free index was found to save to in the Trade state `trades` array", user_id));
             }
 
             // Remove traded cards from user's hand
@@ -629,9 +630,9 @@ impl PrivateGameState {
                                 if let Some(i) = i {
                                     new_game_state.participants[i].hand.push(card.card.clone());
                                 } else {
-                                    eprintln!(
+                                    return Err(format!(
                                         "Game state error: Couldn't find user to trade card to"
-                                    );
+                                    ));
                                 }
                             }
                         }
@@ -650,7 +651,7 @@ impl PrivateGameState {
                     let first_turn_user_id = if let Some(first_turn_user_id) = first_turn_user_id {
                         first_turn_user_id
                     } else {
-                        panic!("Could not find MahJong among the participants' hands");
+                        return Err("Could not find MahJong among the participants' hands".into());
                     };
                     let mut play_state: PrivatePlay = (**private_trade).clone().into();
                     play_state.turn_user_id = first_turn_user_id;
@@ -658,13 +659,12 @@ impl PrivateGameState {
                 }
             }
 
-            new_game_state
+            Ok(new_game_state)
         } else {
-            eprintln!(
+            return Err(format!(
                 "Couldn't accept traded submitted by user {} because Game Stage is not Trade",
                 user_id
-            );
-            new_game_state
+            ));
         }
     }
 
@@ -697,7 +697,7 @@ impl PrivateGameState {
         }
     }
 
-    pub fn pass(&self, user_id: &str) -> Self {
+    pub fn pass(&self, user_id: &str) -> Result<Self, String> {
         let mut new_game_state = self.clone();
 
         let is_final_pass = new_game_state.get_number_of_users_who_have_passed() == Ok(3);
@@ -706,7 +706,10 @@ impl PrivateGameState {
             if let PrivateGameStage::Play(new_play_state) = &mut new_game_state.stage {
                 new_play_state
             } else {
-                return new_game_state;
+                return Err(format!(
+                    "Couldn't accept pass from user {} because Game Stage is not Play",
+                    user_id
+                ));
             };
 
         // if this is the final pass, next user wins the trick,so move them into the user's tricks
@@ -765,7 +768,7 @@ impl PrivateGameState {
                 || (new_play_state.users_in_play.len() == 2
                     && only_one_team_is_in_play)
             {
-                return self.round_over();
+                return new_game_state.round_over();
             }
         }
 
@@ -778,10 +781,10 @@ impl PrivateGameState {
         new_play_state.passes[users_index].passed = true;
         new_play_state.turn_user_id = new_play_state.get_next_turn_user_id().clone();
 
-        new_game_state
+        Ok(new_game_state)
     }
 
-    fn round_over(&self) -> Self {
+    fn round_over(&self) -> Result<Self, String> {
         // if only one person is left then the round is over (plain over)
         // else if only 2 users who are on the same team are left, then it is a double victory
 
@@ -809,7 +812,7 @@ impl PrivateGameState {
         next_cards: Vec<Card>,
         wished_for_card: Option<Card>,
         user_id_to_give_dragon_to: Option<String>,
-    ) -> Self {
+    ) -> Result<Self, String> {
         let mut new_game_state = self.clone();
 
         // must be play stage
@@ -843,18 +846,17 @@ impl PrivateGameState {
                                         // player is playing wish, so erase wished-for card
                                         new_play_stage.wished_for_card = None;
                                     } else {
-                                        eprintln!(
+                                        return Err(format!(
                                             "Couldn't accept card play submitted by user {} because user can play wished-for card but didn't",
                                             user_id
-                                        );
-                                        return self.clone();
+                                        ));
                                     }
                                 }
                             } else {
-                                eprintln!(
+                                return Err(format!(
                                     "Couldn't accept card play submitted by user {} because user couldn't be found in participants",
                                     user_id
-                                );
+                                ));
                             }
                         }
 
@@ -934,32 +936,31 @@ impl PrivateGameState {
                         let next_user_id = new_play_stage.get_next_turn_user_id();
                         new_play_stage.turn_user_id = next_user_id.clone();
                     } else {
-                        eprintln!(
+                        return Err(format!(
                             "Couldn't accept card play submitted by user {} because combo does not beat combo on the table",
                             user_id
-                        );
+                        ));
                     }
                 } else {
-                    eprintln!(
+                    return Err(format!(
                         "Couldn't accept card play submitted by user {} because it is not the user's turn",
                         user_id
-                    );
+                    ));
                 }
             } else {
-                eprintln!(
+                return Err(format!(
                     "Couldn't accept card play submitted by user {} because cards are not a valid combination",
                     user_id
-                );
-                return new_game_state;
+                ));
             }
         } else {
-            eprintln!(
+            return Err(format!(
                 "Couldn't accept card play submitted by user {} because Game Stage is not Play",
                 user_id
-            );
-            return new_game_state;
+            ));
         }
-        new_game_state
+
+        Ok(new_game_state)
     }
 }
 

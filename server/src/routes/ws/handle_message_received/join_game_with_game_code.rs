@@ -69,7 +69,10 @@ pub async fn join_game_with_game_code(
             return;
         }
 
-        let new_game_state = game_state_clone.add_user(user_id.clone(), display_name);
+        let new_game_state = match game_state_clone.add_user(user_id.clone(), display_name) {
+            Ok(new_game_state) => new_game_state,
+            Err(err) => return eprintln!("{}", err),
+        };
 
         // save new game state
         write_games.insert(cloned_gamed_id.clone(), new_game_state.clone());

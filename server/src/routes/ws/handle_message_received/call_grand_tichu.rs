@@ -67,7 +67,11 @@ pub async fn call_grand_tichu(
     }
 
     // update game state
-    let new_game_state = game_state.call_grand_tichu(call_grand_tichu_request, user_id);
+    let new_game_state = match game_state.call_grand_tichu(call_grand_tichu_request, user_id) {
+        Ok(new_game_state) => new_game_state,
+        Err(error) => return eprintln!("{}", error),
+    };
+
     *game_state = new_game_state.clone();
 
     drop(write_games);

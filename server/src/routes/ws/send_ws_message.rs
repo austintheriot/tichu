@@ -19,7 +19,7 @@ pub async fn game_state_to_group(
     for participant in game.participants.iter() {
         // format state for this user
         let public_game_state = private_game_state.to_public_game_state(&participant.user_id);
-        let msg = bincode::serialize(&STCMsg::GameState(Box::new(public_game_state)))
+        let msg = bincode::serialize(&STCMsg::GameState(Box::new(public_game_state.ok())))
             .expect("Could not serialize message");
         let msg = Message::binary(msg);
 

@@ -74,10 +74,19 @@ pub async fn leave_game(
                 // if owner leaves in lobby, assign ownership to next participant
                 eprintln!("{FUNCTION_NAME}: Reassigning owner role to a different user");
                 owner_reassigned = true;
-                game_state_clone.remove_user(user_id).reassign_owner()
+                match game_state_clone.remove_user(user_id) {
+                    Ok(updated_game_state) => match updated_game_state.reassign_owner() {
+                        Ok(updated_game_state) => updated_game_state,
+                        Err(err) => return eprintln!("{}", err),
+                    },
+                    Err(err) => return eprintln!("{}", err),
+                }
             } else {
                 // if not the owner, just remove from state
-                game_state_clone.remove_user(user_id)
+                match game_state_clone.remove_user(user_id) {
+                    Ok(updated_game_state) => updated_game_state,
+                    Err(err) => return eprintln!("{}", err),
+                }
             };
             *write_games
                 .get_mut(&game_id_clone)

@@ -42,6 +42,13 @@ pub async fn play_cards(
     // update game state
     let new_game_state =
         game_state.play_cards(user_id, cards, wished_for, user_id_to_give_dragon_to);
+    let new_game_state = match new_game_state {
+        Ok(new_game_state) => new_game_state,
+        Err(error) => {
+            eprintln!("{}", error);
+            return;
+        }
+    };
     *game_state = new_game_state.clone();
 
     drop(write_games);

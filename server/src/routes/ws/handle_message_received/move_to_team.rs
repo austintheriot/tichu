@@ -66,7 +66,10 @@ pub async fn move_to_team(
     );
 
     // update game state
-    let new_game_state = prev_game_state.move_to_team(team_to_move_to, user_id);
+    let new_game_state = match prev_game_state.move_to_team(team_to_move_to, user_id) {
+        Ok(updated_game_state) => updated_game_state,
+        Err(err) => return eprintln!("{}", err),
+    };
     *write_games
         .get_mut(&game_id_clone)
         .expect(GAME_ID_NOT_IN_MAP) = new_game_state.clone();

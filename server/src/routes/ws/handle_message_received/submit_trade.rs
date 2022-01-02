@@ -87,7 +87,10 @@ pub async fn submit_trade(
     }
 
     // update game state
-    let new_game_state = game_state.submit_trade(user_id, &trade_array);
+    let new_game_state = match game_state.submit_trade(user_id, &trade_array) {
+        Ok(updated_game_state) => updated_game_state,
+        Err(err) => return eprintln!("{}", err),
+    };
     *game_state = new_game_state.clone();
 
     drop(write_games);

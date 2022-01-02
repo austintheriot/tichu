@@ -131,7 +131,7 @@ pub async fn handle_ws_upgrade(
             drop(read_games);
             send_ws_message::to_user(
                 &user_id,
-                STCMsg::GameState(Box::new(game_state.to_public_game_state(&user_id))),
+                STCMsg::GameState(Box::new(game_state.to_public_game_state(&user_id).ok())),
                 &connections,
             )
             .await;
