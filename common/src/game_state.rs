@@ -1,10 +1,10 @@
 use crate::{
-    get_card_combination, get_new_game_code, next_combo_beats_prev, sort_cards_for_hand,
-    user::UserRole, CallGrandTichuRequest, Card, CardSuit, Deck, GetSmallTichu, ImmutableTeam,
-    MutableTeam, OtherPlayers, PassWithUserId, PrivateGameStage, PrivateGrandTichu, PrivatePlay,
-    PrivateUser, PublicGameStage, PublicUser, SubmitTrade, TeamCategories, TeamOption,
-    TichuCallStatus, UserIdWithTichuCallStatus, ValidCardCombo, NUM_CARDS_AFTER_GRAND_TICHU,
-    NUM_CARDS_BEFORE_GRAND_TICHU,
+    get_card_combination, get_new_game_code, get_user_can_play_wished_for_card,
+    next_combo_beats_prev, sort_cards_for_hand, user::UserRole, CallGrandTichuRequest, Card,
+    CardSuit, Deck, GetSmallTichu, ImmutableTeam, MutableTeam, OtherPlayers, PassWithUserId,
+    PrivateGameStage, PrivateGrandTichu, PrivatePlay, PrivateUser, PublicGameStage, PublicUser,
+    SubmitTrade, TeamCategories, TeamOption, TichuCallStatus, UserIdWithTichuCallStatus,
+    ValidCardCombo, NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -833,9 +833,12 @@ impl PrivateGameState {
                                 .participants
                                 .iter()
                                 .find(|user| user.user_id == user_id);
-                            if let Some(user) = user {
-                                let user_can_play_wish =
-                                    user.hand.iter().any(|card| card == wished_for_card);
+                            if user.is_some() {
+                                let user_can_play_wish = get_user_can_play_wished_for_card(
+                                    new_play_stage.table.last(),
+                                    &next_cards,
+                                );
+
                                 if user_can_play_wish {
                                     let combo_contains_wish = next_combo
                                         .cards()

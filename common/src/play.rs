@@ -158,6 +158,7 @@ pub struct PublicPlay {
     pub passes: [PassWithUserId; 4],
     /// Users who have not run out of cards: in turn order
     pub users_in_play: Vec<String>,
+    pub wished_for_card: Option<Card>,
 }
 
 impl GetSmallTichu for PublicPlay {
@@ -180,6 +181,7 @@ impl From<PrivatePlay> for PublicPlay {
             turn_user_id: private_play.turn_user_id,
             passes: private_play.passes,
             users_in_play: private_play.users_in_play,
+            wished_for_card: private_play.wished_for_card,
         }
     }
 }

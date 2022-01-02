@@ -450,3 +450,14 @@ pub fn sort_cards_for_hand(cards: &mut Vec<Card>) {
         }
     });
 }
+
+pub fn get_user_can_play_wished_for_card(prev_combo: Option<&ValidCardCombo>, users_hand: &Vec<Card>) -> bool {
+    let valid_card_combos: Vec<ValidCardCombo> = Vec::new();
+
+    // if user does not have wished for card, return false
+    // else:
+    // create every possible combination of cards that includes the wished for card
+    // iterate through combinations until a valid combo is found, return true
+    // if none is found, return false
+    todo!();
+}
