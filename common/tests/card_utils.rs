@@ -5907,3 +5907,12 @@ mod test_next_combo_beats_prev {
         ));
     }
 }
+
+mod test_recursive_permutation {
+    use common::recursive_permutation;
+
+    #[test]
+    fn it_should_correct_boolean() {
+        assert_eq!(recursive_permutation(vec![0, 1, 2, 3]), vec![vec![]]);
+    }
+}

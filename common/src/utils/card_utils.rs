@@ -451,7 +451,7 @@ pub fn sort_cards_for_hand(cards: &mut Vec<Card>) {
     });
 }
 
-pub fn get_user_can_play_wished_for_card(prev_combo: Option<&ValidCardCombo>, users_hand: &Vec<Card>) -> bool {
+pub fn get_user_can_play_wished_for_card(prev_combo: Option<&ValidCardCombo>, users_hand: &Vec<Card>, wished_for_card: &Card) -> bool {
     let valid_card_combos: Vec<ValidCardCombo> = Vec::new();
 
     // if user does not have wished for card, return false
@@ -460,4 +460,35 @@ pub fn get_user_can_play_wished_for_card(prev_combo: Option<&ValidCardCombo>, us
     // iterate through combinations until a valid combo is found, return true
     // if none is found, return false
     todo!();
+}
+
+pub fn recursive_permutation(array: Vec<u8>) -> Vec<Vec<u8>> {
+	let mut permutations: Vec<Vec<u8>> = Vec::new();
+
+	//base case
+	if array.is_empty() {
+		return permutations;
+	}
+
+	let first_vec = array[0..1].to_vec(); //get first character
+	let remaining_vecs = array[1..].to_vec(); //remove first character
+	let vecs = recursive_permutation(remaining_vecs); //get combinations for substrings
+
+    if vecs.is_empty() {
+        permutations.push(first_vec);
+    } else {
+        for vec in vecs.iter() {
+            for i in 0..vec.len() + 1 {
+                let mut s = Vec::new();
+                s.append(&mut vec[0..i].to_vec());
+                s.append(&mut first_vec.clone());
+                s.append(&mut vec[i..].to_vec());
+                permutations.push(s);
+            }
+        }
+    }
+
+   
+
+	return permutations;
 }

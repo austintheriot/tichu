@@ -1,11 +1,12 @@
 use crate::types::CTSMsgInternal;
 use anyhow::Error;
 use common::{
-    clean_up_display_name, clean_up_game_code, get_card_combination, next_combo_beats_prev,
-    sort_cards_for_hand, validate_display_name, validate_game_code, validate_team_name, CTSMsg,
-    CallGrandTichuRequest, Card, CardSuit, CardTrade, Deck, ImmutableTeam, MutableTeam,
-    OtherPlayerOption, PassWithUserId, PublicGameStage, PublicGameState, PublicUser, STCMsg,
-    TeamCategories, TeamOption, TichuCallStatus, ValidCardCombo, NO_USER_ID,
+    clean_up_display_name, clean_up_game_code, get_card_combination,
+    get_user_can_play_wished_for_card, next_combo_beats_prev, sort_cards_for_hand,
+    validate_display_name, validate_game_code, validate_team_name, CTSMsg, CallGrandTichuRequest,
+    Card, CardSuit, CardTrade, Deck, ImmutableTeam, MutableTeam, OtherPlayerOption, PassWithUserId,
+    PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamCategories, TeamOption,
+    TichuCallStatus, ValidCardCombo, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -48,11 +49,15 @@ struct State {
     team_a_name_input: String,
     team_b_name_input: String,
 
+    /// temporary card selected for trading, etc. (i.e. game stage is not Play)
+    /// this card is then moved into `trade_to_opponent` state once the user chooses
+    /// who to give the card to
     selected_pre_play_card: Option<Card>,
     trade_to_opponent1: Option<Card>,
     trade_to_teammate: Option<Card>,
     trade_to_opponent2: Option<Card>,
 
+    /// cards selected for playing
     selected_play_cards: Vec<Card>,
     wished_for_card: Option<Card>,
     user_id_to_give_dragon_to: Option<String>,
@@ -1322,12 +1327,49 @@ impl App {
         let user_has_chosen_a_user_to_given_dragon_to =
             self.state.user_id_to_give_dragon_to.is_some();
 
+        let wished_for_card = if let Some(game_state) = &self.state.game_state {
+            if let PublicGameStage::Play(play_state) = &game_state.stage {
+                Some(play_state.wished_for_card.clone())
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        let some_card_has_been_wished_for = if let Some(wished_for_card) = &wished_for_card {
+            wished_for_card.is_some()
+        } else {
+            false
+        };
+
         if let Some(combo) = combo {
+            let user_can_play_wished_for_card = if some_card_has_been_wished_for {
+                let wished_for_card = wished_for_card.as_ref().unwrap().as_ref().unwrap();
+                get_user_can_play_wished_for_card(
+                    self.get_prev_played_combo(),
+                    &self.state.selected_play_cards,
+                    wished_for_card,
+                )
+            } else {
+                false
+            };
+            let combo_contains_wished_for_card = if some_card_has_been_wished_for {
+                let wished_for_card = wished_for_card.as_ref().unwrap().as_ref().unwrap();
+                combo.cards().iter().any(|card| card == wished_for_card)
+            } else {
+                false
+            };
+
             self.stage_is_play()
                 && (self.is_current_users_turn() || combo.is_bomb())
                 && self.hand_beats_combo_on_table(&combo)
                 && (!combo_contains_dragon
                     || combo_contains_dragon && user_has_chosen_a_user_to_given_dragon_to)
+                && (!some_card_has_been_wished_for
+                    || (some_card_has_been_wished_for && !user_can_play_wished_for_card)
+                    || (user_can_play_wished_for_card
+                        && user_can_play_wished_for_card
+                        && combo_contains_wished_for_card))
         } else {
             // cards are not a valid combo
             false
@@ -2055,12 +2097,13 @@ impl App {
                     .any(|card| card.suit == CardSuit::MahJong);
 
                 let wished_for_card = self.state.wished_for_card.clone();
-                if cards_include_mahjong {
-                    self.state.wished_for_card = None;
-                }
 
                 let user_id_to_give_dragon_to = self.state.user_id_to_give_dragon_to.clone();
+
+                // reset state
+                self.state.selected_play_cards.drain(..);
                 self.state.user_id_to_give_dragon_to = None;
+                self.state.wished_for_card = None;
 
                 self._send_ws_message(&CTSMsg::PlayCards {
                     cards,

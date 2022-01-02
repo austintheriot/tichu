@@ -837,6 +837,7 @@ impl PrivateGameState {
                                 let user_can_play_wish = get_user_can_play_wished_for_card(
                                     new_play_stage.table.last(),
                                     &next_cards,
+                                    wished_for_card,
                                 );
 
                                 if user_can_play_wish {
