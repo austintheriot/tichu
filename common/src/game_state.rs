@@ -876,11 +876,11 @@ impl PrivateGameState {
                             .expect("Current user should be in list of participants");
 
                         // user has now definitely played first card
-                        let mut current_user = &mut new_game_state.participants[current_user_i];
-                        current_user.has_played_first_card = true;
+                        let mut new_current_user = &mut new_game_state.participants[current_user_i];
+                        new_current_user.has_played_first_card = true;
 
                         // if user is out of cards, remove them from users_in_play
-                        if current_user.hand.is_empty() {
+                        if new_current_user.hand.is_empty() {
                             new_play_stage.users_in_play = new_play_stage
                                 .users_in_play
                                 .iter()
@@ -903,6 +903,14 @@ impl PrivateGameState {
                         if is_bomb {
                             new_play_stage.turn_user_id = user_id.into();
                         }
+
+                        // clear played cards from user's hand
+                        new_current_user.hand = new_current_user
+                            .hand
+                            .iter()
+                            .filter(|card| !next_cards.contains(card))
+                            .map(|card| card.to_owned())
+                            .collect();
 
                         // if round is over get if only teammates are left in play
                         let TeamCategories {
