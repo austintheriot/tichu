@@ -39,7 +39,7 @@ pub async fn pass(user_id: &str, connections: &Connections, games: &Games, game_
 
     eprintln!("{FUNCTION_NAME}: User {} successfully passed", user_id);
 
-    // send Cards played event
+    // send Pass event to group
     send_ws_message::to_group(
         &game_id,
         STCMsg::UserPassed(user_id.into()),
