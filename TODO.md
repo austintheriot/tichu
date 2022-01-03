@@ -18,6 +18,7 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
+- split front end into multiple components --> use Yewdux for state management
 - "wished for card" should only be a VALUE - not a card
 - account for "wished for card" in the client--i.e. if a user CAN play a card that has been wished for, they can't submit PlayCard until they've chosen a combination that includes that card
 - create input for wished for card?
@@ -39,7 +40,7 @@ MUST HAVES:
 - Add client-side check before being able to call Grand Tichu
 - Minimize .expect() errors (see example in call_grand_tichu.rs for better match expressions)
 - update Small tichu to be able to be called from states other than Grand Tichu once other stages are implemented
-- Search TODOs in codebase
+- Search TODOs and todo!()s in codebase
 - - make sort by value the default for Cards
 
 NICE TO HAVES:
