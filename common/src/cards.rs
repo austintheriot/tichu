@@ -49,6 +49,15 @@ impl CardValue {
     pub fn max() -> Self {
         CardValue(CARD_VALUE_MAX)
     }
+
+    pub fn full_valid_range() -> Vec<CardValue> {
+        let full_range: Vec<CardValue> = (2u8..14u8)
+            .collect::<Vec<u8>>()
+            .iter()
+            .map(|i| CardValue(*i))
+            .collect();
+        full_range
+    }
 }
 
 impl Iterator for CardValue {
@@ -271,27 +280,24 @@ impl Deck {
     }
 
     /// "None" + All Standard Cards
-    pub fn wished_for_cards() -> Vec<Option<Card>> {
-        let mut cards = Deck::new()
-            .0
+    pub fn wished_for_card_values() -> Vec<Option<CardValue>> {
+        let mut cards: Vec<Option<CardValue>> = CardValue::full_valid_range()
             .into_iter()
-            .filter(|card| !card.suit.is_special())
-            .map(Some)
-            .collect::<Vec<Option<Card>>>();
-        // first option is "None"
+            .map(|card_value| Some(card_value))
+            .collect();
         cards.insert(0, None);
         cards
     }
 
     /// Find index of a card in the wished for possibilities
-    pub fn i_of_wished_for_card(card: &Option<Card>) -> Option<usize> {
-        Deck::wished_for_cards()
+    pub fn i_of_wished_for_card_value(card: &Option<CardValue>) -> Option<usize> {
+        Deck::wished_for_card_values()
             .iter()
             .position(|wished_for_card| wished_for_card == card)
     }
 
-    pub fn get_wished_for_card_from_i(i: usize) -> Option<Card> {
-        let wished_for_cards = Deck::wished_for_cards();
+    pub fn get_wished_for_card_value_from_i(i: usize) -> Option<CardValue> {
+        let wished_for_cards = Deck::wished_for_card_values();
         let card = wished_for_cards.get(i);
         if let Some(card) = card {
             card.clone()

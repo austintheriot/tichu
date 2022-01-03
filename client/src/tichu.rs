@@ -4,9 +4,9 @@ use common::{
     clean_up_display_name, clean_up_game_code, get_card_combination,
     get_user_can_play_wished_for_card, next_combo_beats_prev, sort_cards_for_hand,
     validate_display_name, validate_game_code, validate_team_name, CTSMsg, CallGrandTichuRequest,
-    Card, CardSuit, CardTrade, Deck, ImmutableTeam, MutableTeam, OtherPlayerOption, PassWithUserId,
-    PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamCategories, TeamOption,
-    TichuCallStatus, ValidCardCombo, NO_USER_ID,
+    Card, CardSuit, CardTrade, CardValue, Deck, ImmutableTeam, MutableTeam, OtherPlayerOption,
+    PassWithUserId, PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamCategories,
+    TeamOption, TichuCallStatus, ValidCardCombo, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlFormElement, HtmlSelectElement};
+use web_sys::HtmlSelectElement;
 use yew::format::{Binary, Json};
 use yew::prelude::*;
 use yew::services::interval::IntervalTask;
@@ -59,7 +59,7 @@ struct State {
 
     /// cards selected for playing
     selected_play_cards: Vec<Card>,
-    wished_for_card: Option<Card>,
+    wished_for_card_value: Option<CardValue>,
     user_id_to_give_dragon_to: Option<String>,
     show_user_id_to_give_dragon_to_form: bool,
 }
@@ -159,7 +159,7 @@ impl Component for App {
             selected_play_cards: Vec::new(),
             user_id_to_give_dragon_to: None,
             show_user_id_to_give_dragon_to_form: false,
-            wished_for_card: None,
+            wished_for_card_value: None,
         };
         Self {
             interval_task: None,
@@ -388,8 +388,8 @@ impl Component for App {
                 true
             }
             AppMsg::SetWishedForCard(i) => {
-                let wished_for_card = Deck::get_wished_for_card_from_i(i);
-                self.state.wished_for_card = wished_for_card;
+                let wished_for_card_value = Deck::get_wished_for_card_value_from_i(i);
+                self.state.wished_for_card_value = wished_for_card_value;
                 true
             }
         }
@@ -1327,35 +1327,41 @@ impl App {
         let user_has_chosen_a_user_to_given_dragon_to =
             self.state.user_id_to_give_dragon_to.is_some();
 
-        let wished_for_card = if let Some(game_state) = &self.state.game_state {
+        let wished_for_card_value = if let Some(game_state) = &self.state.game_state {
             if let PublicGameStage::Play(play_state) = &game_state.stage {
-                Some(play_state.wished_for_card.clone())
+                Some(play_state.wished_for_card_value.clone())
             } else {
                 None
             }
         } else {
             None
         };
-        let some_card_has_been_wished_for = if let Some(wished_for_card) = &wished_for_card {
-            wished_for_card.is_some()
-        } else {
-            false
-        };
+        let some_card_has_been_wished_for =
+            if let Some(wished_for_card_value) = &wished_for_card_value {
+                wished_for_card_value.is_some()
+            } else {
+                false
+            };
 
         if let Some(combo) = combo {
             let user_can_play_wished_for_card = if some_card_has_been_wished_for {
-                let wished_for_card = wished_for_card.as_ref().unwrap().as_ref().unwrap();
+                let wished_for_card_value =
+                    wished_for_card_value.as_ref().unwrap().as_ref().unwrap();
                 get_user_can_play_wished_for_card(
                     self.get_prev_played_combo(),
                     &self.state.selected_play_cards,
-                    wished_for_card,
+                    wished_for_card_value,
                 )
             } else {
                 false
             };
             let combo_contains_wished_for_card = if some_card_has_been_wished_for {
-                let wished_for_card = wished_for_card.as_ref().unwrap().as_ref().unwrap();
-                combo.cards().iter().any(|card| card == wished_for_card)
+                let wished_for_card_value =
+                    wished_for_card_value.as_ref().unwrap().as_ref().unwrap();
+                combo
+                    .cards()
+                    .iter()
+                    .any(|card| card.value == *wished_for_card_value)
             } else {
                 false
             };
@@ -1476,7 +1482,7 @@ impl App {
         html! {
             <>
               <p>{"Wished for Card:"}</p>
-              <p>{format!("{:#?}", self.state.wished_for_card)}</p>
+              <p>{format!("{:#?}", self.state.wished_for_card_value)}</p>
             </>
         }
     }
@@ -1496,7 +1502,7 @@ impl App {
                         AppMsg::SetWishedForCard(i as usize)
                     })
                 >
-                    {for Deck::wished_for_cards().iter().enumerate().map(|(i, card)| {
+                    {for Deck::wished_for_card_values().iter().enumerate().map(|(i, card)| {
                         let card_string = format!("{:#?}", card);
                         html!{
                             <option value=format!("{}", i)>
@@ -2096,18 +2102,18 @@ impl App {
                     .iter()
                     .any(|card| card.suit == CardSuit::MahJong);
 
-                let wished_for_card = self.state.wished_for_card.clone();
+                let wished_for_card_value = self.state.wished_for_card_value.clone();
 
                 let user_id_to_give_dragon_to = self.state.user_id_to_give_dragon_to.clone();
 
                 // reset state
                 self.state.selected_play_cards.drain(..);
                 self.state.user_id_to_give_dragon_to = None;
-                self.state.wished_for_card = None;
+                self.state.wished_for_card_value = None;
 
                 self._send_ws_message(&CTSMsg::PlayCards {
                     cards,
-                    wished_for_card,
+                    wished_for_card_value,
                     user_id_to_give_dragon_to,
                 });
                 false

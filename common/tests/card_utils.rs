@@ -5910,15 +5910,20 @@ mod test_next_combo_beats_prev {
 
 mod test_get_user_can_play_wished_for_card {
     use common::{
-        get_user_can_play_wished_for_card, Card, CardSuit, CardValue, Single, ValidCardCombo,
+        get_card_combination, get_user_can_play_wished_for_card, Card, CardSuit, CardValue,
+        FullHouse, Sequence, Single, ValidCardCombo,
     };
 
     #[test]
     fn it_should_return_correct_boolean() {
+        // CAN PLAY - SINGLE ///////////////////////////////////////////////////////////////////
         let prev_combo = ValidCardCombo::Single(Single {
-            cards: vec![ /* omitted */],
-            user_id: "".to_string(),
-            value: CardValue(2),
+            cards: vec![Card {
+                suit: CardSuit::Sword,
+                value: CardValue(7),
+            }],
+            user_id: "omitted".to_string(),
+            value: CardValue(7),
         });
         let users_hand = vec![
             Card {
@@ -5931,15 +5936,298 @@ mod test_get_user_can_play_wished_for_card {
             },
             Card {
                 suit: CardSuit::Jade,
-                value: CardValue(3),
+                value: CardValue(8),
             },
         ];
-        let wished_for_card = Card {
-            suit: CardSuit::Jade,
-            value: CardValue(3),
-        };
-        let result =
-            get_user_can_play_wished_for_card(Some(&prev_combo), &users_hand, &wished_for_card);
-        assert!(result);
+        let wished_for_card_value = CardValue(8);
+        assert!(get_user_can_play_wished_for_card(
+            Some(&prev_combo),
+            &users_hand,
+            &wished_for_card_value
+        ));
+
+        // CAN PLAY - COMBO ///////////////////////////////////////////////////////////////////
+        let prev_combo = ValidCardCombo::FullHouse(FullHouse {
+            cards: vec![
+                Card {
+                    value: CardValue(2),
+                    suit: CardSuit::Sword,
+                },
+                Card {
+                    value: CardValue(2),
+                    suit: CardSuit::Jade,
+                },
+                Card {
+                    value: CardValue(2),
+                    suit: CardSuit::Pagoda,
+                },
+                Card {
+                    value: CardValue(3),
+                    suit: CardSuit::Star,
+                },
+                Card {
+                    value: CardValue(3),
+                    suit: CardSuit::Jade,
+                },
+            ],
+            user_id: "omitted".to_string(),
+            trio_value: CardValue(2),
+        });
+        let users_hand = vec![
+            Card {
+                suit: CardSuit::Phoenix,
+                value: CardValue::noop(),
+            },
+            Card {
+                suit: CardSuit::Sword,
+                value: CardValue(12),
+            },
+            Card {
+                suit: CardSuit::Jade,
+                value: CardValue(8),
+            },
+            Card {
+                suit: CardSuit::Sword,
+                value: CardValue(8),
+            },
+            Card {
+                suit: CardSuit::Pagoda,
+                value: CardValue(8),
+            },
+        ];
+        let wished_for_card_value = CardValue(12);
+        assert!(get_user_can_play_wished_for_card(
+            Some(&prev_combo),
+            &users_hand,
+            &wished_for_card_value
+        ));
+
+        // CAN PLAY - NO PREVIOUS COMBO ///////////////////////////////////////////////////////////////////
+        let users_hand = vec![
+            Card {
+                suit: CardSuit::Jade,
+                value: CardValue(2),
+            },
+            Card {
+                suit: CardSuit::Pagoda,
+                value: CardValue(4),
+            },
+        ];
+        let wished_for_card_value = CardValue(4);
+        assert!(get_user_can_play_wished_for_card(
+            None,
+            &users_hand,
+            &wished_for_card_value
+        ));
+
+        // CAN'T PLAY - SINGLE ///////////////////////////////////////////////////////////////////
+        let prev_combo = ValidCardCombo::Single(Single {
+            cards: vec![Card {
+                value: CardValue(7),
+                suit: CardSuit::Pagoda,
+            }],
+            user_id: "omitted".to_string(),
+            value: CardValue(7),
+        });
+        let users_hand = vec![
+            Card {
+                suit: CardSuit::Dragon,
+                value: CardValue::noop(),
+            },
+            Card {
+                suit: CardSuit::Sword,
+                value: CardValue(3),
+            },
+            Card {
+                suit: CardSuit::Jade,
+                value: CardValue(8),
+            },
+        ];
+        let wished_for_card_value = CardValue(6);
+        assert_eq!(
+            get_user_can_play_wished_for_card(
+                Some(&prev_combo),
+                &users_hand,
+                &wished_for_card_value
+            ),
+            false
+        );
+
+        // CAN'T PLAY - COMBO ///////////////////////////////////////////////////////////////////
+        let prev_combo = ValidCardCombo::FullHouse(FullHouse {
+            cards: vec![
+                Card {
+                    value: CardValue(4),
+                    suit: CardSuit::Sword,
+                },
+                Card {
+                    value: CardValue(4),
+                    suit: CardSuit::Jade,
+                },
+                Card {
+                    value: CardValue(4),
+                    suit: CardSuit::Pagoda,
+                },
+                Card {
+                    value: CardValue(3),
+                    suit: CardSuit::Star,
+                },
+                Card {
+                    value: CardValue(3),
+                    suit: CardSuit::Jade,
+                },
+            ],
+            user_id: "omitted".to_string(),
+            trio_value: CardValue(4),
+        });
+        let users_hand = vec![
+            Card {
+                suit: CardSuit::Sword,
+                value: CardValue(12),
+            },
+            Card {
+                suit: CardSuit::Star,
+                value: CardValue(12),
+            },
+            Card {
+                suit: CardSuit::Jade,
+                value: CardValue(8),
+            },
+            Card {
+                suit: CardSuit::Sword,
+                value: CardValue(8),
+            },
+            Card {
+                suit: CardSuit::Pagoda,
+                value: CardValue(8),
+            },
+            Card {
+                suit: CardSuit::Pagoda,
+                value: CardValue(9),
+            },
+        ];
+        let wished_for_card_value = CardValue(9);
+        assert_eq!(
+            get_card_combination(Some(&prev_combo), &users_hand, &"".to_string()).is_some(),
+            false
+        );
+
+        // CAN'T PLAY - NO PREVIOUS COMBO ///////////////////////////////////////////////////////////////////
+        let users_hand = vec![
+            Card {
+                suit: CardSuit::Jade,
+                value: CardValue(2),
+            },
+            Card {
+                suit: CardSuit::Pagoda,
+                value: CardValue(4),
+            },
+        ];
+        let wished_for_card_value = CardValue(5);
+        assert_eq!(
+            get_user_can_play_wished_for_card(None, &users_hand, &wished_for_card_value),
+            false
+        );
+
+        // CAN PLAY - NORMAL HAND LENGTH ///////////////////////////////////////////////////////////////////
+        let prev_combo = ValidCardCombo::Sequence(Sequence {
+            cards: vec![
+                Card {
+                    value: CardValue(2),
+                    suit: CardSuit::Sword,
+                },
+                Card {
+                    value: CardValue(3),
+                    suit: CardSuit::Jade,
+                },
+                Card {
+                    value: CardValue(4),
+                    suit: CardSuit::Pagoda,
+                },
+                Card {
+                    value: CardValue(5),
+                    suit: CardSuit::Star,
+                },
+                Card {
+                    value: CardValue(6),
+                    suit: CardSuit::Jade,
+                },
+                Card {
+                    value: CardValue(7),
+                    suit: CardSuit::Sword,
+                },
+                Card {
+                    value: CardValue(8),
+                    suit: CardSuit::Star,
+                },
+                Card {
+                    value: CardValue(9),
+                    suit: CardSuit::Pagoda,
+                },
+            ],
+            number_of_cards: 8,
+            starting_value: CardValue(2),
+            user_id: "omitted".to_string(),
+        });
+        let users_hand = vec![
+            Card {
+                suit: CardSuit::Dragon,
+                value: CardValue::noop(),
+            },
+            Card {
+                suit: CardSuit::Phoenix,
+                value: CardValue::noop(),
+            },
+            Card {
+                suit: CardSuit::Jade,
+                value: CardValue(2),
+            },
+            Card {
+                suit: CardSuit::Sword,
+                value: CardValue(3),
+            },
+            Card {
+                suit: CardSuit::Jade,
+                value: CardValue(4),
+            },
+            Card {
+                suit: CardSuit::Sword,
+                value: CardValue(5),
+            },
+            Card {
+                suit: CardSuit::Pagoda,
+                value: CardValue(6),
+            },
+            Card {
+                suit: CardSuit::Jade,
+                value: CardValue(7),
+            },
+            Card {
+                suit: CardSuit::Sword,
+                value: CardValue(8),
+            },
+            Card {
+                suit: CardSuit::Pagoda,
+                value: CardValue(8),
+            },
+            Card {
+                suit: CardSuit::Pagoda,
+                value: CardValue(9),
+            },
+            Card {
+                suit: CardSuit::Pagoda,
+                value: CardValue(10),
+            },
+            Card {
+                suit: CardSuit::Star,
+                value: CardValue(14),
+            },
+        ];
+        let wished_for_card_value = CardValue(14);
+        assert!(get_user_can_play_wished_for_card(
+            Some(&prev_combo),
+            &users_hand,
+            &wished_for_card_value
+        ));
     }
 }

@@ -453,30 +453,40 @@ pub fn sort_cards_for_hand(cards: &mut Vec<Card>) {
     });
 }
 
-// todo!() --- allow returning early from recursive permutation
-pub fn get_user_can_play_wished_for_card(prev_combo: Option<&ValidCardCombo>, users_hand: &Vec<Card>, wished_for_card: &Card) -> bool {
+pub fn get_user_can_play_wished_for_card(prev_combo: Option<&ValidCardCombo>, users_hand: &Vec<Card>, wished_for_card_value: &CardValue) -> bool {
     // if user does not have the wished for card, return false
-    if !users_hand.iter().any(|card| card.value == wished_for_card.value) {
+    if !users_hand.iter().any(|card| card.value == *wished_for_card_value) {
         return false
     }
 
-    // don't need to check combinations that don't include the wished for card 
-    // or any combinations that aren't valid
-    let all_valid_combos = recursive_permutation(users_hand, &|cards| {
-        cards.iter().any(|card| card.value == wished_for_card.value)
-        && get_card_combination(prev_combo, cards, &String::from("")).is_some()
+    let mut all_valid_combos = recursive_permutation(users_hand);
+    eprintln!("{:?}", all_valid_combos.len());
+    all_valid_combos.sort();
+    all_valid_combos.dedup();
+    // combo must have the the wished for card and also be valid to play based on the previous value
+    all_valid_combos.retain(|cards| {
+        let card_combo = get_card_combination(prev_combo, cards, &String::from(""));
+        let combo_is_valid = card_combo.is_some();
+        let combo_beats_prev = if combo_is_valid {
+            next_combo_beats_prev(&prev_combo, card_combo.as_ref().expect("Combo is valid, so should be of type Some()"))
+        } else {
+            false
+        };
+        let combo_contains_wished_for_card = cards.iter().any(|card| card.value == *wished_for_card_value);
+        combo_is_valid && combo_contains_wished_for_card && combo_beats_prev
     });
-    
+
+    eprintln!("{:?}", all_valid_combos.len());
+
     return all_valid_combos.len() > 0;
 }
 
 /// Produces every combination of every size of vector elements without repeating any elements in the same vector.
-/// `filter` allows only keeping certain combinations as they are created to avoid using excess memory by saving unneeded combinations.
 //
 /// start from 0 or 1 element vectors 
 /// add in the other elements at every possible index
 /// save the original, small vectors (to create every length combination)
-pub fn recursive_permutation<T: Clone + Debug>(array: &Vec<T>, filter: &dyn Fn(&Vec<T>) -> bool) -> Vec<Vec<T>> {
+pub fn recursive_permutation<T: Clone + Debug>(array: &Vec<T>) -> Vec<Vec<T>> {
 	let mut permutations: Vec<Vec<T>> = Vec::new();
 
      // base cases: 
@@ -488,29 +498,22 @@ pub fn recursive_permutation<T: Clone + Debug>(array: &Vec<T>, filter: &dyn Fn(&
     
 	let first_vec = array[0..1].to_vec();
 	let remaining_vecs = array[1..].to_vec();
-	let vecs = recursive_permutation(&remaining_vecs, filter);
+	let vecs = recursive_permutation(&remaining_vecs);
 
     for vec in vecs.iter() {
         for i in 0..vec.len() + 1 {
-            let mut s = Vec::new();
-            s.append(&mut vec[0..i].to_vec());
-            s.append(&mut first_vec.clone());
-            s.append(&mut vec[i..].to_vec());
-
-            if filter(&s) {
-                permutations.push(s);
-            }
+            let mut new_vec = Vec::with_capacity(vec.len() + 1);
+            new_vec.append(&mut vec[0..i].to_vec());
+            new_vec.append(&mut first_vec.clone());
+            new_vec.append(&mut vec[i..].to_vec());
+            permutations.push(new_vec);
         }
     }
 
     // keep the original, smaller the original vecs as well
-    if filter(&first_vec) {
-        permutations.push(first_vec);
-    }
+    permutations.push(first_vec);
     for vec in vecs {
-        if filter(&vec) {
-            permutations.push(vec);
-        }
+        permutations.push(vec);
     }
     
    
@@ -522,59 +525,20 @@ mod test_recursive_permutation {
 
     #[test]
     fn it_should_correct_boolean() {
-        let result = recursive_permutation(&vec![0, 1], &|_| true);
+        let result = recursive_permutation(&vec![0, 1]);
         assert_eq!(result.len(), 4);
         assert!(result.contains(&vec![0]));
         assert!(result.contains(&vec![1]));
         assert!(result.contains(&vec![0, 1]));
         assert!(result.contains(&vec![1, 0]));
 
-        let result = recursive_permutation(&vec![0, 1, 2], &|_| true);
+        let result = recursive_permutation(&vec![0, 1, 2]);
         assert_eq!(result.len(), 15);
         assert!(result.contains(&vec![0]));
         assert!(result.contains(&vec![1]));
         assert!(result.contains(&vec![2]));
         assert!(result.contains(&vec![0, 1]));
         assert!(result.contains(&vec![1, 0]));
-        assert!(result.contains(&vec![0, 2]));
-        assert!(result.contains(&vec![2, 0]));
-        assert!(result.contains(&vec![1, 2]));
-        assert!(result.contains(&vec![2, 1]));
-        assert!(result.contains(&vec![0, 1, 2]));
-        assert!(result.contains(&vec![0, 2, 1]));
-        assert!(result.contains(&vec![1, 0, 2]));
-        assert!(result.contains(&vec![1, 2, 0]));
-        assert!(result.contains(&vec![2, 0, 1]));
-        assert!(result.contains(&vec![2, 1, 0]));
-    }
-
-    #[test]
-    fn it_should_work_with_filter() {
-        let result = recursive_permutation(&vec![0, 1, 2], &|_| false);
-        assert!(result.is_empty());
-
-        let result = recursive_permutation(&vec![0, 1, 2], &|vec| {
-            if let Some(first) = vec.first() {
-                *first == 1
-            } else {
-                false
-            }
-        });
-        assert_eq!(result.len(), 5);
-        assert!(result.contains(&vec![1]));
-        assert!(result.contains(&vec![1, 0]));
-        assert!(result.contains(&vec![1, 2]));
-        assert!(result.contains(&vec![1, 0, 2]));
-        assert!(result.contains(&vec![1, 2, 0]));
-        
-        let result = recursive_permutation(&vec![0, 1], &|vec| vec.len() >= 2);
-        assert_eq!(result.len(), 2);
-        assert!(result.contains(&vec![0, 1]));
-        assert!(result.contains(&vec![1, 0]));
-
-        let result = recursive_permutation(&vec![0, 1, 2], &|vec| vec.contains(&2));
-        assert_eq!(result.len(), 11);
-        assert!(result.contains(&vec![2]));
         assert!(result.contains(&vec![0, 2]));
         assert!(result.contains(&vec![2, 0]));
         assert!(result.contains(&vec![1, 2]));

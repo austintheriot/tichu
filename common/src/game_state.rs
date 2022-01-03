@@ -1,16 +1,14 @@
 use crate::{
     get_card_combination, get_new_game_code, get_user_can_play_wished_for_card,
     next_combo_beats_prev, sort_cards_for_hand, user::UserRole, CallGrandTichuRequest, Card,
-    CardSuit, Deck, GetSmallTichu, ImmutableTeam, MutableTeam, OtherPlayers, PassWithUserId,
-    PrivateGameStage, PrivateGrandTichu, PrivatePlay, PrivateUser, PublicGameStage, PublicUser,
-    SubmitTrade, TeamCategories, TeamOption, TichuCallStatus, UserIdWithTichuCallStatus,
-    ValidCardCombo, NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
+    CardSuit, CardValue, Deck, GetSmallTichu, ImmutableTeam, MutableTeam, OtherPlayers,
+    PassWithUserId, PrivateGameStage, PrivateGrandTichu, PrivatePlay, PrivateUser, PublicGameStage,
+    PublicUser, SubmitTrade, TeamCategories, TeamOption, TichuCallStatus,
+    UserIdWithTichuCallStatus, ValidCardCombo, NUM_CARDS_AFTER_GRAND_TICHU,
+    NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    borrow::{Borrow, BorrowMut},
-    collections::HashMap,
-};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 /// The primary game state for every game of Tichu stored on the server.
@@ -810,7 +808,7 @@ impl PrivateGameState {
         &self,
         user_id: &str,
         next_cards: Vec<Card>,
-        wished_for_card: Option<Card>,
+        wished_for_card_value: Option<CardValue>,
         user_id_to_give_dragon_to: Option<String>,
     ) -> Result<Self, String> {
         let mut new_game_state = self.clone();
@@ -828,7 +826,7 @@ impl PrivateGameState {
                     // must be a valid play based on the previous card (or no card)
                     if next_combo_beats_prev(&prev_combo, &next_combo) {
                         // if there is a wish and the user can play it, does this combo contain it?
-                        if let Some(wished_for_card) = &new_play_stage.wished_for_card {
+                        if let Some(wished_for_card) = &new_play_stage.wished_for_card_value {
                             let user = new_game_state
                                 .participants
                                 .iter()
@@ -844,11 +842,11 @@ impl PrivateGameState {
                                     let combo_contains_wish = next_combo
                                         .cards()
                                         .iter()
-                                        .any(|card| card == wished_for_card);
+                                        .any(|card| card.value == *wished_for_card);
 
                                     if combo_contains_wish {
                                         // player is playing wish, so erase wished-for card
-                                        new_play_stage.wished_for_card = None;
+                                        new_play_stage.wished_for_card_value = None;
                                     } else {
                                         return Err(format!(
                                             "Couldn't accept card play submitted by user {} because user can play wished-for card but didn't",
@@ -900,7 +898,7 @@ impl PrivateGameState {
                         let user_played_mah_jong =
                             next_cards.iter().any(|card| card.suit == CardSuit::MahJong);
                         if user_played_mah_jong {
-                            new_play_stage.wished_for_card = wished_for_card;
+                            new_play_stage.wished_for_card_value = wished_for_card_value;
                         }
 
                         // if is a bomb, then it must become that users' turn (and the others must pass as usual)

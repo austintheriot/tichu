@@ -1,12 +1,12 @@
 use crate::{routes::ws::send_ws_message, Connections, GameCodes, Games};
-use common::{Card, PrivateGameStage, STCMsg};
+use common::{Card, CardValue, PrivateGameStage, STCMsg};
 
 const FUNCTION_NAME: &str = "play_cards";
 
 pub async fn play_cards(
     user_id: &str,
     cards: Vec<Card>,
-    wished_for: Option<Card>,
+    wished_for: Option<CardValue>,
     user_id_to_give_dragon_to: Option<String>,
     connections: &Connections,
     games: &Games,

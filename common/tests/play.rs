@@ -72,7 +72,7 @@ mod test_get_next_user_turn_id {
             turn_user_id: user_1.clone(),
             winning_user_id: None,
             user_id_to_give_dragon_to: None,
-            wished_for_card: None,
+            wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![
                 user_1.clone(),
@@ -91,7 +91,7 @@ mod test_get_next_user_turn_id {
             turn_user_id: user_2.clone(),
             winning_user_id: None,
             user_id_to_give_dragon_to: None,
-            wished_for_card: None,
+            wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![
                 user_1.clone(),
@@ -110,7 +110,7 @@ mod test_get_next_user_turn_id {
             turn_user_id: user_3.clone(),
             winning_user_id: None,
             user_id_to_give_dragon_to: None,
-            wished_for_card: None,
+            wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![
                 user_1.clone(),
@@ -129,7 +129,7 @@ mod test_get_next_user_turn_id {
             turn_user_id: user_4.clone(),
             winning_user_id: None,
             user_id_to_give_dragon_to: None,
-            wished_for_card: None,
+            wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![
                 user_1.clone(),
@@ -150,7 +150,7 @@ mod test_get_next_user_turn_id {
             turn_user_id: user_1.clone(),
             winning_user_id: None,
             user_id_to_give_dragon_to: None,
-            wished_for_card: None,
+            wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone(), user_4.clone()],
         };
@@ -164,7 +164,7 @@ mod test_get_next_user_turn_id {
             turn_user_id: user_3.clone(),
             winning_user_id: None,
             user_id_to_give_dragon_to: None,
-            wished_for_card: None,
+            wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone(), user_4.clone()],
         };
@@ -178,7 +178,7 @@ mod test_get_next_user_turn_id {
             turn_user_id: user_4.clone(),
             winning_user_id: None,
             user_id_to_give_dragon_to: None,
-            wished_for_card: None,
+            wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone(), user_4.clone()],
         };
@@ -194,7 +194,7 @@ mod test_get_next_user_turn_id {
             turn_user_id: user_1.clone(),
             winning_user_id: None,
             user_id_to_give_dragon_to: None,
-            wished_for_card: None,
+            wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone()],
         };
@@ -208,7 +208,7 @@ mod test_get_next_user_turn_id {
             turn_user_id: user_3.clone(),
             winning_user_id: None,
             user_id_to_give_dragon_to: None,
-            wished_for_card: None,
+            wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone()],
         };

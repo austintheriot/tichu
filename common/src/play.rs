@@ -1,6 +1,6 @@
 use crate::{
-    Card, GetSmallTichu, ImmutableTeam, ImmutableTeams, PrivateGameStage, PrivateGameState,
-    PrivateTrade, SmallTichuArray, TeamCategories, ValidCardCombo,
+    CardValue, GetSmallTichu, ImmutableTeam, ImmutableTeams, PrivateTrade, SmallTichuArray,
+    TeamCategories, ValidCardCombo,
 };
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +22,7 @@ pub struct PrivatePlay {
     /// User whose combo is currently winning the trick
     pub winning_user_id: Option<String>,
     pub user_id_to_give_dragon_to: Option<String>,
-    pub wished_for_card: Option<Card>,
+    pub wished_for_card_value: Option<CardValue>,
     pub passes: [PassWithUserId; 4],
     /// Users who have not run out of cards: in turn order
     pub users_in_play: Vec<String>,
@@ -59,7 +59,7 @@ impl From<PrivateTrade> for PrivatePlay {
             // this value is set in game state on transition
             turn_user_id: String::from(""),
             winning_user_id: None,
-            wished_for_card: None,
+            wished_for_card_value: None,
             user_id_to_give_dragon_to: None,
             passes,
             users_in_play,
@@ -158,7 +158,7 @@ pub struct PublicPlay {
     pub passes: [PassWithUserId; 4],
     /// Users who have not run out of cards: in turn order
     pub users_in_play: Vec<String>,
-    pub wished_for_card: Option<Card>,
+    pub wished_for_card_value: Option<CardValue>,
 }
 
 impl GetSmallTichu for PublicPlay {
@@ -181,7 +181,7 @@ impl From<PrivatePlay> for PublicPlay {
             turn_user_id: private_play.turn_user_id,
             passes: private_play.passes,
             users_in_play: private_play.users_in_play,
-            wished_for_card: private_play.wished_for_card,
+            wished_for_card_value: private_play.wished_for_card_value,
         }
     }
 }

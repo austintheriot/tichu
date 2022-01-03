@@ -1,5 +1,6 @@
 use crate::{
-    CallGrandTichuRequest, Card, PublicGameStage, PublicGameState, SubmitTrade, TeamOption,
+    CallGrandTichuRequest, Card, CardValue, PublicGameStage, PublicGameState, SubmitTrade,
+    TeamOption,
 };
 use serde::{Deserialize, Serialize};
 
@@ -103,7 +104,7 @@ pub enum CTSMsg {
     /// Submit cards to play in the Play stage
     PlayCards {
         cards: Vec<Card>,
-        wished_for_card: Option<Card>,
+        wished_for_card_value: Option<CardValue>,
         user_id_to_give_dragon_to: Option<String>,
     },
 

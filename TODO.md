@@ -18,6 +18,7 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
+- "wished for card" should only be a VALUE - not a card
 - account for "wished for card" in the client--i.e. if a user CAN play a card that has been wished for, they can't submit PlayCard until they've chosen a combination that includes that card
 - create input for wished for card?
 - Show user_id_to_give_dragon_to input if a user is going to play the dragon
