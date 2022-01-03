@@ -1,6 +1,6 @@
-use std::fmt::Debug;
-
 use crate::{BombOf4, Card, CardSuit, CardValue, FullHouse, MAX_CARDS_IN_HAND, Pair, Sequence, SequenceBomb, SequenceOfPairs, Single, Trio, ValidCardCombo};
+use itertools::Itertools;
+
 
 pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Card>, user_id_who_played_cards: &str) -> Option<ValidCardCombo> {
     let original_cards = cards;
@@ -459,96 +459,46 @@ pub fn get_user_can_play_wished_for_card(prev_combo: Option<&ValidCardCombo>, us
         return false
     }
 
-    let mut all_valid_combos = recursive_permutation(users_hand);
-    eprintln!("{:?}", all_valid_combos.len());
-    all_valid_combos.sort();
-    all_valid_combos.dedup();
-    // combo must have the the wished for card and also be valid to play based on the previous value
-    all_valid_combos.retain(|cards| {
-        let card_combo = get_card_combination(prev_combo, cards, &String::from(""));
-        let combo_is_valid = card_combo.is_some();
-        let combo_beats_prev = if combo_is_valid {
-            next_combo_beats_prev(&prev_combo, card_combo.as_ref().expect("Combo is valid, so should be of type Some()"))
-        } else {
-            false
-        };
-        let combo_contains_wished_for_card = cards.iter().any(|card| card.value == *wished_for_card_value);
-        combo_is_valid && combo_contains_wished_for_card && combo_beats_prev
+    // if prev combo is none and the user has the wished for card, then they can play it,
+    // and we already know that the user has the wished-for card value
+    let prev_combo = if let Some(prev_combo) = prev_combo {
+        prev_combo
+    } else {
+        return true;
+    };
+
+    // user doesn't have enough cards to match the combo
+    if users_hand.len() < prev_combo.cards().len() {
+        return false;
+    }
+
+    // create combinations of given length
+    let mut all_combos_of_same_length: Vec<Vec<Card>> = users_hand.iter()
+        .combinations(prev_combo.cards().len())
+        .map(|cards| {
+            cards.into_iter()
+            .map(|card| card.to_owned())
+            .collect()
+        })
+        .collect();
+    
+    // filter by: must have wished for card, must be valid combo, and must beat previous combo
+    all_combos_of_same_length.retain(|cards| {
+         // combo must contain the wished for card
+        if !cards.iter().any(|card| card.value == *wished_for_card_value) {
+            return false
+        }
+        let card_combo = get_card_combination(Some(prev_combo), cards, &String::from(""));
+        match card_combo {
+            // combo is invalid
+            None => return false,
+            // combo is valid
+            Some(card_combo) => {
+                let combo_beats_prev_combo =   next_combo_beats_prev(&Some(prev_combo), &card_combo);
+                combo_beats_prev_combo
+            }
+        }
     });
 
-    eprintln!("{:?}", all_valid_combos.len());
-
-    return all_valid_combos.len() > 0;
+    return all_combos_of_same_length.len() > 0;
 }
-
-/// Produces every combination of every size of vector elements without repeating any elements in the same vector.
-//
-/// start from 0 or 1 element vectors 
-/// add in the other elements at every possible index
-/// save the original, small vectors (to create every length combination)
-pub fn recursive_permutation<T: Clone + Debug>(array: &Vec<T>) -> Vec<Vec<T>> {
-	let mut permutations: Vec<Vec<T>> = Vec::new();
-
-     // base cases: 
-	if array.is_empty()  {
-		return permutations;
-	} else if array.len() == 1 {
-        return vec![vec![array.first().expect("Array has one element, so first should be defined").clone()]];
-    }
-    
-	let first_vec = array[0..1].to_vec();
-	let remaining_vecs = array[1..].to_vec();
-	let vecs = recursive_permutation(&remaining_vecs);
-
-    for vec in vecs.iter() {
-        for i in 0..vec.len() + 1 {
-            let mut new_vec = Vec::with_capacity(vec.len() + 1);
-            new_vec.append(&mut vec[0..i].to_vec());
-            new_vec.append(&mut first_vec.clone());
-            new_vec.append(&mut vec[i..].to_vec());
-            permutations.push(new_vec);
-        }
-    }
-
-    // keep the original, smaller the original vecs as well
-    permutations.push(first_vec);
-    for vec in vecs {
-        permutations.push(vec);
-    }
-    
-   
-	return permutations;
-}
-
-mod test_recursive_permutation {
-    use crate::recursive_permutation;
-
-    #[test]
-    fn it_should_correct_boolean() {
-        let result = recursive_permutation(&vec![0, 1]);
-        assert_eq!(result.len(), 4);
-        assert!(result.contains(&vec![0]));
-        assert!(result.contains(&vec![1]));
-        assert!(result.contains(&vec![0, 1]));
-        assert!(result.contains(&vec![1, 0]));
-
-        let result = recursive_permutation(&vec![0, 1, 2]);
-        assert_eq!(result.len(), 15);
-        assert!(result.contains(&vec![0]));
-        assert!(result.contains(&vec![1]));
-        assert!(result.contains(&vec![2]));
-        assert!(result.contains(&vec![0, 1]));
-        assert!(result.contains(&vec![1, 0]));
-        assert!(result.contains(&vec![0, 2]));
-        assert!(result.contains(&vec![2, 0]));
-        assert!(result.contains(&vec![1, 2]));
-        assert!(result.contains(&vec![2, 1]));
-        assert!(result.contains(&vec![0, 1, 2]));
-        assert!(result.contains(&vec![0, 2, 1]));
-        assert!(result.contains(&vec![1, 0, 2]));
-        assert!(result.contains(&vec![1, 2, 0]));
-        assert!(result.contains(&vec![2, 0, 1]));
-        assert!(result.contains(&vec![2, 1, 0]));
-    }
-}
-

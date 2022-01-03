@@ -51,7 +51,7 @@ impl CardValue {
     }
 
     pub fn full_valid_range() -> Vec<CardValue> {
-        let full_range: Vec<CardValue> = (2u8..14u8)
+        let full_range: Vec<CardValue> = (2u8..=14u8)
             .collect::<Vec<u8>>()
             .iter()
             .map(|i| CardValue(*i))

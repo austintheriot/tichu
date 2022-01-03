@@ -13,6 +13,7 @@ bincode = "1.3.3"
 unicode-segmentation = "1.8.0"
 rand = {version = "0.8.4", default-features = false, features = ["small_rng"]}
 js-sys = {version = "0.3.54", optional = true }
+itertools = "0.10.3"
 
 [features]
 client = ["js-sys"]

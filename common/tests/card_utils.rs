@@ -5910,8 +5910,8 @@ mod test_next_combo_beats_prev {
 
 mod test_get_user_can_play_wished_for_card {
     use common::{
-        get_card_combination, get_user_can_play_wished_for_card, Card, CardSuit, CardValue,
-        FullHouse, Sequence, Single, ValidCardCombo,
+        get_user_can_play_wished_for_card, Card, CardSuit, CardValue, FullHouse, Sequence, Single,
+        ValidCardCombo,
     };
 
     #[test]
@@ -6108,7 +6108,11 @@ mod test_get_user_can_play_wished_for_card {
         ];
         let wished_for_card_value = CardValue(9);
         assert_eq!(
-            get_card_combination(Some(&prev_combo), &users_hand, &"".to_string()).is_some(),
+            get_user_can_play_wished_for_card(
+                Some(&prev_combo),
+                &users_hand,
+                &wished_for_card_value
+            ),
             false
         );
 
@@ -6223,7 +6227,7 @@ mod test_get_user_can_play_wished_for_card {
                 value: CardValue(14),
             },
         ];
-        let wished_for_card_value = CardValue(14);
+        let wished_for_card_value = CardValue(6);
         assert!(get_user_can_play_wished_for_card(
             Some(&prev_combo),
             &users_hand,
