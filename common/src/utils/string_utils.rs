@@ -106,7 +106,7 @@ mod tests {
 
         #[test]
         fn it_should_not_include_invalid_characters() {
-            assert!(!get_random_string_of_len(10).contains("-"));
+            assert!(!get_random_string_of_len(10).contains('-'));
         }
     }
 }

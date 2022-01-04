@@ -133,7 +133,7 @@ mod test_get_next_user_turn_id {
             passes: passes.clone(),
             users_in_play: vec![
                 user_1.clone(),
-                user_2.clone(),
+                user_2,
                 user_3.clone(),
                 user_4.clone(),
             ],
@@ -180,7 +180,7 @@ mod test_get_next_user_turn_id {
             user_id_to_give_dragon_to: None,
             wished_for_card_value: None,
             passes: passes.clone(),
-            users_in_play: vec![user_1.clone(), user_3.clone(), user_4.clone()],
+            users_in_play: vec![user_1.clone(), user_3.clone(), user_4],
         };
         assert_eq!(private_play.get_next_turn_user_id(), "1");
 
@@ -202,15 +202,15 @@ mod test_get_next_user_turn_id {
 
         let private_play = PrivatePlay {
             small_tichus: tichu_call_statuses.clone(),
-            grand_tichus: tichu_call_statuses.clone(),
-            teams: teams.clone(),
+            grand_tichus: tichu_call_statuses,
+            teams: teams,
             table: vec![],
             turn_user_id: user_3.clone(),
             winning_user_id: None,
             user_id_to_give_dragon_to: None,
             wished_for_card_value: None,
-            passes: passes.clone(),
-            users_in_play: vec![user_1.clone(), user_3.clone()],
+            passes: passes,
+            users_in_play: vec![user_1, user_3],
         };
         assert_eq!(private_play.get_next_turn_user_id(), "1");
     }

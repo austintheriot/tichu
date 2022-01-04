@@ -301,7 +301,7 @@ impl Deck {
     pub fn wished_for_card_values() -> Vec<Option<CardValue>> {
         let mut cards: Vec<Option<CardValue>> = CardValue::full_valid_range()
             .into_iter()
-            .map(|card_value| Some(card_value))
+            .map(Some)
             .collect();
         cards.insert(0, None);
         cards

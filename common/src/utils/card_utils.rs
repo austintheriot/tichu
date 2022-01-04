@@ -95,7 +95,7 @@ pub fn get_card_combination(prev_combo: Option<&ValidCardCombo>, cards: &Vec<Car
                     cards: vec![card.clone()],
                     // any card can beat the Phoenix when it's led
                     value: CardValue::min().minus(1),
-                    user_id: user_id.into(),
+                    user_id,
                 }))
             }
         }

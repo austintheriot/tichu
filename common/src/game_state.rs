@@ -155,7 +155,7 @@ impl PrivateGameState {
         let mut current_user = if let Some(current_user) = current_user {
             current_user
         } else {
-            return Err(format!("Can't convert PrivateGameState to PublicGameState, because current user does not exist in list of participants"));
+            return Err("Can't convert PrivateGameState to PublicGameState, because current user does not exist in list of participants".to_string());
         };
 
         // sort users hand just in case
@@ -532,7 +532,7 @@ impl PrivateGameState {
             // move game stage to Trade game stage
             self.stage = PrivateGameStage::Trade(Box::new((*grand_tichu).into()));
         } else {
-            return Err(format!("Can't start trade when not in Grand Tichu stage"));
+            return Err("Can't start trade when not in Grand Tichu stage".to_string());
         }
         Ok(self)
     }
@@ -620,9 +620,7 @@ impl PrivateGameState {
                                 if let Some(i) = i {
                                     new_game_state.participants[i].hand.push(card.card.clone());
                                 } else {
-                                    return Err(format!(
-                                        "Game state error: Couldn't find user to trade card to"
-                                    ));
+                                    return Err("Game state error: Couldn't find user to trade card to".to_string());
                                 }
                             }
                         }
@@ -660,12 +658,11 @@ impl PrivateGameState {
 
     pub fn get_number_of_users_who_have_passed(&self) -> Result<usize, String> {
         if let PrivateGameStage::Play(play_state) = &self.stage {
-            let passed_users: Vec<&PassWithUserId> = play_state
+            
+            return Ok(play_state
                 .passes
                 .iter()
-                .filter(|pass| pass.passed)
-                .collect();
-            return Ok(passed_users.len());
+                .filter(|pass| pass.passed).count());
         }
 
         Err(String::from(
