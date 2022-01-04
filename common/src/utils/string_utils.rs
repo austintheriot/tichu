@@ -3,11 +3,12 @@ use unicode_segmentation::UnicodeSegmentation;
 use uuid::Uuid;
 
 fn get_random_string_of_len(len: usize) -> String {
-    let random_name = Uuid::new_v4().to_string();
-    let mut random_name = random_name.graphemes(true).collect::<Vec<&str>>();
-    random_name.truncate(len);
-    let random_name = random_name.join("");
-    random_name.to_uppercase()
+    let random_uuid = Uuid::new_v4().to_string();
+    let mut random_uuid = random_uuid.graphemes(true).collect::<Vec<&str>>();
+    // random_uuid.retain(|s| *s != "-");
+    random_uuid.truncate(len);
+    let random_uuid = random_uuid.join("");
+    random_uuid.to_uppercase()
 }
 
 /// Generates a new game code.
@@ -101,6 +102,11 @@ mod tests {
             assert_eq!(get_random_string_of_len(5).len(), 5);
             assert_eq!(get_random_string_of_len(6).len(), 6);
             assert_eq!(get_random_string_of_len(7).len(), 7);
+        }
+
+        #[test]
+        fn it_should_not_include_invalid_characters() {
+            assert!(!get_random_string_of_len(10).contains("-"));
         }
     }
 }
