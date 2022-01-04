@@ -5,8 +5,8 @@ use common::{
     get_user_can_play_wished_for_card, next_combo_beats_prev, sort_cards_for_hand,
     validate_display_name, validate_game_code, validate_team_name, CTSMsg, CallGrandTichuRequest,
     Card, CardTrade, CardValue, Deck, ImmutableTeam, MutableTeam, OtherPlayerOption,
-    PassWithUserId, PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamCategories,
-    TeamOption, TichuCallStatus, ValidCardCombo, DRAGON, MAH_JONG, NO_USER_ID,
+    PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamCategories, TeamOption,
+    TichuCallStatus, ValidCardCombo, DRAGON, MAH_JONG, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -1550,12 +1550,8 @@ impl App {
             // game stage is Play
             if let PublicGameStage::Play(play_state) = &game_state.stage {
                 // this is the last user to pass
-                let passes: Vec<&PassWithUserId> = play_state
-                    .passes
-                    .iter()
-                    .filter(|pass| pass.passed)
-                    .collect();
-                if passes.len() == 3 {
+
+                if play_state.passes.iter().filter(|pass| pass.passed).count() == 3 {
                     // last trick has a dragon in it
                     if play_state
                         .table
@@ -1571,14 +1567,8 @@ impl App {
                             &self.state.user_id_to_give_dragon_to
                         {
                             // user has chosen an opponent to give the dragon to
-                            if user_id_to_give_dragon_to == &opponent_id_0
-                                || user_id_to_give_dragon_to == &opponent_id_1
-                            {
-                                false
-                            } else {
-                                // user has chosen a person to give the dragon to, but it is not an opponent
-                                true
-                            }
+                            !(user_id_to_give_dragon_to == &opponent_id_0
+                                || user_id_to_give_dragon_to == &opponent_id_1)
                         } else {
                             // user has NOT chosen an opponent to give the dragon to
                             true
@@ -1597,12 +1587,8 @@ impl App {
             // game stage is Play
             if let PublicGameStage::Play(play_state) = &game_state.stage {
                 // this is the last user to pass
-                let passes: Vec<&PassWithUserId> = play_state
-                    .passes
-                    .iter()
-                    .filter(|pass| pass.passed)
-                    .collect();
-                if passes.len() == 3 {
+
+                if play_state.passes.iter().filter(|pass| pass.passed).count() == 3 {
                     // last trick has a dragon in it
                     if play_state
                         .table
@@ -1615,13 +1601,8 @@ impl App {
                         return if let Some(user_id_to_give_dragon_to) =
                             &self.state.user_id_to_give_dragon_to
                         {
-                            if user_id_to_give_dragon_to == &opponent_id_0
+                            user_id_to_give_dragon_to == &opponent_id_0
                                 || user_id_to_give_dragon_to == &opponent_id_1
-                            {
-                                true
-                            } else {
-                                false
-                            }
                         } else {
                             false
                         };
@@ -1639,15 +1620,9 @@ impl App {
             if let PublicGameStage::Play(play_state) = &game_state.stage {
                 // it is the users turn
                 if play_state.turn_user_id == self.state.user_id {
-                    // user must choose an opponent but hasn't done so
-                    return if self.get_user_must_select_user_id_to_give_dragon_to()
-                        && !self.get_user_has_selected_user_id_to_give_dragon_to()
-                    {
-                        false
-                    } else {
-                        // user either need not choose an opponent or has already done so
-                        true
-                    };
+                    // user doesn't have to choose an opponent OR does have to choose an opponent and has done so
+                    return !self.get_user_must_select_user_id_to_give_dragon_to()
+                        || self.get_user_has_selected_user_id_to_give_dragon_to();
                 }
             }
         }
