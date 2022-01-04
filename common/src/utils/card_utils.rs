@@ -488,7 +488,7 @@ pub fn get_user_can_play_wished_for_card(prev_combo: Option<&ValidCardCombo>, us
     });
 
     // must be valid combo, and must beat previous combo
-    return all_combos_of_same_length.iter().find(|cards| {
+    return all_combos_of_same_length.iter().any(|cards| {
         let card_combo = get_card_combination(Some(prev_combo), cards, &String::from(""));
         if let Some(card_combo) = card_combo {
             let combo_beats_prev_combo =   next_combo_beats_prev(&Some(prev_combo), &card_combo);
@@ -499,5 +499,5 @@ pub fn get_user_can_play_wished_for_card(prev_combo: Option<&ValidCardCombo>, us
             }
         }
         false
-    }).is_some();
+    });
 }

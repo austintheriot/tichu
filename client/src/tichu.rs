@@ -4,9 +4,9 @@ use common::{
     clean_up_display_name, clean_up_game_code, get_card_combination,
     get_user_can_play_wished_for_card, next_combo_beats_prev, sort_cards_for_hand,
     validate_display_name, validate_game_code, validate_team_name, CTSMsg, CallGrandTichuRequest,
-    Card, CardSuit, CardTrade, CardValue, Deck, ImmutableTeam, MutableTeam, OtherPlayerOption,
+    Card, CardTrade, CardValue, Deck, ImmutableTeam, MutableTeam, OtherPlayerOption,
     PassWithUserId, PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamCategories,
-    TeamOption, TichuCallStatus, ValidCardCombo, NO_USER_ID,
+    TeamOption, TichuCallStatus, ValidCardCombo, DRAGON, MAH_JONG, NO_USER_ID,
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
@@ -516,10 +516,7 @@ impl App {
         match &self.state.game_state {
             None => false,
             Some(game_state) => match &game_state.stage {
-                PublicGameStage::Teams(teams) => teams[0]
-                    .user_ids
-                    .iter()
-                    .any(|participant_id| **participant_id == *self.state.user_id),
+                PublicGameStage::Teams(teams) => teams[0].user_ids.contains(&self.state.user_id),
                 _ => false,
             },
         }
@@ -529,10 +526,7 @@ impl App {
         match &self.state.game_state {
             None => false,
             Some(game_state) => match &game_state.stage {
-                PublicGameStage::Teams(teams) => teams[1]
-                    .user_ids
-                    .iter()
-                    .any(|participant_id| **participant_id == *self.state.user_id),
+                PublicGameStage::Teams(teams) => teams[1].user_ids.contains(&self.state.user_id),
                 _ => false,
             },
         }
@@ -1197,10 +1191,7 @@ impl App {
     fn has_submitted_trade(&self) -> bool {
         if let Some(game_state) = &self.state.game_state {
             if let PublicGameStage::Trade(trade_state) = &game_state.stage {
-                trade_state
-                    .submitted_trades
-                    .iter()
-                    .any(|user_id| *user_id == *self.state.user_id)
+                trade_state.submitted_trades.contains(&self.state.user_id)
             } else {
                 false
             }
@@ -1254,10 +1245,7 @@ impl App {
     }
 
     fn is_play_card_selected(&self, card: &Card) -> bool {
-        self.state
-            .selected_play_cards
-            .iter()
-            .any(|selected_card| *selected_card == *card)
+        self.state.selected_play_cards.contains(card)
     }
 
     fn can_select_play_card(&self) -> bool {
@@ -1326,11 +1314,7 @@ impl App {
             &self.state.user_id,
         );
 
-        let combo_contains_dragon = self
-            .state
-            .selected_play_cards
-            .iter()
-            .any(|card| card.suit == CardSuit::Dragon);
+        let combo_contains_dragon = self.state.selected_play_cards.contains(&DRAGON);
         let user_has_chosen_a_user_to_given_dragon_to =
             self.state.user_id_to_give_dragon_to.is_some();
 
@@ -1382,9 +1366,7 @@ impl App {
                         {for game_state.current_user.hand.iter().enumerate().map(|(i, card)| {
                             // do not render card if the stage is Trade and it is currently selected
                             // OR if it has been selected for trade with opponent
-                        let card_is_selected = self.state.selected_play_cards.iter().any(|selected_card| {
-                            *selected_card == *card
-                        });
+                        let card_is_selected = self.state.selected_play_cards.contains(card);
                         if card_is_selected {
                             html!{}
                         } else {
@@ -1575,12 +1557,13 @@ impl App {
                     .collect();
                 if passes.len() == 3 {
                     // last trick has a dragon in it
-                    if play_state.table.iter().any(|combo| {
-                        combo
-                            .cards()
-                            .iter()
-                            .any(|card| card.suit == CardSuit::Dragon)
-                    }) {
+                    if play_state
+                        .table
+                        .last()
+                        .expect("There should be cards on the table")
+                        .cards()
+                        .contains(&DRAGON)
+                    {
                         let (opponent_id_0, opponent_id_1) =
                             opponent_ids.expect("Opponents should be found in state");
                         // user has chosen SOME user to give the dragon to
@@ -1621,12 +1604,11 @@ impl App {
                     .collect();
                 if passes.len() == 3 {
                     // last trick has a dragon in it
-                    if play_state.table.iter().any(|combo| {
-                        combo
-                            .cards()
-                            .iter()
-                            .any(|card| card.suit == CardSuit::Dragon)
-                    }) {
+                    if play_state
+                        .table
+                        .iter()
+                        .any(|combo| combo.cards().contains(&DRAGON))
+                    {
                         let (opponent_id_0, opponent_id_1) =
                             opponent_ids.expect("Opponents should be found in state");
                         // user has chosen an opponent to give the dragon to
@@ -1719,13 +1701,6 @@ impl App {
                                 </button>
                             }
                         }}
-                        // pass (and send user_id info) once an opponent has been selected
-                        <button
-                            onclick=self.link.callback(move |_| AppMsg::SendWSMsg(CTSMsgInternal::Pass))
-                            disabled=self.get_user_must_select_user_id_to_give_dragon_to() && !self.get_user_has_selected_user_id_to_give_dragon_to()
-                        >
-                            {"Submit"}
-                        </button>
                     </>
                 }
             } else {
@@ -1748,19 +1723,15 @@ impl App {
                 {self.view_cards_on_table()}
                 <br />
                 <br />
-                {if self.state.selected_play_cards.iter().any(|card| card.suit == CardSuit::MahJong) {
+                {if self.state.selected_play_cards.contains(&MAH_JONG) {
                     self.view_wish_for_card_input()
                 } else {
                     html!{}
                 }}
                 <br />
                 <br />
-                <p>{"Debug self.view_choose_opponent:"}</p>
-                {self.view_choose_opponent()}
-                <br />
-                <br />
                 <p>{"Real self.view_choose_opponent:"}</p>
-                {if self.state.show_user_id_to_give_dragon_to_form {
+                {if self.state.selected_play_cards.contains(&DRAGON) {
                     self.view_choose_opponent()
                 } else {
                     html!{}
@@ -2035,11 +2006,7 @@ impl App {
                             let current_team = trade_state
                                 .teams
                                 .iter()
-                                .find(|team| {
-                                    team.user_ids
-                                        .iter()
-                                        .any(|user_id| *user_id == self.state.user_id)
-                                })
+                                .find(|team| team.user_ids.contains(&self.state.user_id))
                                 .expect("Error finding current user's in Team state");
                             let opposing_team = trade_state
                                 .teams

@@ -38,11 +38,7 @@ pub async fn move_to_team(
                 TeamOption::TeamB => &teams_state[1],
             };
             // if user is already on the team they want to move to, ignore request
-            if team
-                .user_ids
-                .iter()
-                .any(|participant_id| **participant_id == *user_id)
-            {
+            if team.user_ids.contains(&user_id.into()) {
                 eprintln!(
                     "{FUNCTION_NAME}: User {} can't move to to team {:?} because is already on team {:?}. Ignoring request",
                     user_id, team_to_move_to, team_to_move_to

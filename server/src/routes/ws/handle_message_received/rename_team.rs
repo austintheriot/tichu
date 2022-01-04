@@ -43,11 +43,7 @@ pub async fn rename_team(
                 TeamOption::TeamA => &teams_state[1],
                 TeamOption::TeamB => &teams_state[0],
             };
-            if opposite_team
-                .user_ids
-                .iter()
-                .any(|participant_id| **participant_id == *user_id)
-            {
+            if opposite_team.user_ids.contains(&user_id.into()) {
                 eprintln!(
                     "{FUNCTION_NAME}: User {} is not on the team they want to rename ({:?}). Ignoring request to rename team",
                     &user_id,

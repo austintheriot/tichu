@@ -53,7 +53,7 @@ pub async fn submit_trade(
 
         for trade in &trade_array {
             // User must actually have those cards in their hand
-            if !user.hand.iter().any(|card| *card == trade.card) {
+            if !user.hand.contains(&trade.card) {
                 eprintln!("{FUNCTION_NAME}: Couldn't accept traded submitted by user {} because user does {:?}, which they are trying to trade", user_id, trade.card);
                 return;
             }

@@ -4,8 +4,8 @@ use crate::{
     CardSuit, CardValue, Deck, GetSmallTichu, ImmutableTeam, MutableTeam, OtherPlayers,
     PassWithUserId, PrivateGameStage, PrivateGrandTichu, PrivatePlay, PrivateUser, PublicGameStage,
     PublicUser, SubmitTrade, TeamCategories, TeamOption, TichuCallStatus,
-    UserIdWithTichuCallStatus, ValidCardCombo, MAX_CARDS_IN_HAND, NUM_CARDS_AFTER_GRAND_TICHU,
-    NUM_CARDS_BEFORE_GRAND_TICHU,
+    UserIdWithTichuCallStatus, ValidCardCombo, DRAGON, MAH_JONG, MAX_CARDS_IN_HAND,
+    NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -186,11 +186,7 @@ impl PrivateGameState {
                     TeamOption::TeamA => &teams[0],
                     TeamOption::TeamB => &teams[1],
                 };
-                if !new_team
-                    .user_ids
-                    .iter()
-                    .any(|user_id| **user_id == *current_user_id)
-                {
+                if !new_team.user_ids.contains(&current_user_id.into()) {
                     // remove user from team they were on before
                     let prev_team = match team_to_move_to {
                         TeamOption::TeamA => &mut teams[1],
@@ -240,11 +236,7 @@ impl PrivateGameState {
                     TeamOption::TeamA => &teams[1],
                     TeamOption::TeamB => &teams[0],
                 };
-                if !opposite_team
-                    .user_ids
-                    .iter()
-                    .any(|user_id| **user_id == *current_user_id)
-                {
+                if !opposite_team.user_ids.contains(&current_user_id.into()) {
                     // rename intended team
                     let team_to_rename = match team_to_rename {
                         TeamOption::TeamA => &mut teams[0],
@@ -566,7 +558,7 @@ impl PrivateGameState {
 
             for trade in submit_trade {
                 // User must actually have those cards in their hand
-                if !user.hand.iter().any(|card| *card == trade.card) {
+                if !user.hand.contains(&trade.card) {
                     return Err(format!("Couldn't accept traded submitted by user {} because user does {:?}, which they are trying to trade", user_id, trade.card));
                 }
 
@@ -684,12 +676,10 @@ impl PrivateGameState {
     pub fn get_only_turn_users_teammates_are_in_play(&self) -> bool {
         if let PrivateGameStage::Play(play_state) = &self.stage {
             let TeamCategories { current_team, .. } = play_state.get_turn_user_team_categories();
-            play_state.users_in_play.iter().all(|user_id_in_play| {
-                current_team
-                    .user_ids
-                    .iter()
-                    .any(|team_user_id| team_user_id == user_id_in_play)
-            })
+            play_state
+                .users_in_play
+                .iter()
+                .all(|user_id_in_play| current_team.user_ids.contains(user_id_in_play))
         } else {
             false
         }
@@ -724,10 +714,7 @@ impl PrivateGameState {
                 .table
                 .get(0)
                 .expect("Table should have at least one combo if this is the final pass");
-            let last_trick_contains_dragon = last_trick
-                .cards()
-                .iter()
-                .any(|card| card.suit == CardSuit::Dragon);
+            let last_trick_contains_dragon = last_trick.cards().contains(&DRAGON);
 
             let receiving_user_id = if last_trick_contains_dragon {
                 // if it contains a dragon, give trick to the user who the winner chose
@@ -756,18 +743,14 @@ impl PrivateGameState {
                 current_team,
                 opposing_team,
             } = new_play_state.get_turn_user_team_categories();
-            let only_one_team_is_in_play =
-                new_play_state.users_in_play.iter().all(|user_id_in_play| {
-                    current_team
-                        .user_ids
-                        .iter()
-                        .any(|team_user_id| team_user_id == user_id_in_play)
-                }) || new_play_state.users_in_play.iter().all(|user_id_in_play| {
-                    opposing_team
-                        .user_ids
-                        .iter()
-                        .any(|team_user_id| team_user_id == user_id_in_play)
-                });
+            let only_one_team_is_in_play = new_play_state
+                .users_in_play
+                .iter()
+                .all(|user_id_in_play| current_team.user_ids.contains(user_id_in_play))
+                || new_play_state
+                    .users_in_play
+                    .iter()
+                    .all(|user_id_in_play| opposing_team.user_ids.contains(user_id_in_play));
             // round over (plain)
             if (new_play_state.users_in_play.len() == 1)
                 // round over (double victory)
@@ -828,7 +811,7 @@ impl PrivateGameState {
 
             let user_id_who_has_mah_jong = updated_participants
                 .iter()
-                .find(|participant| participant.hand.contains(&Card::mah_jong()))
+                .find(|participant| participant.hand.contains(&MAH_JONG))
                 .expect("Some user should have the Mah Jong")
                 .user_id
                 .clone();
@@ -988,7 +971,7 @@ impl PrivateGameState {
                         }
 
                         // if user played a dragon, save who they want to give it to if they win
-                        if next_cards.iter().any(|card| card.suit == CardSuit::Dragon) {
+                        if next_cards.contains(&DRAGON) {
                             new_play_stage.user_id_to_give_dragon_to = user_id_to_give_dragon_to;
                         }
 
@@ -1017,8 +1000,7 @@ impl PrivateGameState {
                         new_play_stage.winning_user_id.replace(user_id.to_string());
 
                         // if user played mahjong and has wished for a card, save it
-                        let user_played_mah_jong =
-                            next_cards.iter().any(|card| card.suit == CardSuit::MahJong);
+                        let user_played_mah_jong = next_cards.contains(&MAH_JONG);
                         if user_played_mah_jong {
                             new_play_stage.wished_for_card_value = wished_for_card_value;
                         }
@@ -1036,15 +1018,9 @@ impl PrivateGameState {
                         } = new_play_stage.get_turn_user_team_categories();
                         let only_one_team_is_in_play =
                             new_play_stage.users_in_play.iter().all(|user_id_in_play| {
-                                current_team
-                                    .user_ids
-                                    .iter()
-                                    .any(|team_user_id| team_user_id == user_id_in_play)
+                                current_team.user_ids.contains(user_id_in_play)
                             }) || new_play_stage.users_in_play.iter().all(|user_id_in_play| {
-                                opposing_team
-                                    .user_ids
-                                    .iter()
-                                    .any(|team_user_id| team_user_id == user_id_in_play)
+                                opposing_team.user_ids.contains(user_id_in_play)
                             });
                         // round over (plain)
                         if (new_play_stage.users_in_play.len() == 1)
@@ -1105,11 +1081,7 @@ impl PublicGameState {
         if let PublicGameStage::Teams(mutable_teams) = &self.stage {
             let current_team = mutable_teams
                 .iter()
-                .find(|team| {
-                    team.user_ids
-                        .iter()
-                        .any(|user_id| *user_id == self.current_user.user_id)
-                })
+                .find(|team| team.user_ids.contains(&self.current_user.user_id))
                 .expect("Current user's team should be in state");
 
             let opposing_team = mutable_teams
@@ -1135,11 +1107,7 @@ impl PublicGameState {
 
         let current_team = immutable_teams
             .iter()
-            .find(|team| {
-                team.user_ids
-                    .iter()
-                    .any(|user_id| *user_id == self.current_user.user_id)
-            })
+            .find(|team| team.user_ids.contains(&self.current_user.user_id))
             .expect("Current user's team should be in state");
 
         let opposing_team = immutable_teams

@@ -98,6 +98,24 @@ impl CardSuit {
 
 pub const CARD_SUIT_START_ITER: CardSuit = CardSuit::Sword;
 
+// these cards are referenced/created often enough that it's worth to have them available as consts
+pub const MAH_JONG: Card = Card {
+    suit: CardSuit::MahJong,
+    value: CardValue(CARD_VALUE_NOOP),
+};
+pub const DRAGON: Card = Card {
+    suit: CardSuit::Dragon,
+    value: CardValue(CARD_VALUE_NOOP),
+};
+pub const DOG: Card = Card {
+    suit: CardSuit::Dog,
+    value: CardValue(CARD_VALUE_NOOP),
+};
+pub const PHOENIX: Card = Card {
+    suit: CardSuit::Phoenix,
+    value: CardValue(CARD_VALUE_NOOP),
+};
+
 /// Enum of every possible card in Tichu
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct Card {
@@ -110,31 +128,6 @@ impl Card {
         Card {
             suit: CARD_SUIT_START_ITER,
             value: CardValue::start_iter(),
-        }
-    }
-
-    pub fn mah_jong() -> Card {
-        Card {
-            suit: CardSuit::MahJong,
-            value: CardValue::noop(),
-        }
-    }
-    pub fn dragon() -> Card {
-        Card {
-            suit: CardSuit::Dragon,
-            value: CardValue::noop(),
-        }
-    }
-    pub fn phoenix() -> Card {
-        Card {
-            suit: CardSuit::Phoenix,
-            value: CardValue::noop(),
-        }
-    }
-    pub fn dog() -> Card {
-        Card {
-            suit: CardSuit::Dog,
-            value: CardValue::noop(),
         }
     }
 }
