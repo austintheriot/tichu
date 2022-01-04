@@ -112,6 +112,31 @@ impl Card {
             value: CardValue::start_iter(),
         }
     }
+
+    pub fn mah_jong() -> Card {
+        Card {
+            suit: CardSuit::MahJong,
+            value: CardValue::noop(),
+        }
+    }
+    pub fn dragon() -> Card {
+        Card {
+            suit: CardSuit::Dragon,
+            value: CardValue::noop(),
+        }
+    }
+    pub fn phoenix() -> Card {
+        Card {
+            suit: CardSuit::Phoenix,
+            value: CardValue::noop(),
+        }
+    }
+    pub fn dog() -> Card {
+        Card {
+            suit: CardSuit::Dog,
+            value: CardValue::noop(),
+        }
+    }
 }
 
 impl Iterator for Card {

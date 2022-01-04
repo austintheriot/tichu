@@ -775,6 +775,7 @@ impl App {
                             ""
                     }}
                     </p>
+                    {self.view_debug_skip_to_play()}
                     <p>{"Participants: "} {self.view_participants()}</p>
                     <p>{"Owner: "} {self.debug_owner()}</p>
                     <p>{"Teams: "} {self.debug_teams()}</p>
@@ -1373,7 +1374,7 @@ impl App {
                     || combo_contains_dragon && user_has_chosen_a_user_to_given_dragon_to)
                 && (!some_card_has_been_wished_for
                     || (some_card_has_been_wished_for && !user_can_play_wished_for_card)
-                    || (user_can_play_wished_for_card
+                    || (some_card_has_been_wished_for
                         && user_can_play_wished_for_card
                         && combo_contains_wished_for_card))
         } else {
@@ -1484,6 +1485,16 @@ impl App {
               <p>{"Wished for Card:"}</p>
               <p>{format!("{:#?}", self.state.wished_for_card_value)}</p>
             </>
+        }
+    }
+
+    fn view_debug_skip_to_play(&self) -> Html {
+        html! {
+            <button
+                onclick=self.link.callback(move |_| AppMsg::SendWSMsg(CTSMsgInternal::__Admin_SkipToPlay))
+            >
+                {"Skip to Play Stage"}
+            </button>
         }
     }
 
@@ -2132,6 +2143,10 @@ impl App {
                 self.state.user_id_to_give_dragon_to = None;
                 self.state.show_user_id_to_give_dragon_to_form = false;
                 true
+            }
+            CTSMsgInternal::__Admin_SkipToPlay => {
+                self._send_ws_message(&CTSMsg::__Admin_SkipToPlay);
+                false
             }
         }
     }

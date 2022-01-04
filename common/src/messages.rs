@@ -108,6 +108,9 @@ pub enum CTSMsg {
         user_id_to_give_dragon_to: Option<String>,
     },
 
+    /// Admin message: skip to play stage
+    __Admin_SkipToPlay,
+
     Pass,
 
     Ping,

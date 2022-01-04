@@ -4,7 +4,7 @@ use crate::{
     CardSuit, CardValue, Deck, GetSmallTichu, ImmutableTeam, MutableTeam, OtherPlayers,
     PassWithUserId, PrivateGameStage, PrivateGrandTichu, PrivatePlay, PrivateUser, PublicGameStage,
     PublicUser, SubmitTrade, TeamCategories, TeamOption, TichuCallStatus,
-    UserIdWithTichuCallStatus, ValidCardCombo, NUM_CARDS_AFTER_GRAND_TICHU,
+    UserIdWithTichuCallStatus, ValidCardCombo, MAX_CARDS_IN_HAND, NUM_CARDS_AFTER_GRAND_TICHU,
     NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
@@ -804,6 +804,118 @@ impl PrivateGameState {
         user.hand.is_empty()
     }
 
+    pub fn __admin_skip_to_play(&self) -> Result<Self, String> {
+        eprintln!("{:#?}", self);
+        if let PrivateGameStage::Teams(team_state) = &self.stage {
+            let mut updated_participants = self.participants.clone();
+            let mut deck = Deck::new();
+            deck.shuffle();
+            updated_participants[0].hand = deck.0[0..MAX_CARDS_IN_HAND].to_vec();
+            updated_participants[1].hand =
+                deck.0[(MAX_CARDS_IN_HAND * 1)..(MAX_CARDS_IN_HAND * 2)].to_vec();
+            updated_participants[2].hand =
+                deck.0[(MAX_CARDS_IN_HAND * 2)..(MAX_CARDS_IN_HAND * 3)].to_vec();
+            updated_participants[3].hand =
+                deck.0[(MAX_CARDS_IN_HAND * 3)..(MAX_CARDS_IN_HAND * 4)].to_vec();
+
+            let user_id_who_has_mah_jong = updated_participants
+                .iter()
+                .find(|participant| participant.hand.contains(&Card::mah_jong()))
+                .expect("Some user should have the Mah Jong")
+                .user_id
+                .clone();
+
+            let updated_teams: [ImmutableTeam; 2] = [
+                team_state[0].clone().try_into().unwrap(),
+                team_state[1].clone().try_into().unwrap(),
+            ];
+
+            let new_game_stage = PrivateGameStage::Play(Box::new(PrivatePlay {
+                grand_tichus: [
+                    UserIdWithTichuCallStatus {
+                        user_id: self.participants[0].user_id.clone(),
+                        tichu_call_status: TichuCallStatus::Declined,
+                    },
+                    UserIdWithTichuCallStatus {
+                        user_id: self.participants[1].user_id.clone(),
+                        tichu_call_status: TichuCallStatus::Declined,
+                    },
+                    UserIdWithTichuCallStatus {
+                        user_id: self.participants[2].user_id.clone(),
+                        tichu_call_status: TichuCallStatus::Declined,
+                    },
+                    UserIdWithTichuCallStatus {
+                        user_id: self.participants[3].user_id.clone(),
+                        tichu_call_status: TichuCallStatus::Declined,
+                    },
+                ],
+                small_tichus: [
+                    UserIdWithTichuCallStatus {
+                        user_id: self.participants[0].user_id.clone(),
+                        tichu_call_status: TichuCallStatus::Declined,
+                    },
+                    UserIdWithTichuCallStatus {
+                        user_id: self.participants[1].user_id.clone(),
+                        tichu_call_status: TichuCallStatus::Declined,
+                    },
+                    UserIdWithTichuCallStatus {
+                        user_id: self.participants[2].user_id.clone(),
+                        tichu_call_status: TichuCallStatus::Declined,
+                    },
+                    UserIdWithTichuCallStatus {
+                        user_id: self.participants[3].user_id.clone(),
+                        tichu_call_status: TichuCallStatus::Declined,
+                    },
+                ],
+                teams: [
+                    team_state[0].clone().try_into().unwrap(),
+                    team_state[1].clone().try_into().unwrap(),
+                ],
+                table: Vec::new(),
+                turn_user_id: user_id_who_has_mah_jong,
+                winning_user_id: None,
+                user_id_to_give_dragon_to: None,
+                wished_for_card_value: None,
+                passes: [
+                    PassWithUserId {
+                        passed: false,
+                        user_id: "0".into(),
+                    },
+                    PassWithUserId {
+                        passed: false,
+                        user_id: "1".into(),
+                    },
+                    PassWithUserId {
+                        passed: false,
+                        user_id: "2".into(),
+                    },
+                    PassWithUserId {
+                        passed: false,
+                        user_id: "3".into(),
+                    },
+                ],
+                users_in_play: vec![
+                    updated_teams[0].user_ids[0].clone(),
+                    updated_teams[1].user_ids[0].clone(),
+                    updated_teams[0].user_ids[1].clone(),
+                    updated_teams[1].user_ids[1].clone(),
+                ],
+            }));
+
+            let new_state = PrivateGameState {
+                game_code: self.game_code.clone(),
+                game_id: self.game_id.clone(),
+                owner_id: self.owner_id.clone(),
+                participants: updated_participants,
+                stage: new_game_stage,
+            };
+
+            Ok(new_state)
+        } else {
+            Err(String::from("Not in Teams stage"))
+        }
+    }
+
     pub fn play_cards(
         &self,
         user_id: &str,
@@ -820,6 +932,11 @@ impl PrivateGameState {
             if let Some(next_combo) = next_combo {
                 let is_bomb = next_combo.is_bomb();
 
+                // if is a bomb, then it must become that users' turn (and the others must pass as usual)
+                if is_bomb {
+                    new_play_stage.turn_user_id = user_id.into();
+                }
+
                 // must be the player's turn (unless a bomb)
                 if new_play_stage.turn_user_id == user_id || is_bomb {
                     let prev_combo = new_play_stage.table.last();
@@ -833,7 +950,7 @@ impl PrivateGameState {
                                 .find(|user| user.user_id == user_id);
                             if user.is_some() {
                                 let user_can_play_wish = get_user_can_play_wished_for_card(
-                                    new_play_stage.table.last(),
+                                    prev_combo,
                                     &next_cards,
                                     wished_for_card,
                                 );
@@ -883,36 +1000,25 @@ impl PrivateGameState {
 
                         // if user is out of cards, remove them from users_in_play
                         if new_current_user.hand.is_empty() {
-                            new_play_stage.users_in_play = new_play_stage
+                            new_play_stage
                                 .users_in_play
-                                .iter()
-                                .filter(|user_id_in_play| *user_id_in_play == user_id)
-                                .map(|user_id_in_play| user_id_in_play.to_owned())
-                                .collect();
+                                .retain(|user_id_in_play| *user_id_in_play == user_id)
                         }
 
                         // user is now the winning user
                         new_play_stage.winning_user_id.replace(user_id.to_string());
 
-                        // if user play mahjong and has wished for a card, save it
+                        // if user played mahjong and has wished for a card, save it
                         let user_played_mah_jong =
                             next_cards.iter().any(|card| card.suit == CardSuit::MahJong);
                         if user_played_mah_jong {
                             new_play_stage.wished_for_card_value = wished_for_card_value;
                         }
 
-                        // if is a bomb, then it must become that users' turn (and the others must pass as usual)
-                        if is_bomb {
-                            new_play_stage.turn_user_id = user_id.into();
-                        }
-
                         // clear played cards from user's hand
-                        new_current_user.hand = new_current_user
+                        new_current_user
                             .hand
-                            .iter()
-                            .filter(|card| !next_cards.contains(card))
-                            .map(|card| card.to_owned())
-                            .collect();
+                            .retain(|card| !next_cards.contains(card));
 
                         // if round is over get if only teammates are left in play
                         let TeamCategories {

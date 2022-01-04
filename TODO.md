@@ -18,6 +18,7 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
+- filter cards in get_user_can_play_wished_for_card_value and THEN iterate through to find only one valid combination
 - split front end into multiple components --> use Yewdux for state management
 - "wished for card" should only be a VALUE - not a card
 - account for "wished for card" in the client--i.e. if a user CAN play a card that has been wished for, they can't submit PlayCard until they've chosen a combination that includes that card

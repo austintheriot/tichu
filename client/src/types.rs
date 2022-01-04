@@ -18,6 +18,7 @@ pub enum CTSMsgInternal {
     Pass,
     CallGrandTichu(CallGrandTichuRequest),
     CallSmallTichu,
+    __Admin_SkipToPlay,
 
     Ping,
     Pong,

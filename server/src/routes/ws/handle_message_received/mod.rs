@@ -1,3 +1,4 @@
+mod __admin_skip_to_play;
 mod call_grand_tichu;
 mod call_small_tichu;
 mod create_game;
@@ -13,6 +14,7 @@ mod start_grand_tichu;
 mod submit_trade;
 mod test;
 
+use __admin_skip_to_play::__admin_skip_to_play;
 use call_grand_tichu::call_grand_tichu;
 use call_small_tichu::call_small_tichu;
 use create_game::create_game;
@@ -120,6 +122,9 @@ pub async fn handle_message_received(
         }
         CTSMsg::Pass => {
             pass(&user_id, &connections, &games, &game_codes).await;
+        }
+        CTSMsg::__Admin_SkipToPlay => {
+            __admin_skip_to_play(&user_id, &connections, &games, &game_codes).await;
         }
     }
 }

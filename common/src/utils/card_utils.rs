@@ -482,23 +482,22 @@ pub fn get_user_can_play_wished_for_card(prev_combo: Option<&ValidCardCombo>, us
         })
         .collect();
     
-    // filter by: must have wished for card, must be valid combo, and must beat previous combo
+    // must have wished for card
     all_combos_of_same_length.retain(|cards| {
-         // combo must contain the wished for card
-        if !cards.iter().any(|card| card.value == *wished_for_card_value) {
-            return false
-        }
-        let card_combo = get_card_combination(Some(prev_combo), cards, &String::from(""));
-        match card_combo {
-            // combo is invalid
-            None => return false,
-            // combo is valid
-            Some(card_combo) => {
-                let combo_beats_prev_combo =   next_combo_beats_prev(&Some(prev_combo), &card_combo);
-                combo_beats_prev_combo
-            }
-        }
+        cards.iter().any(|card| card.value == *wished_for_card_value)
     });
 
-    return all_combos_of_same_length.len() > 0;
+    // must be valid combo, and must beat previous combo
+    return all_combos_of_same_length.iter().find(|cards| {
+        let card_combo = get_card_combination(Some(prev_combo), cards, &String::from(""));
+        if let Some(card_combo) = card_combo {
+            let combo_beats_prev_combo =   next_combo_beats_prev(&Some(prev_combo), &card_combo);
+            if combo_beats_prev_combo {
+                // it's only necessary to find one combination that works to prove
+                // that the user CAN play the wished for card
+                return true;
+            }
+        }
+        false
+    }).is_some();
 }
