@@ -620,7 +620,10 @@ impl PrivateGameState {
                                 if let Some(i) = i {
                                     new_game_state.participants[i].hand.push(card.card.clone());
                                 } else {
-                                    return Err("Game state error: Couldn't find user to trade card to".to_string());
+                                    return Err(
+                                        "Game state error: Couldn't find user to trade card to"
+                                            .to_string(),
+                                    );
                                 }
                             }
                         }
@@ -658,11 +661,7 @@ impl PrivateGameState {
 
     pub fn get_number_of_users_who_have_passed(&self) -> Result<usize, String> {
         if let PrivateGameStage::Play(play_state) = &self.stage {
-            
-            return Ok(play_state
-                .passes
-                .iter()
-                .filter(|pass| pass.passed).count());
+            return Ok(play_state.passes.iter().filter(|pass| pass.passed).count());
         }
 
         Err(String::from(
@@ -969,7 +968,16 @@ impl PrivateGameState {
 
                         // if user played a dragon, save who they want to give it to if they win
                         if next_cards.contains(&DRAGON) {
-                            new_play_stage.user_id_to_give_dragon_to = user_id_to_give_dragon_to;
+                            if let Some(user_id_to_give_dragon_to) = user_id_to_give_dragon_to {
+                                new_play_stage
+                                    .user_id_to_give_dragon_to
+                                    .replace(user_id_to_give_dragon_to);
+                            } else {
+                                return Err(format!(
+                                    "Couldn't accept card play submitted by user {} because user didn't choose a user to receive the dragon",
+                                    user_id
+                                ));
+                            }
                         }
 
                         // put combo on table

@@ -19,10 +19,6 @@ IDEAS:
 
 TODO:
 - split front end into multiple components --> use Yewdux for state management
-- Show user_id_to_give_dragon_to input if a user is going to play the dragon
-- Create input for user_id_to_give_dragon_to
-- Only show "wish for a card" to user who is about to play mah jong
-- Implement "waiting_for_user_id_to_give_dragon_to" in game_state
 - Game state implementation for Pass move
 - move more front-end state checks into /common (in prep for bot player)
   
