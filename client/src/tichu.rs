@@ -1313,6 +1313,12 @@ impl App {
     }
 
     fn can_play_cards(&self) -> bool {
+        let game_state = if let Some(game_state) = &self.state.game_state {
+            game_state
+        } else {
+            return false;
+        };
+
         // must be users turn OR must be playable bomb
         let combo = get_card_combination(
             self.get_prev_played_combo(),
@@ -1328,37 +1334,23 @@ impl App {
         let user_has_chosen_a_user_to_given_dragon_to =
             self.state.user_id_to_give_dragon_to.is_some();
 
-        let wished_for_card_value = if let Some(game_state) = &self.state.game_state {
-            if let PublicGameStage::Play(play_state) = &game_state.stage {
-                Some(play_state.wished_for_card_value.clone())
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-        let some_card_has_been_wished_for =
-            if let Some(wished_for_card_value) = &wished_for_card_value {
-                wished_for_card_value.is_some()
-            } else {
-                false
-            };
+        let wished_for_card_value = game_state.get_wished_for_card_value();
+
+        let some_card_has_been_wished_for = wished_for_card_value.is_some();
 
         if let Some(combo) = combo {
             let user_can_play_wished_for_card = if some_card_has_been_wished_for {
-                let wished_for_card_value =
-                    wished_for_card_value.as_ref().unwrap().as_ref().unwrap();
+                let wished_for_card_value = wished_for_card_value.as_ref().unwrap();
                 get_user_can_play_wished_for_card(
                     self.get_prev_played_combo(),
-                    &self.state.selected_play_cards,
+                    &game_state.current_user.hand,
                     wished_for_card_value,
                 )
             } else {
                 false
             };
             let combo_contains_wished_for_card = if some_card_has_been_wished_for {
-                let wished_for_card_value =
-                    wished_for_card_value.as_ref().unwrap().as_ref().unwrap();
+                let wished_for_card_value = wished_for_card_value.as_ref().unwrap();
                 combo
                     .cards()
                     .iter()
@@ -1480,10 +1472,16 @@ impl App {
     }
 
     fn debug_wished_for_card(&self) -> Html {
+        let wished_for_card_value = if let Some(game_state) = &self.state.game_state {
+            game_state.get_wished_for_card_value()
+        } else {
+            None
+        };
+
         html! {
             <>
               <p>{"Wished for Card:"}</p>
-              <p>{format!("{:#?}", self.state.wished_for_card_value)}</p>
+              <p>{format!("{:#?}", wished_for_card_value)}</p>
             </>
         }
     }
@@ -2107,14 +2105,7 @@ impl App {
                 }
 
                 let cards = self.state.selected_play_cards.clone();
-                let cards_include_mahjong = self
-                    .state
-                    .selected_play_cards
-                    .iter()
-                    .any(|card| card.suit == CardSuit::MahJong);
-
                 let wished_for_card_value = self.state.wished_for_card_value.clone();
-
                 let user_id_to_give_dragon_to = self.state.user_id_to_give_dragon_to.clone();
 
                 // reset state

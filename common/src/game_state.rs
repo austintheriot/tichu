@@ -695,6 +695,14 @@ impl PrivateGameState {
         }
     }
 
+    pub fn get_wished_for_card(&self) -> Option<CardValue> {
+        if let PrivateGameStage::Play(play_state) = &self.stage {
+            play_state.wished_for_card_value.clone()
+        } else {
+            None
+        }
+    }
+
     pub fn pass(&self, user_id: &str) -> Result<Self, String> {
         let mut new_game_state = self.clone();
 
@@ -1180,5 +1188,13 @@ impl PublicGameState {
         self.participants
             .iter()
             .find(|user| (*user.user_id == *user_id))
+    }
+
+    pub fn get_wished_for_card_value(&self) -> Option<CardValue> {
+        if let PublicGameStage::Play(play_state) = &self.stage {
+            play_state.wished_for_card_value.clone()
+        } else {
+            None
+        }
     }
 }
