@@ -14,28 +14,27 @@ use gloo::{
 };
 use log::*;
 use serde_derive::{Deserialize, Serialize};
-use std::rc::Rc;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
-use wasm_bindgen::JsCast;
-use web_sys::{EventTarget, HtmlInputElement, HtmlSelectElement, WebSocket};
+use wasm_bindgen::{prelude::Closure, JsCast};
+use web_sys::{EventTarget, HtmlInputElement, HtmlSelectElement, MessageEvent, WebSocket};
 use yew::{html::Scope, prelude::*};
 
 type ShouldRender = bool;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 enum WSConnectionStatus {
-    Connected,
-    NotConnected,
+    Open,
+    Error,
+    Closed,
 }
 
 pub struct App {
     state: State,
+    ws: Option<WebSocket>,
+    ping_interval: Option<Interval>,
 }
 
 #[derive(Serialize, Deserialize)]
 struct State {
-    ws: Option<WebSocket>,
     ws_connection_status: WSConnectionStatus,
     user_id: String,
     display_name: String,
@@ -68,8 +67,9 @@ const DISPLAY_NAME_STORAGE_KEY: &str = "yew.tichu.display_name";
 pub enum AppMsg {
     ConnectToWS,
     BeginPing,
-    Disconnected,
-    Noop,
+    WebsocketOpen,
+    WebsocketError,
+    WebsocketClosed,
     WSMsgReceived(Result<Vec<u8>, Error>),
     SendWSMsg(CTSMsgInternal),
     SetUserId(String),
@@ -90,23 +90,6 @@ pub enum AppMsg {
 }
 
 const PING_INTERVAL_MS: u32 = 5000;
-static APP_REFERENCE_MUTEX_ERROR: &str = "Could not acquire Mutex lock for app";
-
-/// Wrapper around inherently non-Send/Sync-safe data.
-struct StaticMut<T> {
-    ptr: Arc<Mutex<Option<T>>>,
-}
-unsafe impl<T> Send for StaticMut<T> {}
-unsafe impl<T> Sync for StaticMut<T> {}
-
-lazy_static! {
-    /// HACK: store static reference to app's context to allow
-    /// accessing the component methods from set_interval closures.
-    /// Wrapped in an Arc<Mutex> to at least mitigate some data race possibilities.
-    static ref APP_REFERENCE: StaticMut<*mut App> = StaticMut {
-        ptr: Arc::new(Mutex::new(None)),
-};
-}
 
 impl Component for App {
     type Message = AppMsg;
@@ -126,8 +109,7 @@ impl Component for App {
             .expect("failed to save display_name to local storage");
 
         let state = State {
-            ws: None,
-            ws_connection_status: WSConnectionStatus::NotConnected,
+            ws_connection_status: WSConnectionStatus::Closed,
             user_id,
             display_name: display_name.clone(),
             display_name_input: display_name,
@@ -145,13 +127,17 @@ impl Component for App {
             show_user_id_to_give_dragon_to_form: false,
             wished_for_card_value: None,
         };
-        Self { state }
+        Self {
+            ws: None,
+            ping_interval: None,
+            state,
+        }
     }
 
     fn rendered(&mut self, context: &yew::Context<Self>, first_render: bool) {
         let link = context.link();
         // connect to websocket on first render
-        if self.state.ws.is_none() && first_render {
+        if self.ws.is_none() && first_render {
             link.send_message(AppMsg::ConnectToWS);
             link.send_message(AppMsg::BeginPing);
         }
@@ -160,61 +146,96 @@ impl Component for App {
     fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> ShouldRender {
         let link = context.link();
         match msg {
-            AppMsg::Noop => false,
-            AppMsg::Disconnected => {
-                self.state.ws = None;
-                self.state.ws_connection_status = WSConnectionStatus::NotConnected;
+            AppMsg::WebsocketOpen => {
+                self.state.is_alive = true;
+                self.state.ws_connection_status = WSConnectionStatus::Open;
+                true
+            }
+            AppMsg::WebsocketError => {
+                self.state.is_alive = false;
+                self.state.ws_connection_status = WSConnectionStatus::Error;
+                true
+            }
+            AppMsg::WebsocketClosed => {
+                self.state.is_alive = false;
+                self.state.ws_connection_status = WSConnectionStatus::Closed;
                 true
             }
             AppMsg::ConnectToWS => {
-                info!("Connecting to websocket...");
-                let handle_ws_receive_data = link.callback(AppMsg::WSMsgReceived);
-                let handle_ws_update_status = link.callback(|ws_status| {
-                    info!("Websocket status: {:?}", ws_status);
-                    match ws_status {
-                        WebSocketStatus::Closed | WebSocketStatus::Error => AppMsg::Disconnected,
-                        WebSocketStatus::Opened => AppMsg::Noop,
-                    }
-                });
-                if self.state.ws.is_none() {
+                if self.ws.is_none() {
+                    info!("Connecting to websocket...");
                     let url = format!("ws://localhost:8080/ws?user_id={}", self.state.user_id);
-                    let ws_task = WebSocketService::connect_binary(
-                        &url,
-                        handle_ws_receive_data,
-                        handle_ws_update_status,
-                    )
-                    .expect("Couldn't initialize websocket connection");
-                    self.state.ws = Some(ws_task);
-                    self.state.is_alive = true;
-                    self.state.ws_connection_status = WSConnectionStatus::Connected;
+                    let ws = WebSocket::new(&url).expect("Should connect to URL without error");
+                    ws.set_binary_type(web_sys::BinaryType::Arraybuffer);
+                    let onmessage_link = link.clone();
+                    let onopen_link = link.clone();
+                    let onerror_link = link.clone();
+                    let onclose_link = link.clone();
+                    // on message
+                    let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
+                        // ArrayBuffer
+                        if let Ok(abuf) = e.data().dyn_into::<js_sys::ArrayBuffer>() {
+                            let u_int_8_array = js_sys::Uint8Array::new(&abuf);
+                            let vec = u_int_8_array.to_vec();
+                            onmessage_link.send_message(AppMsg::WSMsgReceived(Ok(vec)));
+                        } else if let Ok(blob) = e.data().dyn_into::<web_sys::Blob>() {
+                            // Blob
+                            warn!("Websocket message event, received blob: {:?}", blob);
+                        } else if let Ok(txt) = e.data().dyn_into::<js_sys::JsString>() {
+                            // Text
+                            warn!("Websocket message event, received Text: {:?}", txt);
+                        } else {
+                            // Unknown
+                            warn!("Websocket message event, received Unknown: {:?}", e.data());
+                        }
+                    })
+                        as Box<dyn FnMut(MessageEvent)>);
+                    ws.set_onmessage(Some(onmessage_callback.as_ref().unchecked_ref()));
+                    onmessage_callback.forget();
+
+                    // on open
+                    let onopen_callback = Closure::wrap(Box::new(move |_| {
+                        info!("Websocket open event");
+                        onopen_link.send_message(AppMsg::WebsocketOpen);
+                    })
+                        as Box<dyn FnMut(ErrorEvent)>);
+                    ws.set_onopen(Some(onopen_callback.as_ref().unchecked_ref()));
+                    onopen_callback.forget();
+
+                    // on error
+                    let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
+                        error!("Websocket event: {:?}", e);
+                        onerror_link.send_message(AppMsg::WebsocketError);
+                    })
+                        as Box<dyn FnMut(ErrorEvent)>);
+                    ws.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
+                    onerror_callback.forget();
+
+                    // on close
+                    let onclose_callback = Closure::wrap(Box::new(move |_| {
+                        error!("Websocket close event");
+                        onclose_link.send_message(AppMsg::WebsocketClosed);
+                    })
+                        as Box<dyn FnMut(ErrorEvent)>);
+                    ws.set_onclose(Some(onclose_callback.as_ref().unchecked_ref()));
+                    onclose_callback.forget();
+
+                    self.ws = Some(ws);
+                } else {
+                    error!("Trying to ConnectToWS while current websocket is still defined as Some() in state");
                 }
                 true
             }
             AppMsg::BeginPing => {
-                // store a raw pointer to the App component to use in set_interval
-                // closure--to enable sending websocket message from the set_interval
-                let reference: *mut App = self;
-                let mut app_reference_guard =
-                    APP_REFERENCE.ptr.lock().expect(APP_REFERENCE_MUTEX_ERROR);
-                app_reference_guard.replace(reference);
-
+                let link = link.clone();
                 let interval = Interval::new(PING_INTERVAL_MS, move || {
-                    let app_reference_guard =
-                        APP_REFERENCE.ptr.lock().expect(APP_REFERENCE_MUTEX_ERROR);
-                    if let Some(app) = *app_reference_guard {
-                        unsafe {
-                            (*app)
-                                .link
-                                .send_message(AppMsg::SendWSMsg(CTSMsgInternal::Ping));
-                        }
-                    }
+                    link.send_message(AppMsg::SendWSMsg(CTSMsgInternal::Ping));
                 });
-                interval.forget();
-                self.interval_task = Some(interval_task);
+                self.ping_interval = Some(interval);
                 false
             }
-            AppMsg::SendWSMsg(msg_type) => self.send_ws_message(msg_type),
-            AppMsg::WSMsgReceived(data) => self.handle_ws_message_received(data),
+            AppMsg::SendWSMsg(msg_type) => self.send_ws_message(link, msg_type),
+            AppMsg::WSMsgReceived(data) => self.handle_ws_message_received(link, data),
             AppMsg::SetUserId(s) => {
                 LocalStorage::set(USER_ID_STORAGE_KEY, &s)
                     .expect("failed to save user_id to local storage");
@@ -380,11 +401,7 @@ impl Component for App {
         false
     }
 
-    fn destroy(&mut self, _context: &yew::Context<Self>) {
-        // clean up static reference to app
-        let mut app_reference_guard = APP_REFERENCE.ptr.lock().expect(APP_REFERENCE_MUTEX_ERROR);
-        app_reference_guard.take();
-    }
+    fn destroy(&mut self, _context: &yew::Context<Self>) {}
 
     fn view(&self, context: &yew::Context<Self>) -> Html {
         let link = context.link();
@@ -415,17 +432,17 @@ impl Component for App {
 
 impl App {
     fn can_create_game(&self) -> bool {
-        self.state.ws.is_some() && validate_display_name(&self.state.display_name_input).is_none()
+        self.ws.is_some() && validate_display_name(&self.state.display_name_input).is_none()
     }
 
     fn can_join_game(&self) -> bool {
-        self.state.ws.is_some()
+        self.ws.is_some()
             && validate_display_name(&self.state.display_name_input).is_none()
             && validate_game_code(&self.state.join_room_game_code_input).is_none()
     }
 
     fn can_leave_game(&self) -> bool {
-        self.state.ws.is_some()
+        self.ws.is_some()
             && self.state.game_state.is_some()
             && matches!(
                 self.state.game_state.as_ref().unwrap().stage,
@@ -741,8 +758,9 @@ impl App {
                     <p>{"Display Name: "} {&self.state.display_name}</p>
                     <p>{"User ID: "} {&self.state.user_id}</p>
                     <p>{"Websocket Status: "}{match &self.state.ws_connection_status {
-                        WSConnectionStatus::Connected => "Connected",
-                        WSConnectionStatus::NotConnected => "Not Connected"
+                        WSConnectionStatus::Open => "Connected",
+                        WSConnectionStatus::Closed => "Not Connected",
+                        WSConnectionStatus::Error => "Error"
                 }}</p>
                     <p>{"Game Code: "} {
                         if let Some(game_state) = &self.state.game_state {
@@ -783,11 +801,10 @@ impl App {
                             id="join-room-display-name-input"
                             type="text"
                             value={self.state.display_name_input.clone()}
-                            oninput={link.callback(|e: InputEvent| {
+                            oninput={link.batch_callback(|e: InputEvent| {
                                 let target: Option<EventTarget> = e.target();
                                 let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
-                                let msg = input.map(|input|  AppMsg::SetDisplayNameInput(input.value()));
-                                msg.expect("Message should be defined")
+                                input.map(|input|  AppMsg::SetDisplayNameInput(input.value()))
                             })} />
                         <br />
                         <label for="join-room-game-code-input">{"Game Code"}</label>
@@ -796,11 +813,10 @@ impl App {
                             id="join-room-game-code-input"
                             type="text"
                             value={self.state.join_room_game_code_input.clone()}
-                            oninput={link.callback(|e: InputEvent| {
+                            oninput={link.batch_callback(|e: InputEvent| {
                                 let target: Option<EventTarget> = e.target();
                                 let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
                                 input.map(|input| AppMsg::SetJoinRoomGameCodeInput(input.value()))
-                                    .expect("InputElement should be defined")
                             }) }/>
                         <br />
                         <button
@@ -820,11 +836,10 @@ impl App {
                             id="create-room-display-name-input"
                             type="text"
                             value={self.state.display_name_input.clone()}
-                            oninput={link.callback(|e: InputEvent| {
+                            oninput={link.batch_callback(|e: InputEvent| {
                                 let target: Option<EventTarget> = e.target();
                                 let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
                                 input.map(|input| AppMsg::SetDisplayNameInput(input.value()))
-                                    .expect("InputElement should be defined")
                             })} />
                         <br />
                         <button
@@ -898,11 +913,10 @@ impl App {
                         disabled={!self.is_team_stage() || self.is_on_team_b()}
                         type="text"
                         value={self.state.team_a_name_input.clone()}
-                        oninput={link.callback(|e: InputEvent| {
+                        oninput={link.batch_callback(|e: InputEvent| {
                             let target = e.target();
                             let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
                             input.map(|input|   AppMsg::SetTeamANameInput(input.value()))
-                                .expect("InputElement should be defined")
                         })} />
                    </form>
                     <br />
@@ -927,11 +941,10 @@ impl App {
                             disabled={!self.is_team_stage() || self.is_on_team_a()}
                             type="text"
                             value={self.state.team_b_name_input.clone()}
-                            oninput={link.callback(|e: InputEvent| {
+                            oninput={link.batch_callback(|e: InputEvent| {
                                 let target = e.target();
                                 let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
                                 input.map(|input|  AppMsg::SetTeamBNameInput(input.value()))
-                                    .expect("InputElement should be defined")
                             })} />
                    </form>
                    {if self.is_current_user_owner() {
@@ -1491,11 +1504,10 @@ impl App {
             <>
                 <label for="wish-for-card">{"Wish for a card?"}</label>
                 <select name="wish-for-card" id="wish-for-card"
-                    oninput={link.callback(move |e: InputEvent| {
+                    oninput={link.batch_callback(move |e: InputEvent| {
                         let target = e.target();
                         let select = target.and_then(|t| t.dyn_into::<HtmlSelectElement>().ok());
                         select.map(|select|  AppMsg::SetWishedForCard(select.selected_index() as usize))
-                            .expect("HtmlSelectElement should be defined")
                     })}
                 >
                     {for Deck::wished_for_card_values().iter().enumerate().map(|(i, card)| {
@@ -1856,16 +1868,16 @@ impl App {
                 false
             }
             CTSMsgInternal::Ping => {
-                let mut should_reconnect = false;
-                if self.state.ws.is_none() {
+                let should_reconnect = if self.ws.is_none() {
                     info!("Trying to ping, but there is no websocket connection. Attempting to reconnect");
-                    should_reconnect = true;
+                    true
                 } else if !self.state.is_alive {
-                    info!("Server isn't responding to pings. Closing websocket connection and attempting to reconnect.");
-                    should_reconnect = true;
-                    let ws = self.state.ws.take();
-                    drop(ws);
-                }
+                    info!("Trying to ping, but websocket is not alive. Closing websocket connection and attempting to reconnect.");
+                    drop(self.ws.take());
+                    true
+                } else {
+                    false
+                };
 
                 self.state.is_alive = false;
                 if should_reconnect {
@@ -2092,13 +2104,14 @@ impl App {
 
     /// Helper function to actually send the websocket message
     fn _send_ws_message(&mut self, msg: &CTSMsg) {
-        match self.state.ws {
+        match self.ws {
             None => {
-                warn!("Can't send message. Websocket is not connected.");
+                warn!("Can't send message. Websocket is None in state");
             }
-            Some(ref mut ws_task) => {
+            Some(ref mut ws) => {
                 let msg = bincode::serialize(&msg).expect("Could not serialize message");
-                ws_task.send_binary(Binary::Ok(msg));
+                ws.send_with_u8_array(&msg)
+                    .expect("Error sending websocket data as u8 array over websocket");
             }
         }
     }

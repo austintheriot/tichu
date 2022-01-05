@@ -38,4 +38,10 @@ features = [
   'FormData',
   'HtmlFormElement',
   'HtmlSelectElement',
+  "BinaryType",
+  "Blob",
+  "ErrorEvent",
+  "FileReader",
+  "MessageEvent",
+  "ProgressEvent",
 ]
