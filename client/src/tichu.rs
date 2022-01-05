@@ -8,19 +8,20 @@ use common::{
     PublicGameStage, PublicGameState, PublicUser, STCMsg, TeamCategories, TeamOption,
     TichuCallStatus, ValidCardCombo, DRAGON, MAH_JONG, NO_USER_ID,
 };
+use gloo::{
+    storage::{LocalStorage, Storage},
+    timers::callback::Interval,
+};
 use log::*;
 use serde_derive::{Deserialize, Serialize};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use wasm_bindgen::JsCast;
-use web_sys::HtmlSelectElement;
-use yew::format::{Binary, Json};
-use yew::prelude::*;
-use yew::services::interval::IntervalTask;
-use yew::services::storage::{Area, StorageService};
-use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
-use yew::services::IntervalService;
+use web_sys::{EventTarget, HtmlInputElement, HtmlSelectElement, WebSocket};
+use yew::{html::Scope, prelude::*};
+
+type ShouldRender = bool;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 enum WSConnectionStatus {
@@ -29,15 +30,12 @@ enum WSConnectionStatus {
 }
 
 pub struct App {
-    link: ComponentLink<Self>,
-    interval_task: Option<IntervalTask>,
-    ws: Option<WebSocketTask>,
-    storage: StorageService,
     state: State,
 }
 
 #[derive(Serialize, Deserialize)]
 struct State {
+    ws: Option<WebSocket>,
     ws_connection_status: WSConnectionStatus,
     user_id: String,
     display_name: String,
@@ -91,7 +89,7 @@ pub enum AppMsg {
     SetWishedForCard(usize),
 }
 
-const PING_INTERVAL_MS: u64 = 5000;
+const PING_INTERVAL_MS: u32 = 5000;
 static APP_REFERENCE_MUTEX_ERROR: &str = "Could not acquire Mutex lock for app";
 
 /// Wrapper around inherently non-Send/Sync-safe data.
@@ -102,7 +100,7 @@ unsafe impl<T> Send for StaticMut<T> {}
 unsafe impl<T> Sync for StaticMut<T> {}
 
 lazy_static! {
-    /// HACK: store static reference to app to allow
+    /// HACK: store static reference to app's context to allow
     /// accessing the component methods from set_interval closures.
     /// Wrapped in an Arc<Mutex> to at least mitigate some data race possibilities.
     static ref APP_REFERENCE: StaticMut<*mut App> = StaticMut {
@@ -114,35 +112,21 @@ impl Component for App {
     type Message = AppMsg;
     type Properties = ();
 
-    fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let mut storage =
-            StorageService::new(Area::Local).expect("Could not get retrieve StorageService");
-        let user_id = if let Json(Ok(restored_user_id)) = storage.restore(USER_ID_STORAGE_KEY) {
-            restored_user_id
-        } else {
-            String::new()
-        };
-
-        // default to NO_USER_ID stand-in if string is empty
-        let user_id = if user_id.trim().is_empty() {
-            storage.store(USER_ID_STORAGE_KEY, Json(&NO_USER_ID));
-            String::from(NO_USER_ID)
-        } else {
-            user_id
-        };
-
-        info!("user_id is {}", user_id);
-
+    fn create(_context: &yew::Context<Self>) -> Self {
+        // retrieve user_id and display name from local storage
+        let user_id =
+            LocalStorage::get(USER_ID_STORAGE_KEY).unwrap_or_else(|_| String::from(NO_USER_ID));
         let display_name =
-            if let Json(Ok(restored_display_name)) = storage.restore(DISPLAY_NAME_STORAGE_KEY) {
-                restored_display_name
-            } else {
-                let new_display_name = String::from("");
-                storage.store(USER_ID_STORAGE_KEY, Json(&new_display_name));
-                new_display_name
-            };
+            LocalStorage::get(DISPLAY_NAME_STORAGE_KEY).unwrap_or_else(|_| String::from(""));
+
+        // store user_id and display_name in local storage (if changed)
+        LocalStorage::set(USER_ID_STORAGE_KEY, &user_id)
+            .expect("failed to save user_id to local storage");
+        LocalStorage::set(DISPLAY_NAME_STORAGE_KEY, &display_name)
+            .expect("failed to save display_name to local storage");
 
         let state = State {
+            ws: None,
             ws_connection_status: WSConnectionStatus::NotConnected,
             user_id,
             display_name: display_name.clone(),
@@ -161,42 +145,38 @@ impl Component for App {
             show_user_id_to_give_dragon_to_form: false,
             wished_for_card_value: None,
         };
-        Self {
-            interval_task: None,
-            ws: None,
-            storage,
-            link,
-            state,
-        }
+        Self { state }
     }
 
-    fn rendered(&mut self, first_render: bool) {
+    fn rendered(&mut self, context: &yew::Context<Self>, first_render: bool) {
+        let link = context.link();
         // connect to websocket on first render
-        if self.ws.is_none() && first_render {
-            self.link.send_message(AppMsg::ConnectToWS);
-            self.link.send_message(AppMsg::BeginPing);
+        if self.state.ws.is_none() && first_render {
+            link.send_message(AppMsg::ConnectToWS);
+            link.send_message(AppMsg::BeginPing);
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> ShouldRender {
+        let link = context.link();
         match msg {
             AppMsg::Noop => false,
             AppMsg::Disconnected => {
-                self.ws = None;
+                self.state.ws = None;
                 self.state.ws_connection_status = WSConnectionStatus::NotConnected;
                 true
             }
             AppMsg::ConnectToWS => {
                 info!("Connecting to websocket...");
-                let handle_ws_receive_data = self.link.callback(AppMsg::WSMsgReceived);
-                let handle_ws_update_status = self.link.callback(|ws_status| {
+                let handle_ws_receive_data = link.callback(AppMsg::WSMsgReceived);
+                let handle_ws_update_status = link.callback(|ws_status| {
                     info!("Websocket status: {:?}", ws_status);
                     match ws_status {
                         WebSocketStatus::Closed | WebSocketStatus::Error => AppMsg::Disconnected,
                         WebSocketStatus::Opened => AppMsg::Noop,
                     }
                 });
-                if self.ws.is_none() {
+                if self.state.ws.is_none() {
                     let url = format!("ws://localhost:8080/ws?user_id={}", self.state.user_id);
                     let ws_task = WebSocketService::connect_binary(
                         &url,
@@ -204,7 +184,7 @@ impl Component for App {
                         handle_ws_update_status,
                     )
                     .expect("Couldn't initialize websocket connection");
-                    self.ws = Some(ws_task);
+                    self.state.ws = Some(ws_task);
                     self.state.is_alive = true;
                     self.state.ws_connection_status = WSConnectionStatus::Connected;
                 }
@@ -218,33 +198,34 @@ impl Component for App {
                     APP_REFERENCE.ptr.lock().expect(APP_REFERENCE_MUTEX_ERROR);
                 app_reference_guard.replace(reference);
 
-                let interval_task = IntervalService::spawn(
-                    Duration::from_millis(PING_INTERVAL_MS),
-                    Callback::Callback(Rc::new(|_| {
-                        let app_reference_guard =
-                            APP_REFERENCE.ptr.lock().expect(APP_REFERENCE_MUTEX_ERROR);
-                        if let Some(app) = *app_reference_guard {
-                            unsafe {
-                                (*app)
-                                    .link
-                                    .send_message(AppMsg::SendWSMsg(CTSMsgInternal::Ping));
-                            }
+                let interval = Interval::new(PING_INTERVAL_MS, move || {
+                    let app_reference_guard =
+                        APP_REFERENCE.ptr.lock().expect(APP_REFERENCE_MUTEX_ERROR);
+                    if let Some(app) = *app_reference_guard {
+                        unsafe {
+                            (*app)
+                                .link
+                                .send_message(AppMsg::SendWSMsg(CTSMsgInternal::Ping));
                         }
-                    })),
-                );
+                    }
+                });
+                interval.forget();
                 self.interval_task = Some(interval_task);
                 false
             }
             AppMsg::SendWSMsg(msg_type) => self.send_ws_message(msg_type),
             AppMsg::WSMsgReceived(data) => self.handle_ws_message_received(data),
             AppMsg::SetUserId(s) => {
-                self.storage.store(USER_ID_STORAGE_KEY, Json(&s));
+                LocalStorage::set(USER_ID_STORAGE_KEY, &s)
+                    .expect("failed to save user_id to local storage");
                 self.state.user_id = s;
+
                 false
             }
             AppMsg::SetDisplayName(s) => {
                 let s = clean_up_display_name(&s);
-                self.storage.store(DISPLAY_NAME_STORAGE_KEY, Json(&s));
+                LocalStorage::set(DISPLAY_NAME_STORAGE_KEY, &s)
+                    .expect("failed to save display_name to local storage");
                 self.state.display_name = s.clone();
                 self.state.display_name_input = s;
                 true
@@ -395,28 +376,29 @@ impl Component for App {
         }
     }
 
-    fn change(&mut self, _prop: Self::Properties) -> ShouldRender {
+    fn changed(&mut self, _prop: &yew::Context<App>) -> bool {
         false
     }
 
-    fn destroy(&mut self) {
+    fn destroy(&mut self, _context: &yew::Context<Self>) {
         // clean up static reference to app
         let mut app_reference_guard = APP_REFERENCE.ptr.lock().expect(APP_REFERENCE_MUTEX_ERROR);
         app_reference_guard.take();
     }
 
-    fn view(&self) -> Html {
+    fn view(&self, context: &yew::Context<Self>) -> Html {
+        let link = context.link();
         html! {
                 <div>
                     {match &self.state.game_state {
-                        None => self.view_join(),
+                        None => self.view_join(context.link()),
                         Some(game_state) =>{
                             match game_state.stage {
-                                PublicGameStage::Lobby => self.view_lobby(),
-                                PublicGameStage::Teams(_) => self.view_teams(),
-                                PublicGameStage::GrandTichu(_) => self.view_grand_tichu(),
-                                PublicGameStage::Trade(_) => self.view_trade(),
-                                PublicGameStage::Play(_) => self.view_play(),
+                                PublicGameStage::Lobby => self.view_lobby(link),
+                                PublicGameStage::Teams(_) => self.view_teams(link),
+                                PublicGameStage::GrandTichu(_) => self.view_grand_tichu(link),
+                                PublicGameStage::Trade(_) => self.view_trade(link),
+                                PublicGameStage::Play(_) => self.view_play(link),
                                 _ => html!{<> </>}
                         }
                     }
@@ -425,7 +407,7 @@ impl Component for App {
                     <br />
                     <hr />
                     <br />
-                    {self.view_debug()}
+                    {self.view_debug(link)}
                 </div>
         }
     }
@@ -433,17 +415,17 @@ impl Component for App {
 
 impl App {
     fn can_create_game(&self) -> bool {
-        self.ws.is_some() && validate_display_name(&self.state.display_name_input).is_none()
+        self.state.ws.is_some() && validate_display_name(&self.state.display_name_input).is_none()
     }
 
     fn can_join_game(&self) -> bool {
-        self.ws.is_some()
+        self.state.ws.is_some()
             && validate_display_name(&self.state.display_name_input).is_none()
             && validate_game_code(&self.state.join_room_game_code_input).is_none()
     }
 
     fn can_leave_game(&self) -> bool {
-        self.ws.is_some()
+        self.state.ws.is_some()
             && self.state.game_state.is_some()
             && matches!(
                 self.state.game_state.as_ref().unwrap().stage,
@@ -752,7 +734,7 @@ impl App {
         }
     }
 
-    fn view_debug(&self) -> Html {
+    fn view_debug(&self, link: &Scope<App>) -> Html {
         html! {
                 <>
                 <h1>{"Debug Info:"}</h1>
@@ -769,7 +751,7 @@ impl App {
                             ""
                     }}
                     </p>
-                    {self.view_debug_skip_to_play()}
+                    {self.view_debug_skip_to_play(link)}
                     <p>{"Participants: "} {self.view_participants()}</p>
                     <p>{"Owner: "} {self.debug_owner()}</p>
                     <p>{"Teams: "} {self.debug_teams()}</p>
@@ -780,66 +762,81 @@ impl App {
                     <br />
                     <h2>{"Small Tichus: "}</h2>
                     {self.view_debug_all_participants_small_tichu()}
-                    <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))>{"Send test message to server"}</button>
+                    <button onclick={link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Test))}>{"Send test message to server"}</button>
                     <br />
-                    <button onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))>{"Send ping to server"}</button>
+                    <button onclick={link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::Ping))}>{"Send ping to server"}</button>
                 </>
         }
     }
 
-    fn view_join(&self) -> Html {
+    fn view_join(&self, link: &Scope<Self>) -> Html {
         html! {
                 <>
                 <h1>{"Tichu"}</h1>
-                    <form onsubmit=self.link.callback(|e: FocusEvent| {
+                    <form onsubmit={link.callback(|e: FocusEvent| {
                         e.prevent_default();
                         AppMsg::SendWSMsg(CTSMsgInternal::JoinGameWithGameCode)
-                })>
+                })}>
                         <label for="join-room-display-name-input">{"Display Name"}</label>
                         <br />
                         <input
                             id="join-room-display-name-input"
                             type="text"
-                            value=self.state.display_name_input.clone()
-                            oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
+                            value={self.state.display_name_input.clone()}
+                            oninput={link.callback(|e: InputEvent| {
+                                let target: Option<EventTarget> = e.target();
+                                let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
+                                let msg = input.map(|input|  AppMsg::SetDisplayNameInput(input.value()));
+                                msg.expect("Message should be defined")
+                            })} />
                         <br />
                         <label for="join-room-game-code-input">{"Game Code"}</label>
                         <br />
                         <input
                             id="join-room-game-code-input"
                             type="text"
-                            value=self.state.join_room_game_code_input.clone()
-                            oninput=self.link.callback(|e: InputData| AppMsg::SetJoinRoomGameCodeInput(e.value))/>
+                            value={self.state.join_room_game_code_input.clone()}
+                            oninput={link.callback(|e: InputEvent| {
+                                let target: Option<EventTarget> = e.target();
+                                let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
+                                input.map(|input| AppMsg::SetJoinRoomGameCodeInput(input.value()))
+                                    .expect("InputElement should be defined")
+                            }) }/>
                         <br />
                         <button
                             type="submit"
-                            disabled=!self.can_join_game()
+                            disabled={!self.can_join_game()}
                             >{"Join game"}</button>
                     </form>
                     <br />
                     <br />
-                    <form onsubmit=self.link.callback(|e: FocusEvent| {
+                    <form onsubmit={link.callback(|e: FocusEvent| {
                         e.prevent_default();
                         AppMsg::SendWSMsg(CTSMsgInternal::CreateGame)
-                })>
+                })}>
                         <label for="join-room-display-name-input">{"Display Name"}</label>
                         <br />
                         <input
                             id="create-room-display-name-input"
                             type="text"
-                            value=self.state.display_name_input.clone()
-                            oninput=self.link.callback(|e: InputData| AppMsg::SetDisplayNameInput(e.value))/>
+                            value={self.state.display_name_input.clone()}
+                            oninput={link.callback(|e: InputEvent| {
+                                let target: Option<EventTarget> = e.target();
+                                let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
+                                input.map(|input| AppMsg::SetDisplayNameInput(input.value()))
+                                    .expect("InputElement should be defined")
+                            })} />
                         <br />
                         <button
                             type="submit"
-                            disabled=!self.can_create_game()
+                            disabled={!self.can_create_game()}
                             >{"Create game"}</button>
                     </form>
                 </>
         }
     }
 
-    fn view_lobby(&self) -> Html {
+    fn view_lobby(&self, link: &Scope<Self>) -> Html {
         html! {
                 <>
                     <h1>{"Lobby"}</h1>
@@ -855,8 +852,8 @@ impl App {
                     <br />
                     {self.view_participants()}
                     <button
-                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::LeaveGame)})
-                        disabled=!self.can_leave_game()
+                        onclick={link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::LeaveGame)})}
+                        disabled={!self.can_leave_game()}
                         >
                         {"Leave game"}
                     </button>
@@ -884,53 +881,64 @@ impl App {
         current_user_is_owner && teams_are_ready
     }
 
-    fn view_teams(&self) -> Html {
+    fn view_teams(&self, link: &Scope<Self>) -> Html {
         html! {
                 <>
                 <h1>{"Teams"}</h1>
                     <label for="team-a-name-input">{"Team Name"}</label>
                     <br />
-                    <form onsubmit=self.link.callback(|e: FocusEvent | {
+                    <form onsubmit={
+                        link.callback(|e: FocusEvent | {
                         e.prevent_default();
                         AppMsg::SendWSMsg(CTSMsgInternal::RenameTeam(TeamOption::TeamA))
-                })>
+                    })}>
                     <label for="team-a-name-input">{"Team Name"}</label>
                     <input
                         id="team-a-name-input"
-                        disabled=!self.is_team_stage() || self.is_on_team_b()
+                        disabled={!self.is_team_stage() || self.is_on_team_b()}
                         type="text"
-                        value=self.state.team_a_name_input.clone()
-                        oninput=self.link.callback(|e: InputData| AppMsg::SetTeamANameInput(e.value))/>
+                        value={self.state.team_a_name_input.clone()}
+                        oninput={link.callback(|e: InputEvent| {
+                            let target = e.target();
+                            let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
+                            input.map(|input|   AppMsg::SetTeamANameInput(input.value()))
+                                .expect("InputElement should be defined")
+                        })} />
                    </form>
                     <br />
                     <button
-                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeam(TeamOption::TeamA))})
-                        disabled=!self.is_team_stage() || self.is_on_team_a()
+                        onclick={link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeam(TeamOption::TeamA))})}
+                        disabled={!self.is_team_stage() || self.is_on_team_a()}
                         >{"Move to Team A"}</button>
                     <br />
                     <button
-                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeam(TeamOption::TeamB))})
-                        disabled=!self.is_team_stage() || self.is_on_team_b()
+                        onclick={link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::MoveToTeam(TeamOption::TeamB))})}
+                        disabled={!self.is_team_stage() || self.is_on_team_b()}
                         >{"Move to Team B"}</button>
                     <br />
                     <br />
-                    <form onsubmit=self.link.callback(|e: FocusEvent | {
+                    <form onsubmit={link.callback(|e: FocusEvent | {
                         e.prevent_default();
                         AppMsg::SendWSMsg(CTSMsgInternal::RenameTeam(TeamOption::TeamB))
-                })>
+                        })}>
                         <label for="team-b-name-input">{"Team Name"}</label>
                         <input
                             id="team-b-name-input"
-                            disabled=!self.is_team_stage() || self.is_on_team_a()
+                            disabled={!self.is_team_stage() || self.is_on_team_a()}
                             type="text"
-                            value=self.state.team_b_name_input.clone()
-                            oninput=self.link.callback(|e: InputData| AppMsg::SetTeamBNameInput(e.value))/>
+                            value={self.state.team_b_name_input.clone()}
+                            oninput={link.callback(|e: InputEvent| {
+                                let target = e.target();
+                                let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
+                                input.map(|input|  AppMsg::SetTeamBNameInput(input.value()))
+                                    .expect("InputElement should be defined")
+                            })} />
                    </form>
                    {if self.is_current_user_owner() {
                       html!{
                         <button
-                            onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::StartGrandTichu)})
-                            disabled=!self.can_start_game()
+                            onclick={link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::StartGrandTichu)})}
+                            disabled={!self.can_start_game()}
                         >{"Start"}</button>
                     }
                 } else {
@@ -969,7 +977,7 @@ impl App {
             || card_is_set_to_trade_opponent2
     }
 
-    fn view_pre_play_hand(&self) -> Html {
+    fn view_pre_play_hand(&self, link: &Scope<Self>) -> Html {
         if let Some(game_state) = &self.state.game_state {
             html! {
                     <ul>
@@ -987,8 +995,8 @@ impl App {
                                 html!{
                                     <li>
                                         <button
-                                            disabled=!self.can_select_pre_play_card()
-                                            onclick=self.link.callback(move |_| {AppMsg::SetSelectedPrePlayCard(i)})
+                                            disabled={!self.can_select_pre_play_card()}
+                                            onclick={link.callback(move |_| {AppMsg::SetSelectedPrePlayCard(i)})}
                                             >
                                             {&format!("{:#?}", card)}
                                         </button>
@@ -1003,11 +1011,11 @@ impl App {
         }
     }
 
-    fn call_small_tichu_button(&self) -> Html {
+    fn call_small_tichu_button(&self, link: &Scope<Self>) -> Html {
         html! {
                 <button
-                onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallSmallTichu)})
-                disabled=!self.can_call_small_tichu()
+                onclick={link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallSmallTichu)})}
+                disabled={!self.can_call_small_tichu()}
                 >{"Call Small Tichu"}</button>
         }
     }
@@ -1042,22 +1050,22 @@ impl App {
         }
     }
 
-    fn view_grand_tichu(&self) -> Html {
+    fn view_grand_tichu(&self, link: &Scope<Self>) -> Html {
         html! {
                 <>
                     <h1>{"Grand Tichu"}</h1>
                     {self.view_grand_tichu_status_for_current_user()}
                     <button
-                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Call))})
-                        disabled=!self.can_call_or_decline_grand_tichu()
+                        onclick={link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Call))})}
+                        disabled={!self.can_call_or_decline_grand_tichu()}
                     >{"Call Grand Tichu"}</button>
                     <button
-                        onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Decline))})
-                        disabled=!self.can_call_or_decline_grand_tichu()
+                        onclick={link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::CallGrandTichu(CallGrandTichuRequest::Decline))})}
+                        disabled={!self.can_call_or_decline_grand_tichu()}
                     >{"Decline Grand Tichu"}</button>
-                    {self.call_small_tichu_button()}
+                    {self.call_small_tichu_button(link)}
                     <p>{"Hand:"}</p>
-                    {self.view_pre_play_hand()}
+                    {self.view_pre_play_hand(link)}
                 </>
         }
     }
@@ -1081,13 +1089,13 @@ impl App {
         self.stage_is_trade() && !self.has_submitted_trade()
     }
 
-    fn view_selected_pre_play_card_button(&self) -> Html {
+    fn view_selected_pre_play_card_button(&self, link: &Scope<Self>) -> Html {
         match &self.state.selected_pre_play_card {
             Some(card) => {
                 html! {
                         <button
-                            onclick=self.link.callback(|_| {AppMsg::RemoveSelectedPrePlayCard})
-                            disabled=self.state.selected_pre_play_card.is_none()
+                            onclick={link.callback(|_| {AppMsg::RemoveSelectedPrePlayCard})}
+                            disabled={self.state.selected_pre_play_card.is_none()}
                             type="button">
                             {&format!("Remove {:#?}", card)}
                         </button>
@@ -1132,7 +1140,7 @@ impl App {
         }
     }
 
-    fn view_trade_to_person(&self, trade_to_person: OtherPlayerOption) -> Html {
+    fn view_trade_to_person(&self, link: &Scope<Self>, trade_to_person: OtherPlayerOption) -> Html {
         let trade_to_person_state = match &trade_to_person {
             OtherPlayerOption::Opponent1 => &self.state.trade_to_opponent1,
             OtherPlayerOption::Teammate => &self.state.trade_to_teammate,
@@ -1164,8 +1172,8 @@ impl App {
                 {if self.state.selected_pre_play_card.is_none() {
                     html!{
                         <button
-                            disabled=!self.can_remove_trade(&trade_to_person)
-                            onclick=self.link.callback(move |_| {AppMsg::RemoveTrade(trade_to_person.clone())})
+                            disabled={!self.can_remove_trade(&trade_to_person)}
+                            onclick={link.callback(move |_| {AppMsg::RemoveTrade(trade_to_person.clone())})}
                         >
                         {match trade_to_person_state {
                             Some(card) => format!("Remove {:?} to {}", card, trade_to_person_display_name),
@@ -1175,7 +1183,7 @@ impl App {
                     }
                 } else {
                         html!{
-                            <button onclick=self.link.callback(move |_| {AppMsg::SetTrade(trade_to_person.clone())})>
+                            <button onclick={link.callback(move |_| {AppMsg::SetTrade(trade_to_person.clone())})}>
                                 {if trade_to_person_state.is_some() {
                                     format!("Replace trade with {}", trade_to_person_display_name)
                                 } else {
@@ -1200,7 +1208,7 @@ impl App {
         }
     }
 
-    fn view_trade(&self) -> Html {
+    fn view_trade(&self, link: &Scope<Self>) -> Html {
         html! {
                 <>
                     <h1>{"Trade"}</h1>
@@ -1209,26 +1217,26 @@ impl App {
                         html!{
                             <>
                                 <button
-                                    onclick=self.link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::SubmitTrade)})
-                                    disabled=!self.can_submit_trade()
+                                    onclick={link.callback(|_| {AppMsg::SendWSMsg(CTSMsgInternal::SubmitTrade)})}
+                                    disabled={!self.can_submit_trade()}
                                     type="submit">
                                 {"Submit"}
                                 </button>
                                 <br />
                                 <br />
-                                {self.view_trade_to_person(OtherPlayerOption::Opponent1)}
+                                {self.view_trade_to_person(link, OtherPlayerOption::Opponent1)}
                                 <br />
-                                {self.view_trade_to_person(OtherPlayerOption::Teammate)}
+                                {self.view_trade_to_person(link, OtherPlayerOption::Teammate)}
                                 <br />
-                                {self.view_trade_to_person(OtherPlayerOption::Opponent2)}
-                                <br />
-                                <br />
-                                <br />
-                                {self.call_small_tichu_button()}
+                                {self.view_trade_to_person(link, OtherPlayerOption::Opponent2)}
                                 <br />
                                 <br />
                                 <br />
-                                {self.view_selected_pre_play_card_button()}
+                                {self.call_small_tichu_button(link)}
+                                <br />
+                                <br />
+                                <br />
+                                {self.view_selected_pre_play_card_button(link)}
                                 <br />
                                 <br />
                                 <br />
@@ -1239,7 +1247,7 @@ impl App {
                             <p>{"Waiting for others to trade..."}</p>
                     }
                 }}
-                    {self.view_pre_play_hand()}
+                    {self.view_pre_play_hand(link)}
                 </>
         }
     }
@@ -1359,7 +1367,7 @@ impl App {
         }
     }
 
-    fn view_play_hand(&self) -> Html {
+    fn view_play_hand(&self, link: &Scope<Self>) -> Html {
         if let Some(game_state) = &self.state.game_state {
             html! {
                     <ul>
@@ -1373,8 +1381,8 @@ impl App {
                                 html!{
                                     <li>
                                         <button
-                                            disabled=!self.can_select_play_card()
-                                            onclick=self.link.callback(move |_| {AppMsg::AddSelectedPlayCard(i)})
+                                            disabled={!self.can_select_play_card()}
+                                            onclick={link.callback(move |_| {AppMsg::AddSelectedPlayCard(i)})}
                                             >
                                             {&format!("{:#?}", card)}
                                         </button>
@@ -1389,13 +1397,13 @@ impl App {
         }
     }
 
-    fn view_selected_play_card_buttons(&self) -> Html {
+    fn view_selected_play_card_buttons(&self, link: &Scope<App>) -> Html {
         html! {
             <>
             { for self.state.selected_play_cards.iter().enumerate().map(|(i, selected_card)| {
                  html! {
                      <button
-                         onclick=self.link.callback(move |_| {AppMsg::RemoveSelectedPlayCard(i)})
+                         onclick={link.callback(move |_| {AppMsg::RemoveSelectedPlayCard(i)})}
                          type="button">
                          {&format!("Remove {:#?}", selected_card)}
                      </button>
@@ -1468,35 +1476,32 @@ impl App {
         }
     }
 
-    fn view_debug_skip_to_play(&self) -> Html {
+    fn view_debug_skip_to_play(&self, link: &Scope<Self>) -> Html {
         html! {
             <button
-                onclick=self.link.callback(move |_| AppMsg::SendWSMsg(CTSMsgInternal::__Admin_SkipToPlay))
+                onclick={link.callback(move |_| AppMsg::SendWSMsg(CTSMsgInternal::__Admin_SkipToPlay))}
             >
                 {"Skip to Play Stage"}
             </button>
         }
     }
 
-    fn view_wish_for_card_input(&self) -> Html {
+    fn view_wish_for_card_input(&self, link: &Scope<Self>) -> Html {
         html! {
             <>
                 <label for="wish-for-card">{"Wish for a card?"}</label>
                 <select name="wish-for-card" id="wish-for-card"
-                oninput=self.link.callback(move |e: InputData| {
-                        let target = e.event.target().expect("Select input event should have a target");
-                        let html_select_element: HtmlSelectElement = target
-                            .value_of()
-                            .dyn_into()
-                            .expect("Object from input event should be an HtmlSelectElement");
-                        let i = html_select_element.selected_index();
-                        AppMsg::SetWishedForCard(i as usize)
-                    })
+                    oninput={link.callback(move |e: InputEvent| {
+                        let target = e.target();
+                        let select = target.and_then(|t| t.dyn_into::<HtmlSelectElement>().ok());
+                        select.map(|select|  AppMsg::SetWishedForCard(select.selected_index() as usize))
+                            .expect("HtmlSelectElement should be defined")
+                    })}
                 >
                     {for Deck::wished_for_card_values().iter().enumerate().map(|(i, card)| {
                         let card_string = format!("{:#?}", card);
                         html!{
-                            <option value=format!("{}", i)>
+                            <option value={format!("{}", i)}>
                                 {card_string.clone()}
                             </option>
                         }
@@ -1630,7 +1635,7 @@ impl App {
         false
     }
 
-    fn view_choose_opponent(&self) -> Html {
+    fn view_choose_opponent(&self, link: &Scope<Self>) -> Html {
         let opponent_ids = self.get_opponent_ids();
 
         if let Some(game_state) = &self.state.game_state {
@@ -1644,7 +1649,7 @@ impl App {
                         {if self.state.user_id_to_give_dragon_to == Some(opponent_id_0_clone.clone()) {
                             html! {
                                 <button
-                                    onclick=self.link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(None))
+                                    onclick={link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(None))}
                                 >
                                     {format!("Deselect {}", &game_state.get_user_by_user_id(&opponent_id_0_clone).unwrap().display_name)}
                                 </button>
@@ -1652,7 +1657,7 @@ impl App {
                         } else {
                             html!{
                                 <button
-                                    onclick=self.link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(Some(opponent_id_0.clone())))
+                                    onclick={link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(Some(opponent_id_0.clone())))}
                                 >
                                     {format!("Select {}", &game_state.get_user_by_user_id(&opponent_id_0_clone).unwrap().display_name)}
                                 </button>
@@ -1662,7 +1667,7 @@ impl App {
                         {if self.state.user_id_to_give_dragon_to == Some(opponent_id_1_clone.clone()) {
                             html! {
                                 <button
-                                    onclick=self.link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(None))
+                                    onclick={link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(None))}
                                 >
                                     {format!("Deselect {}", &game_state.get_user_by_user_id(&opponent_id_1_clone).unwrap().display_name)}
                                 </button>
@@ -1670,7 +1675,7 @@ impl App {
                         } else {
                             html!{
                                 <button
-                                    onclick=self.link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(Some(opponent_id_1.clone())))
+                                    onclick={link.callback(move |_| AppMsg::SetUserIdToGiveDragonTo(Some(opponent_id_1.clone())))}
                                 >
                                     {format!("Select {}", &game_state.get_user_by_user_id(&opponent_id_1_clone).unwrap().display_name)}
                                 </button>
@@ -1686,7 +1691,7 @@ impl App {
         }
     }
 
-    fn view_play(&self) -> Html {
+    fn view_play(&self, link: &Scope<Self>) -> Html {
         html! {
               <>
                 <h1>{"Play"}</h1>
@@ -1699,7 +1704,7 @@ impl App {
                 <br />
                 <br />
                 {if self.state.selected_play_cards.contains(&MAH_JONG) {
-                    self.view_wish_for_card_input()
+                    self.view_wish_for_card_input(link)
                 } else {
                     html!{}
                 }}
@@ -1707,38 +1712,42 @@ impl App {
                 <br />
                 <p>{"Real self.view_choose_opponent:"}</p>
                 {if self.state.selected_play_cards.contains(&DRAGON) {
-                    self.view_choose_opponent()
+                    self.view_choose_opponent(link)
                 } else {
                     html!{}
                 }}
                 <br />
                 <br />
                 <button
-                    disabled=!self.can_play_cards()
-                    onclick=self.link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::PlayCards))
+                    disabled={!self.can_play_cards()}
+                    onclick={link.callback(|_| AppMsg::SendWSMsg(CTSMsgInternal::PlayCards))}
                     type="submit"
                     >
                     {"Submit cards"}
                 </button>
                 <br />
                 <br />
-                {self.call_small_tichu_button()}
+                {self.call_small_tichu_button(link)}
                 <br />
                 <br />
                 {self.view_is_valid_combo()}
                 <br />
                 <br />
-                {self.view_selected_play_card_buttons()}
+                {self.view_selected_play_card_buttons(link)}
                 <br />
                 <br />
-                {self.view_play_hand()}
+                {self.view_play_hand(link)}
               </>
         }
     }
 
     /// Handles when a websocket message is received from the server
     /// Returns whether the component should re-render or not
-    fn handle_ws_message_received(&mut self, data: Result<Vec<u8>, Error>) -> bool {
+    fn handle_ws_message_received(
+        &mut self,
+        link: &Scope<Self>,
+        data: Result<Vec<u8>, Error>,
+    ) -> bool {
         let mut should_rerender = true;
         if data.is_err() {
             error!("Data received from websocket was an error {:#?}", &data);
@@ -1752,11 +1761,10 @@ impl App {
             }
             Some(data) => match data {
                 STCMsg::Ping => {
-                    self.link
-                        .send_message(AppMsg::SendWSMsg(CTSMsgInternal::Pong));
+                    link.send_message(AppMsg::SendWSMsg(CTSMsgInternal::Pong));
                 }
                 STCMsg::UserIdAssigned(s) => {
-                    self.link.send_message(AppMsg::SetUserId(s));
+                    link.send_message(AppMsg::SetUserId(s));
                 }
                 STCMsg::GameState(new_game_state) => {
                     let new_game_state = *new_game_state;
@@ -1767,7 +1775,7 @@ impl App {
                     {
                         if let Some(new_game_state) = &new_game_state {
                             if let PublicGameStage::Teams(teams_state) = &new_game_state.stage {
-                                self.link.send_message_batch(vec![
+                                link.send_message_batch(vec![
                                     AppMsg::SetTeamANameInput(
                                         (*teams_state[0].team_name).to_string(),
                                     ),
@@ -1782,7 +1790,7 @@ impl App {
                     // move into block and back out for mutability (TODO: clean up later)
                     let new_game_state = if let Some(mut new_game_state) = new_game_state {
                         // save display name input to state/localStorage
-                        self.link.send_message(AppMsg::SetDisplayName(
+                        link.send_message(AppMsg::SetDisplayName(
                             (*new_game_state.current_user.display_name).to_string(),
                         ));
 
@@ -1807,12 +1815,10 @@ impl App {
                     self.state.is_alive = true;
                 }
                 STCMsg::TeamARenamed(new_team_a_name) => {
-                    self.link
-                        .send_message(AppMsg::SetTeamANameInput(new_team_a_name));
+                    link.send_message(AppMsg::SetTeamANameInput(new_team_a_name));
                 }
                 STCMsg::TeamBRenamed(new_team_b_name) => {
-                    self.link
-                        .send_message(AppMsg::SetTeamBNameInput(new_team_b_name));
+                    link.send_message(AppMsg::SetTeamBNameInput(new_team_b_name));
                 }
                 STCMsg::Test(_) => {}
                 STCMsg::GameCreated { .. } => {}
@@ -1842,7 +1848,7 @@ impl App {
 
     /// Sends a message to the server via websocket
     /// Returns whether the component should rerender
-    fn send_ws_message(&mut self, msg_type: CTSMsgInternal) -> bool {
+    fn send_ws_message(&mut self, link: &Scope<Self>, msg_type: CTSMsgInternal) -> bool {
         info!("Sending websocket message: {:#?}", msg_type);
         match msg_type {
             CTSMsgInternal::Test => {
@@ -1851,19 +1857,19 @@ impl App {
             }
             CTSMsgInternal::Ping => {
                 let mut should_reconnect = false;
-                if self.ws.is_none() {
+                if self.state.ws.is_none() {
                     info!("Trying to ping, but there is no websocket connection. Attempting to reconnect");
                     should_reconnect = true;
                 } else if !self.state.is_alive {
                     info!("Server isn't responding to pings. Closing websocket connection and attempting to reconnect.");
                     should_reconnect = true;
-                    let ws = self.ws.take();
+                    let ws = self.state.ws.take();
                     drop(ws);
                 }
 
                 self.state.is_alive = false;
                 if should_reconnect {
-                    self.link.send_message(AppMsg::ConnectToWS);
+                    link.send_message(AppMsg::ConnectToWS);
                 } else {
                     self._send_ws_message(&CTSMsg::Ping);
                 }
@@ -1932,7 +1938,7 @@ impl App {
                         // not in teams stage, do nothing
                         _ => return false,
                     };
-                    self.link.send_message(match &team_option {
+                    link.send_message(match &team_option {
                         TeamOption::TeamA => AppMsg::SetTeamANameInput(existing_team_name),
                         TeamOption::TeamB => AppMsg::SetTeamBNameInput(existing_team_name),
                     });
@@ -2012,7 +2018,7 @@ impl App {
                     };
 
                 // clear selected card / trade state
-                self.link.send_message_batch(vec![
+                link.send_message_batch(vec![
                     AppMsg::RemoveSelectedPrePlayCard,
                     AppMsg::RemoveTrade(OtherPlayerOption::Opponent1),
                     AppMsg::RemoveTrade(OtherPlayerOption::Teammate),
@@ -2086,7 +2092,7 @@ impl App {
 
     /// Helper function to actually send the websocket message
     fn _send_ws_message(&mut self, msg: &CTSMsg) {
-        match self.ws {
+        match self.state.ws {
             None => {
                 warn!("Can't send message. Websocket is not connected.");
             }
