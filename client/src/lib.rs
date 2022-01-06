@@ -1,7 +1,5 @@
 #![feature(format_args_capture)]
 #![recursion_limit = "1024"]
-#[macro_use]
-extern crate lazy_static;
 
 mod tichu;
 mod types;

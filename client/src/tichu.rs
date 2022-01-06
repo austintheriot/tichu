@@ -30,7 +30,21 @@ enum WSConnectionStatus {
 pub struct App {
     state: State,
     ws: Option<WebSocket>,
+    ws_callbacks: Option<WSCallbacks>,
     ping_interval: Option<Interval>,
+}
+
+/// Stores callbacks that are passed to javascript so that they don't get dropped
+/// and so we don't have to `.forget()` them when passing them to JS.
+struct WSCallbacks {
+    #[allow(dead_code)]
+    onmessage: Closure<dyn FnMut(MessageEvent)>,
+    #[allow(dead_code)]
+    onopen: Closure<dyn FnMut()>,
+    #[allow(dead_code)]
+    onerror: Closure<dyn FnMut(ErrorEvent)>,
+    #[allow(dead_code)]
+    onclose: Closure<dyn FnMut()>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -129,6 +143,7 @@ impl Component for App {
         };
         Self {
             ws: None,
+            ws_callbacks: None,
             ping_interval: None,
             state,
         }
@@ -191,16 +206,13 @@ impl Component for App {
                     })
                         as Box<dyn FnMut(MessageEvent)>);
                     ws.set_onmessage(Some(onmessage_callback.as_ref().unchecked_ref()));
-                    onmessage_callback.forget();
 
                     // on open
-                    let onopen_callback = Closure::wrap(Box::new(move |_| {
+                    let onopen_callback = Closure::wrap(Box::new(move || {
                         info!("Websocket open event");
                         onopen_link.send_message(AppMsg::WebsocketOpen);
-                    })
-                        as Box<dyn FnMut(ErrorEvent)>);
+                    }) as Box<dyn FnMut()>);
                     ws.set_onopen(Some(onopen_callback.as_ref().unchecked_ref()));
-                    onopen_callback.forget();
 
                     // on error
                     let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
@@ -209,18 +221,22 @@ impl Component for App {
                     })
                         as Box<dyn FnMut(ErrorEvent)>);
                     ws.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
-                    onerror_callback.forget();
 
                     // on close
-                    let onclose_callback = Closure::wrap(Box::new(move |_| {
+                    let onclose_callback = Closure::wrap(Box::new(move || {
                         error!("Websocket close event");
                         onclose_link.send_message(AppMsg::WebsocketClosed);
                     })
-                        as Box<dyn FnMut(ErrorEvent)>);
+                        as Box<dyn FnMut()>);
                     ws.set_onclose(Some(onclose_callback.as_ref().unchecked_ref()));
-                    onclose_callback.forget();
 
                     self.ws = Some(ws);
+                    self.ws_callbacks = Some(WSCallbacks {
+                        onmessage: onmessage_callback,
+                        onopen: onopen_callback,
+                        onerror: onerror_callback,
+                        onclose: onclose_callback,
+                    });
                 } else {
                     error!("Trying to ConnectToWS while current websocket is still defined as Some() in state");
                 }
@@ -1874,6 +1890,7 @@ impl App {
                 } else if !self.state.is_alive {
                     info!("Trying to ping, but websocket is not alive. Closing websocket connection and attempting to reconnect.");
                     drop(self.ws.take());
+                    drop(self.ws_callbacks.take());
                     true
                 } else {
                     false
