@@ -1,7 +1,7 @@
 #![feature(format_args_capture)]
 #![recursion_limit = "1024"]
 
-mod tichu;
+mod components;
 mod types;
 
 extern crate common;
@@ -18,6 +18,6 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[wasm_bindgen]
 pub fn run_app() -> Result<(), JsValue> {
     wasm_logger::init(wasm_logger::Config::default());
-    yew::start_app::<tichu::App>();
+    yew::start_app::<components::app::App>();
     Ok(())
 }
