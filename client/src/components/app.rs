@@ -19,6 +19,7 @@ use web_sys::{EventTarget, HtmlInputElement, HtmlSelectElement, MessageEvent, We
 use yew::{html::Scope, prelude::*};
 
 use super::button::Button;
+use super::context_example::ContextExample;
 
 type ShouldRender = bool;
 
@@ -79,6 +80,12 @@ struct State {
 
 const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
 const DISPLAY_NAME_STORAGE_KEY: &str = "yew.tichu.display_name";
+
+#[derive(Clone, Debug, PartialEq)]
+struct Theme {
+    foreground: String,
+    background: String,
+}
 
 pub enum AppMsg {
     ConnectToWS,
@@ -426,6 +433,7 @@ impl Component for App {
         html! {
                 <div>
                     <Button text={"Example button"} />
+                    <ContextExample />
                     {match &self.state.game_state {
                         None => self.view_join(context.link()),
                         Some(game_state) =>{
