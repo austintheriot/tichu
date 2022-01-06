@@ -14,13 +14,6 @@ pub fn context_example() -> Html {
         background: "#ffffff".to_owned(),
     });
 
-    let set = || {
-        ctx.set(Theme {
-            foreground: "#f00".to_owned(),
-            background: "#0f0".to_owned(),
-        })
-    };
-
     html! {
         // `ctx` is type `Rc<UseStateHandle<Theme>>` while we need `Theme`
         // so we deref it.

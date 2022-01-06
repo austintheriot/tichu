@@ -18,8 +18,7 @@ use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{EventTarget, HtmlInputElement, HtmlSelectElement, MessageEvent, WebSocket};
 use yew::{html::Scope, prelude::*};
 
-use super::button::Button;
-use super::context_example::ContextExample;
+use super::struct_context_example::Parent;
 
 type ShouldRender = bool;
 
@@ -432,8 +431,7 @@ impl Component for App {
         let link = context.link();
         html! {
                 <div>
-                    <Button text={"Example button"} />
-                    <ContextExample />
+                    <Parent />
                     {match &self.state.game_state {
                         None => self.view_join(context.link()),
                         Some(game_state) =>{
