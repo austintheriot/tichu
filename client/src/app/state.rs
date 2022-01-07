@@ -8,7 +8,7 @@ use gloo::storage::{LocalStorage, Storage};
 use log::*;
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
-use yew::{use_reducer_eq, Reducible, UseReducerHandle};
+use yew::{Reducible, UseReducerHandle};
 
 pub const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
 pub const DISPLAY_NAME_STORAGE_KEY: &str = "yew.tichu.display_name";
@@ -240,6 +240,41 @@ impl Reducible for AppState {
             }
         }
         Rc::new(next_state)
+    }
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        // retrieve user_id and display name from local storage
+        let user_id =
+            LocalStorage::get(USER_ID_STORAGE_KEY).unwrap_or_else(|_| String::from(NO_USER_ID));
+        let display_name =
+            LocalStorage::get(DISPLAY_NAME_STORAGE_KEY).unwrap_or_else(|_| String::from(""));
+
+        // store user_id and display_name in local storage (if changed)
+        LocalStorage::set(USER_ID_STORAGE_KEY, &user_id)
+            .expect("failed to save user_id to local storage");
+        LocalStorage::set(DISPLAY_NAME_STORAGE_KEY, &display_name)
+            .expect("failed to save display_name to local storage");
+
+        AppState {
+            ws_connection_status: WSConnectionStatus::Closed,
+            user_id,
+            display_name: display_name.clone(),
+            display_name_input: display_name,
+            game_state: None,
+            join_room_game_code_input: "".into(),
+            team_a_name_input: "".into(),
+            team_b_name_input: "".into(),
+            selected_pre_play_card: None,
+            trade_to_opponent1: None,
+            trade_to_teammate: None,
+            trade_to_opponent2: None,
+            selected_play_cards: Vec::new(),
+            user_id_to_give_dragon_to: None,
+            show_user_id_to_give_dragon_to_form: false,
+            wished_for_card_value: None,
+        }
     }
 }
 
@@ -626,42 +661,7 @@ impl AppState {
     }
 }
 
-pub fn use_setup_app_reducer() -> UseReducerHandle<AppState> {
-    use_reducer_eq(|| {
-        // retrieve user_id and display name from local storage
-        let user_id =
-            LocalStorage::get(USER_ID_STORAGE_KEY).unwrap_or_else(|_| String::from(NO_USER_ID));
-        let display_name =
-            LocalStorage::get(DISPLAY_NAME_STORAGE_KEY).unwrap_or_else(|_| String::from(""));
-
-        // store user_id and display_name in local storage (if changed)
-        LocalStorage::set(USER_ID_STORAGE_KEY, &user_id)
-            .expect("failed to save user_id to local storage");
-        LocalStorage::set(DISPLAY_NAME_STORAGE_KEY, &display_name)
-            .expect("failed to save display_name to local storage");
-
-        AppState {
-            ws_connection_status: WSConnectionStatus::Closed,
-            user_id,
-            display_name: display_name.clone(),
-            display_name_input: display_name,
-            game_state: None,
-            join_room_game_code_input: "".into(),
-            team_a_name_input: "".into(),
-            team_b_name_input: "".into(),
-            selected_pre_play_card: None,
-            trade_to_opponent1: None,
-            trade_to_teammate: None,
-            trade_to_opponent2: None,
-            selected_play_cards: Vec::new(),
-            user_id_to_give_dragon_to: None,
-            show_user_id_to_give_dragon_to_form: false,
-            wished_for_card_value: None,
-        }
-    })
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct AppContext {
-    pub reducer_handle: UseReducerHandle<AppState>,
+    pub app_reducer_handle: UseReducerHandle<AppState>,
 }

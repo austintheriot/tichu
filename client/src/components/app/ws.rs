@@ -1,5 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
-
+use crate::app::state::{AppReducerAction, AppState};
 use anyhow::Error;
 use common::{
     sort_cards_for_hand, validate_display_name, validate_game_code, validate_team_name, CTSMsg,
@@ -8,11 +7,10 @@ use common::{
 use gloo::timers::callback::{Interval, Timeout};
 use log::*;
 use serde::{Deserialize, Serialize};
+use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{ErrorEvent, MessageEvent, WebSocket};
 use yew::{use_effect_with_deps, use_mut_ref, UseReducerHandle};
-
-use crate::app::state::{AppReducerAction, AppState};
 
 pub const PING_INTERVAL_MS: u32 = 5000;
 
@@ -35,6 +33,8 @@ pub struct WSState {
     ping_interval: Option<Interval>,
 }
 
+/// Connects to server websocket and assigns listeners for all websocket events.
+/// Once the `onopen` event has been received from the websocket, the websocket begins pinging the server.
 pub fn connect_to_ws(
     app_reducer_handle: UseReducerHandle<AppState>,
     ws_mut_ref: Rc<RefCell<WSState>>,
@@ -48,62 +48,66 @@ pub fn connect_to_ws(
         );
         let ws = WebSocket::new(&url).expect("Should connect to URL without error");
         ws.set_binary_type(web_sys::BinaryType::Arraybuffer);
-        let onmessage_app_reducer_handle = app_reducer_handle.clone();
-        let onopen_app_reducer_handle = app_reducer_handle.clone();
-        let onerror_app_reducer_handle = app_reducer_handle.clone();
-        let onclose_app_reducer_handle = app_reducer_handle.clone();
         let ws_mut_ref_clone = ws_mut_ref.clone();
         // on message
-        let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
-            // ArrayBuffer
-            if let Ok(abuf) = e.data().dyn_into::<js_sys::ArrayBuffer>() {
-                let u_int_8_array = js_sys::Uint8Array::new(&abuf);
-                let vec = u_int_8_array.to_vec();
-                handle_ws_message_received(
-                    onmessage_app_reducer_handle.clone(),
-                    ws_mut_ref_clone.clone(),
-                    Ok(vec),
-                );
-            } else if let Ok(blob) = e.data().dyn_into::<web_sys::Blob>() {
-                // Blob
-                warn!("Websocket message event, received blob: {:?}", blob);
-            } else if let Ok(txt) = e.data().dyn_into::<js_sys::JsString>() {
-                // Text
-                warn!("Websocket message event, received Text: {:?}", txt);
-            } else {
-                // Unknown
-                warn!("Websocket message event, received Unknown: {:?}", e.data());
-            }
-        }) as Box<dyn FnMut(MessageEvent)>);
+        let onmessage_callback = {
+            let app_reducer_handle = app_reducer_handle.clone();
+            let ws_mut_ref = ws_mut_ref_clone.clone();
+            Closure::wrap(Box::new(move |e: MessageEvent| {
+                // ArrayBuffer
+                if let Ok(abuf) = e.data().dyn_into::<js_sys::ArrayBuffer>() {
+                    let u_int_8_array = js_sys::Uint8Array::new(&abuf);
+                    let vec = u_int_8_array.to_vec();
+                    handle_ws_message_received(
+                        app_reducer_handle.clone(),
+                        ws_mut_ref.clone(),
+                        Ok(vec),
+                    );
+                } else if let Ok(blob) = e.data().dyn_into::<web_sys::Blob>() {
+                    // Blob
+                    warn!("Websocket message event, received blob: {:?}", blob);
+                } else if let Ok(txt) = e.data().dyn_into::<js_sys::JsString>() {
+                    // Text
+                    warn!("Websocket message event, received Text: {:?}", txt);
+                } else {
+                    // Unknown
+                    warn!("Websocket message event, received Unknown: {:?}", e.data());
+                }
+            }) as Box<dyn FnMut(MessageEvent)>)
+        };
         ws.set_onmessage(Some(onmessage_callback.as_ref().unchecked_ref()));
 
         // on open
         let ws_mut_ref_clone = ws_mut_ref.clone();
-        let onopen_callback = Closure::wrap(Box::new(move || {
-            info!("Websocket open event");
-            onopen_app_reducer_handle.dispatch(AppReducerAction::WebsocketOpen);
-            let onopen_app_reducer_handle = onopen_app_reducer_handle.clone();
-            let ws_mut_ref_clone = ws_mut_ref_clone.clone();
-            let timeout = Timeout::new(PING_INTERVAL_MS, move || {
-                // start pinging 5s websocket has opened
-                begin_ping(onopen_app_reducer_handle.clone(), ws_mut_ref_clone.clone());
-            });
-            timeout.forget();
-        }) as Box<dyn FnMut()>);
+        let onopen_callback = {
+            let app_reducer_handle = app_reducer_handle.clone();
+            let ws_mut_ref = ws_mut_ref_clone.clone();
+            Closure::wrap(Box::new(move || {
+                info!("Websocket open event");
+                app_reducer_handle.dispatch(AppReducerAction::WebsocketOpen);
+                begin_ping(app_reducer_handle.clone(), ws_mut_ref.clone());
+            }) as Box<dyn FnMut()>)
+        };
         ws.set_onopen(Some(onopen_callback.as_ref().unchecked_ref()));
 
         // on error
-        let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
-            error!("Websocket event: {:?}", e);
-            onerror_app_reducer_handle.dispatch(AppReducerAction::WebsocketError);
-        }) as Box<dyn FnMut(ErrorEvent)>);
+        let onerror_callback = {
+            let app_reducer_handle = app_reducer_handle.clone();
+            Closure::wrap(Box::new(move |e: ErrorEvent| {
+                error!("Websocket event: {:?}", e);
+                app_reducer_handle.dispatch(AppReducerAction::WebsocketError);
+            }) as Box<dyn FnMut(ErrorEvent)>)
+        };
         ws.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
 
         // on close
-        let onclose_callback = Closure::wrap(Box::new(move || {
-            error!("Websocket close event");
-            onclose_app_reducer_handle.dispatch(AppReducerAction::WebsocketClosed);
-        }) as Box<dyn FnMut()>);
+        let onclose_callback = {
+            let app_reducer_handle = app_reducer_handle.clone();
+            Closure::wrap(Box::new(move || {
+                error!("Websocket close event");
+                app_reducer_handle.dispatch(AppReducerAction::WebsocketClosed);
+            }) as Box<dyn FnMut()>)
+        };
         ws.set_onclose(Some(onclose_callback.as_ref().unchecked_ref()));
 
         let mut ws_state = (*ws_mut_ref).borrow_mut();
@@ -123,16 +127,18 @@ pub fn begin_ping(
     app_reducer_handle: UseReducerHandle<AppState>,
     ws_mut_ref: Rc<RefCell<WSState>>,
 ) {
-    let ws_mut_ref_clone = ws_mut_ref.clone();
-    let interval = Interval::new(PING_INTERVAL_MS, move || {
-        send_ws_message(
-            app_reducer_handle.clone(),
-            ws_mut_ref_clone.clone(),
-            CTSMsgInternal::Ping,
-        );
-    });
-    let mut ws_state = (*ws_mut_ref).borrow_mut();
-    ws_state.ping_interval = Some(interval);
+    // start pinging on an interval
+    let interval = {
+        let ws_mut_ref = ws_mut_ref.clone();
+        Interval::new(PING_INTERVAL_MS, move || {
+            send_ws_message(
+                app_reducer_handle.clone(),
+                ws_mut_ref.clone(),
+                CTSMsgInternal::Ping,
+            );
+        })
+    };
+    (*ws_mut_ref).borrow_mut().ping_interval = Some(interval);
 }
 
 fn can_create_game(
@@ -491,19 +497,24 @@ fn _send_ws_message(ws_mut_ref: Rc<RefCell<WSState>>, msg: CTSMsg) {
     }
 }
 
-pub fn use_setup_app_ws(app_reducer_handle: UseReducerHandle<AppState>) {
+pub fn use_setup_app_ws(app_reducer_handle: UseReducerHandle<AppState>) -> Rc<RefCell<WSState>> {
     let ws_mut_ref = use_mut_ref(|| WSState::default());
 
     // connect to ws and begin pinging server once app has mounted
-    use_effect_with_deps(
-        move |_| {
-            connect_to_ws(app_reducer_handle.clone(), ws_mut_ref.clone());
+    {
+        let ws_mut_ref = ws_mut_ref.clone();
+        use_effect_with_deps(
+            move |_| {
+                connect_to_ws(app_reducer_handle.clone(), ws_mut_ref.clone());
 
-            // cleanup function ?
-            || {}
-        },
-        (),
-    );
+                // cleanup function ?
+                || {}
+            },
+            (),
+        );
+    }
+
+    ws_mut_ref
 }
 
 /// Handles when a websocket message is received from the server

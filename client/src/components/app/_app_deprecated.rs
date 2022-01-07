@@ -17,7 +17,8 @@ use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{EventTarget, HtmlInputElement, HtmlSelectElement, MessageEvent, WebSocket};
 use yew::{html::Scope, prelude::*};
 
-use super::app::ws::CTSMsgInternal;
+use super::ws::CTSMsgInternal;
+
 type ShouldRender = bool;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
