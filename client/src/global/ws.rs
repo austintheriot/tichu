@@ -1,10 +1,12 @@
-use crate::app::state::{AppReducerAction, AppState};
+//! Websocket logic for communicating with Tichu server
+
+use crate::global::state::{AppReducerAction, AppState};
 use anyhow::Error;
 use common::{
     sort_cards_for_hand, validate_display_name, validate_game_code, validate_team_name, CTSMsg,
     CallGrandTichuRequest, CardTrade, OtherPlayerOption, PublicGameStage, STCMsg, TeamOption,
 };
-use gloo::timers::callback::{Interval, Timeout};
+use gloo::timers::callback::Interval;
 use log::*;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, rc::Rc};
@@ -176,7 +178,7 @@ fn can_leave_game(
 /// Internal Tichu-client message for alerting that it's time to send a websocket message
 ///
 /// This type reflects the common::CTSMsg, except with all data values tripped,
-/// since the data values are formulated in the send_ws_message message
+/// since the data values are formulated in the send_ws_message function
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CTSMsgInternal {
     JoinGameWithGameCode,
@@ -198,7 +200,6 @@ pub enum CTSMsgInternal {
 }
 
 /// Sends a message to the server via websocket
-/// Returns whether the component should rerender
 fn send_ws_message(
     app_reducer_handle: UseReducerHandle<AppState>,
     ws_mut_ref: Rc<RefCell<WSState>>,
@@ -517,6 +518,7 @@ pub fn use_setup_app_ws(
         );
     }
 
+    // create a callback for child components to be able to use to send websocket messages directly
     let app_reducer_handle = app_reducer_handle.clone();
     let ws_mut_ref = ws_mut_ref.clone();
     Callback::from(move |msg: CTSMsgInternal| {

@@ -3,8 +3,8 @@
 
 extern crate common;
 
-mod app;
-mod components;
+mod global;
+mod ui;
 
 use wasm_bindgen::prelude::*;
 
@@ -17,6 +17,6 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[wasm_bindgen]
 pub fn run_app() -> Result<(), JsValue> {
     wasm_logger::init(wasm_logger::Config::default());
-    yew::start_app::<components::app::app::App>();
+    yew::start_app::<ui::app::app::App>();
     Ok(())
 }

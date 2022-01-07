@@ -1,6 +1,7 @@
-use crate::app::state::AppState;
-use crate::components::lobby::lobby::Lobby;
-use crate::{app::state::AppContext, components::app::ws::use_setup_app_ws};
+use crate::global::state::AppContext;
+use crate::global::state::AppState;
+use crate::global::ws::use_setup_app_ws;
+use crate::ui::lobby::lobby::Lobby;
 use yew::{function_component, html, prelude::*};
 
 #[function_component(App)]

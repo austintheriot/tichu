@@ -1,8 +1,8 @@
 use yew::prelude::*;
 
-use crate::{
-    app::state::{AppContext, AppReducerAction},
-    components::app::ws::CTSMsgInternal,
+use crate::global::{
+    state::{AppContext, AppReducerAction},
+    ws::CTSMsgInternal,
 };
 
 #[function_component(Lobby)]
@@ -12,7 +12,6 @@ pub fn lobby() -> Html {
         let reducer_handle = app_context.app_reducer_handle.clone();
         Callback::from(move |_: MouseEvent| reducer_handle.dispatch(AppReducerAction::Debug))
     };
-
     let handle_ping = {
         let send_ws_message = app_context.send_ws_message.clone();
         Callback::from(move |_: MouseEvent| {

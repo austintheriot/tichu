@@ -1,3 +1,5 @@
+//! Global state for the Tichu app
+
 use common::{
     clean_up_display_name, clean_up_game_code, get_card_combination,
     get_user_can_play_wished_for_card, next_combo_beats_prev, sort_cards_for_hand, Card, CardValue,
@@ -10,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use yew::{Callback, Reducible, UseReducerHandle};
 
-use crate::components::app::ws::CTSMsgInternal;
+use super::ws::CTSMsgInternal;
 
 pub const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
 pub const DISPLAY_NAME_STORAGE_KEY: &str = "yew.tichu.display_name";
