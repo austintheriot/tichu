@@ -1,15 +1,14 @@
 #![feature(format_args_capture)]
 #![recursion_limit = "1024"]
 
-mod components;
-mod types;
-
 extern crate common;
+
+mod app;
+mod components;
 
 use wasm_bindgen::prelude::*;
 
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
-// allocator.
+// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global allocator.
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
