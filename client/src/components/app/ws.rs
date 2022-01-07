@@ -1,16 +1,21 @@
 use std::{cell::RefCell, rc::Rc};
 
+use anyhow::Error;
 use common::{
-    validate_display_name, validate_game_code, validate_team_name, CTSMsg, CardTrade,
-    OtherPlayerOption, PublicGameStage, TeamOption,
+    sort_cards_for_hand, validate_display_name, validate_game_code, validate_team_name, CTSMsg,
+    CallGrandTichuRequest, CardTrade, OtherPlayerOption, PublicGameStage, STCMsg, TeamOption,
 };
 use gloo::timers::callback::Interval;
 use log::*;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{ErrorEvent, MessageEvent, WebSocket};
 use yew::{use_effect, use_mut_ref, UseReducerHandle};
 
-use crate::app::state::{AppReducerAction, AppState, CTSMsgInternal};
+use crate::{
+    app::state::{AppReducerAction, AppState},
+    components::_app::App,
+};
 
 pub struct WSCallbacks {
     #[allow(dead_code)]
@@ -43,17 +48,22 @@ pub fn connect_to_ws(
         );
         let ws = WebSocket::new(&url).expect("Should connect to URL without error");
         ws.set_binary_type(web_sys::BinaryType::Arraybuffer);
-        let onmessage_link = app_reducer_handle.clone();
-        let onopen_link = app_reducer_handle.clone();
-        let onerror_link = app_reducer_handle.clone();
-        let onclose_link = app_reducer_handle.clone();
+        let onmessage_app_reducer_handle = app_reducer_handle.clone();
+        let onopen_app_reducer_handle = app_reducer_handle.clone();
+        let onerror_app_reducer_handle = app_reducer_handle.clone();
+        let onclose_app_reducer_handle = app_reducer_handle.clone();
+        let ws_mut_ref_clone = ws_mut_ref.clone();
         // on message
         let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
             // ArrayBuffer
             if let Ok(abuf) = e.data().dyn_into::<js_sys::ArrayBuffer>() {
                 let u_int_8_array = js_sys::Uint8Array::new(&abuf);
                 let vec = u_int_8_array.to_vec();
-                onmessage_link.dispatch(AppReducerAction::WSMsgReceived(Ok(vec)));
+                handle_ws_message_received(
+                    onmessage_app_reducer_handle.clone(),
+                    ws_mut_ref_clone.clone(),
+                    Ok(vec),
+                );
             } else if let Ok(blob) = e.data().dyn_into::<web_sys::Blob>() {
                 // Blob
                 warn!("Websocket message event, received blob: {:?}", blob);
@@ -70,21 +80,21 @@ pub fn connect_to_ws(
         // on open
         let onopen_callback = Closure::wrap(Box::new(move || {
             info!("Websocket open event");
-            onopen_link.dispatch(AppReducerAction::WebsocketOpen);
+            onopen_app_reducer_handle.dispatch(AppReducerAction::WebsocketOpen);
         }) as Box<dyn FnMut()>);
         ws.set_onopen(Some(onopen_callback.as_ref().unchecked_ref()));
 
         // on error
         let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
             error!("Websocket event: {:?}", e);
-            onerror_link.dispatch(AppReducerAction::WebsocketError);
+            onerror_app_reducer_handle.dispatch(AppReducerAction::WebsocketError);
         }) as Box<dyn FnMut(ErrorEvent)>);
         ws.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
 
         // on close
         let onclose_callback = Closure::wrap(Box::new(move || {
             error!("Websocket close event");
-            onclose_link.dispatch(AppReducerAction::WebsocketClosed);
+            onclose_app_reducer_handle.dispatch(AppReducerAction::WebsocketClosed);
         }) as Box<dyn FnMut()>);
         ws.set_onclose(Some(onclose_callback.as_ref().unchecked_ref()));
 
@@ -106,10 +116,15 @@ pub fn begin_ping(
     app_reducer_handle: UseReducerHandle<AppState>,
     ws_mut_ref: Rc<RefCell<WSState>>,
 ) {
-    let mut ws_state = (*ws_mut_ref).borrow_mut();
+    let ws_mut_ref_clone = ws_mut_ref.clone();
     let interval = Interval::new(PING_INTERVAL_MS, move || {
-        app_reducer_handle.dispatch(AppReducerAction::SendWSMsg(CTSMsgInternal::Ping));
+        send_ws_message(
+            app_reducer_handle.clone(),
+            ws_mut_ref_clone.clone(),
+            CTSMsgInternal::Ping,
+        );
     });
+    let mut ws_state = (*ws_mut_ref).borrow_mut();
     ws_state.ping_interval = Some(interval);
 }
 
@@ -143,6 +158,30 @@ fn can_leave_game(
             (*app_reducer_handle).game_state.as_ref().unwrap().stage,
             PublicGameStage::Lobby
         )
+}
+
+/// Internal Tichu-client message for alerting that it's time to send a websocket message
+///
+/// This type reflects the common::CTSMsg, except with all data values tripped,
+/// since the data values are formulated in the send_ws_message message
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CTSMsgInternal {
+    JoinGameWithGameCode,
+    MoveToTeam(TeamOption),
+    RenameTeam(TeamOption),
+    CreateGame,
+    LeaveGame,
+    StartGrandTichu,
+    SubmitTrade,
+    PlayCards,
+    Pass,
+    CallGrandTichu(CallGrandTichuRequest),
+    CallSmallTichu,
+    __Admin_SkipToPlay,
+
+    Ping,
+    Pong,
+    Test,
 }
 
 /// Sends a message to the server via websocket
@@ -179,7 +218,7 @@ fn send_ws_message(
 
             app_reducer_handle.dispatch(AppReducerAction::SetIsAlive(false));
             if should_reconnect {
-                app_reducer_handle.dispatch(AppReducerAction::ConnectToWS);
+                connect_to_ws(app_reducer_handle.clone(), ws_mut_ref.clone());
             } else {
                 _send_ws_message(ws_mut_ref.clone(), CTSMsg::Ping);
             }
@@ -451,4 +490,107 @@ pub fn use_setup_app_ws(app_reducer_handle: UseReducerHandle<AppState>) {
         // cleanup function ?
         || {}
     });
+}
+
+/// Handles when a websocket message is received from the server
+/// Returns whether the component should re-render or not
+fn handle_ws_message_received(
+    app_reducer_handle: UseReducerHandle<AppState>,
+    ws_mut_ref: Rc<RefCell<WSState>>,
+    data: Result<Vec<u8>, Error>,
+) -> bool {
+    let mut should_rerender = true;
+    if data.is_err() {
+        error!("Data received from websocket was an error {:#?}", &data);
+        return false;
+    }
+    let data: Option<STCMsg> = bincode::deserialize(&data.unwrap()).ok();
+    info!("Received websocket message: {:#?}", &data);
+    match data {
+        None => {
+            warn!("Deserialized data is None. This probably indicates there was an error deserializing the websocket message binary");
+        }
+        Some(data) => match data {
+            STCMsg::Ping => {
+                send_ws_message(app_reducer_handle, ws_mut_ref, CTSMsgInternal::Pong);
+            }
+            STCMsg::UserIdAssigned(s) => {
+                app_reducer_handle.dispatch(AppReducerAction::SetUserId(s));
+            }
+            STCMsg::GameState(new_game_state) => {
+                let new_game_state = *new_game_state;
+
+                // if team names are empty, update team name inputs to reflect state
+                if (*app_reducer_handle).team_a_name_input.is_empty()
+                    || (*app_reducer_handle).team_b_name_input.is_empty()
+                {
+                    if let Some(new_game_state) = &new_game_state {
+                        if let PublicGameStage::Teams(teams_state) = &new_game_state.stage {
+                            app_reducer_handle.dispatch(AppReducerAction::SetTeamANameInput(
+                                (*teams_state[0].team_name).to_string(),
+                            ));
+                            app_reducer_handle.dispatch(AppReducerAction::SetTeamBNameInput(
+                                (*teams_state[1].team_name).to_string(),
+                            ));
+                        }
+                    }
+                }
+
+                // move into block and back out for mutability (TODO: clean up later)
+                let new_game_state = if let Some(mut new_game_state) = new_game_state {
+                    // save display name input to state/localStorage
+                    app_reducer_handle.dispatch(AppReducerAction::SetDisplayName(
+                        (*new_game_state.current_user.display_name).to_string(),
+                    ));
+
+                    // sort current user's hand
+                    sort_cards_for_hand(&mut new_game_state.current_user.hand);
+
+                    Box::new(Some(new_game_state))
+                } else {
+                    Box::new(new_game_state)
+                };
+
+                app_reducer_handle.dispatch(AppReducerAction::SetGameState(*new_game_state));
+                should_rerender = true;
+            }
+            STCMsg::UnexpectedMessageReceived(s) => {
+                warn!(
+                    "Server received unexpected message from client. Message sent from client: {}",
+                    s
+                );
+            }
+            STCMsg::Pong => {
+                app_reducer_handle.dispatch(AppReducerAction::SetIsAlive(true));
+            }
+            STCMsg::TeamARenamed(new_team_a_name) => {
+                app_reducer_handle.dispatch(AppReducerAction::SetTeamANameInput(new_team_a_name));
+            }
+            STCMsg::TeamBRenamed(new_team_b_name) => {
+                app_reducer_handle.dispatch(AppReducerAction::SetTeamBNameInput(new_team_b_name));
+            }
+            STCMsg::Test(_) => {}
+            STCMsg::GameCreated { .. } => {}
+            STCMsg::UserJoined(_) => {}
+            STCMsg::UserDisconnected(_) => {}
+            STCMsg::UserReconnected(_) => {}
+            STCMsg::UserLeft(_) => {}
+            STCMsg::OwnerReassigned(_) => {}
+            STCMsg::UserMovedToTeamA(_) => {}
+            STCMsg::UserMovedToTeamB(_) => {}
+            STCMsg::GameStageChanged(_) => {}
+            STCMsg::GrandTichuCalled(_, _) => {}
+            STCMsg::SmallTichuCalled(_) => {}
+            STCMsg::TradeSubmitted(_) => {}
+            STCMsg::CardsPlayed => {}
+            STCMsg::FirstCardsDealt => {}
+            STCMsg::LastCardsDealt => {}
+            STCMsg::PlayerReceivedDragon => {}
+            STCMsg::GameEnded => {}
+            STCMsg::GameEndedFinal => {}
+            STCMsg::UserPassed(_) => {}
+        },
+    }
+
+    should_rerender
 }

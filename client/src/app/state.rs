@@ -1,7 +1,8 @@
 use anyhow::Error;
 use common::{
-    get_card_combination, get_user_can_play_wished_for_card, next_combo_beats_prev,
-    validate_display_name, validate_game_code, CallGrandTichuRequest, Card, CardValue,
+    clean_up_display_name, clean_up_game_code, get_card_combination,
+    get_user_can_play_wished_for_card, next_combo_beats_prev, sort_cards_for_hand,
+    validate_display_name, validate_game_code, CallGrandTichuRequest, Card, CardValue, Deck,
     OtherPlayerOption, PublicGameStage, PublicGameState, TeamCategories, TeamOption,
     TichuCallStatus, ValidCardCombo, DRAGON, NO_USER_ID,
 };
@@ -24,14 +25,11 @@ pub enum WSConnectionStatus {
 }
 
 pub enum AppReducerAction {
-    ConnectToWS,
-    BeginPing,
     SetIsAlive(bool),
     WebsocketOpen,
     WebsocketError,
     WebsocketClosed,
-    WSMsgReceived(Result<Vec<u8>, Error>),
-    SendWSMsg(CTSMsgInternal),
+    SetGameState(Option<PublicGameState>),
     SetUserId(String),
     SetDisplayName(String),
     SetDisplayNameInput(String),
@@ -88,6 +86,9 @@ impl Reducible for AppState {
     fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
         let mut next_state = (*self).clone();
         match action {
+            AppReducerAction::SetGameState(public_game_state) => {
+                next_state.game_state = public_game_state;
+            }
             AppReducerAction::Debug => {
                 info!("Debug action called");
             }
@@ -99,7 +100,156 @@ impl Reducible for AppState {
             AppReducerAction::SetShowUserIdToGiveDragonToForm(bool) => {
                 next_state.show_user_id_to_give_dragon_to_form = bool;
             }
-            _ => {}
+            AppReducerAction::WebsocketOpen => {
+                next_state.is_alive = true;
+                next_state.ws_connection_status = WSConnectionStatus::Open;
+            }
+            AppReducerAction::WebsocketError => {
+                next_state.is_alive = false;
+                next_state.ws_connection_status = WSConnectionStatus::Error;
+            }
+            AppReducerAction::WebsocketClosed => {
+                next_state.is_alive = false;
+                next_state.ws_connection_status = WSConnectionStatus::Closed;
+            }
+            AppReducerAction::SetUserId(s) => {
+                LocalStorage::set(USER_ID_STORAGE_KEY, &s)
+                    .expect("failed to save user_id to local storage");
+                next_state.user_id = s;
+            }
+            AppReducerAction::SetDisplayName(s) => {
+                let s = clean_up_display_name(&s);
+                LocalStorage::set(DISPLAY_NAME_STORAGE_KEY, &s)
+                    .expect("failed to save display_name to local storage");
+                next_state.display_name = s.clone();
+                next_state.display_name_input = s;
+            }
+            AppReducerAction::SetJoinRoomGameCodeInput(s) => {
+                let s = clean_up_game_code(&s);
+                next_state.join_room_game_code_input = s;
+            }
+            AppReducerAction::SetDisplayNameInput(s) => {
+                next_state.display_name_input = s;
+            }
+            AppReducerAction::SetTeamANameInput(s) => {
+                next_state.team_a_name_input = s;
+            }
+            AppReducerAction::SetTeamBNameInput(s) => {
+                next_state.team_b_name_input = s;
+            }
+            AppReducerAction::SetSelectedPrePlayCard(i) => {
+                if next_state.can_select_pre_play_card() {
+                    if let Some(game_state) = &next_state.game_state {
+                        if let Some(card_from_hand) = game_state.current_user.hand.get(i) {
+                            if !next_state.is_card_is_set_to_trade(&card_from_hand) {
+                                next_state
+                                    .selected_pre_play_card
+                                    .replace(card_from_hand.to_owned());
+                            } else {
+                                warn!("Can't set selected card since card is already set to trade");
+                            }
+                        } else {
+                            warn!("Couldn't find index {:?} in current users hand", i);
+                        }
+                    } else {
+                        warn!("Can't SetSelectedPrePlayCard because current game_state is None");
+                    };
+                } else {
+                    warn!("Invalid state to set selected card");
+                }
+            }
+            AppReducerAction::RemoveSelectedPrePlayCard => {
+                next_state.selected_pre_play_card = None;
+            }
+            AppReducerAction::SetTrade(trade_to_person) => {
+                if next_state.can_set_trade() {
+                    if let Some(selected_pre_play_card) = &next_state.selected_pre_play_card {
+                        if !next_state.is_card_is_set_to_trade(selected_pre_play_card) {
+                            match &trade_to_person {
+                                OtherPlayerOption::Opponent1 => {
+                                    next_state.trade_to_opponent1 =
+                                        next_state.selected_pre_play_card.take();
+                                }
+                                OtherPlayerOption::Teammate => {
+                                    next_state.trade_to_teammate =
+                                        next_state.selected_pre_play_card.take();
+                                }
+                                OtherPlayerOption::Opponent2 => {
+                                    next_state.trade_to_opponent2 =
+                                        next_state.selected_pre_play_card.take();
+                                }
+                            }
+                            if let Some(game_state) = &mut next_state.game_state {
+                                sort_cards_for_hand(&mut game_state.current_user.hand);
+                            }
+                        } else {
+                            warn!(
+                                "Can't set trade to {:?} since card is already set to trade",
+                                trade_to_person
+                            );
+                        }
+                    }
+                } else {
+                    warn!("Invalid state to set trade to {:?}", trade_to_person);
+                }
+            }
+            AppReducerAction::RemoveTrade(trade_to_person) => {
+                match &trade_to_person {
+                    OtherPlayerOption::Opponent1 => {
+                        next_state.trade_to_opponent1 = None;
+                    }
+                    OtherPlayerOption::Teammate => {
+                        next_state.trade_to_teammate = None;
+                    }
+                    OtherPlayerOption::Opponent2 => {
+                        next_state.trade_to_opponent2 = None;
+                    }
+                }
+
+                if let Some(game_state) = &mut next_state.game_state {
+                    sort_cards_for_hand(&mut game_state.current_user.hand);
+                }
+            }
+            AppReducerAction::AddSelectedPlayCard(i) => {
+                if next_state.can_select_play_card() {
+                    if let Some(game_state) = &next_state.game_state {
+                        if let Some(card_from_hand) = game_state.current_user.hand.get(i) {
+                            if !next_state.is_play_card_selected(&card_from_hand) {
+                                info!("Adding {:?} to selected_play_cards", card_from_hand);
+                                next_state
+                                    .selected_play_cards
+                                    .push(card_from_hand.to_owned());
+                                sort_cards_for_hand(&mut next_state.selected_play_cards);
+                            } else {
+                                warn!("Can't set selected card since card is already selected to play");
+                            }
+                        } else {
+                            warn!("Couldn't find index {:?} in current users hand", i);
+                        }
+                    } else {
+                        warn!("Can't AddSelectedPlayCard because current game_state is None");
+                    };
+                } else {
+                    warn!("Invalid state to add selected play card");
+                }
+            }
+            AppReducerAction::RemoveSelectedPlayCard(i) => {
+                if let Some(card) = next_state.selected_play_cards.get(i) {
+                    info!("Removing {:?} from selected_play_cards", card);
+                    next_state.selected_play_cards.remove(i);
+                    sort_cards_for_hand(&mut next_state.selected_play_cards);
+                }
+            }
+            AppReducerAction::SetUserIdToGiveDragonTo(user_id) => {
+                next_state.user_id_to_give_dragon_to = user_id;
+            }
+            AppReducerAction::SetWishedForCard(i) => {
+                let wished_for_card_value = Deck::get_wished_for_card_value_from_i(i);
+                next_state.wished_for_card_value = wished_for_card_value;
+            }
+            AppReducerAction::SetIsAlive(bool) => {
+                next_state.is_alive = bool;
+            }
         }
         Rc::new(next_state)
     }
@@ -116,6 +266,11 @@ impl AppState {
         } else {
             None
         };
+    }
+
+    /// only for use in the Trade stage
+    pub fn can_select_pre_play_card(&self) -> bool {
+        self.stage_is_trade() && !self.has_submitted_trade()
     }
 
     pub fn can_play_cards(&self) -> bool {
@@ -220,6 +375,30 @@ impl AppState {
             return false;
         };
         next_combo_beats_prev(&prev_combo, next_combo)
+    }
+
+    pub fn is_card_is_set_to_trade(&self, card: &Card) -> bool {
+        let card_is_set_to_trade_opponent1 = if let Some(card_to_trade) = &self.trade_to_opponent1 {
+            *card_to_trade == *card
+        } else {
+            false
+        };
+
+        let card_is_set_to_trade_teammate = if let Some(card_to_trade) = &self.trade_to_teammate {
+            *card_to_trade == *card
+        } else {
+            false
+        };
+
+        let card_is_set_to_trade_opponent2 = if let Some(card_to_trade) = &self.trade_to_opponent2 {
+            *card_to_trade == *card
+        } else {
+            false
+        };
+
+        card_is_set_to_trade_opponent1
+            || card_is_set_to_trade_teammate
+            || card_is_set_to_trade_opponent2
     }
 
     pub fn can_call_or_decline_grand_tichu(&self) -> bool {
@@ -425,7 +604,7 @@ impl AppState {
         false
     }
 
-    fn get_opponent_ids(&self) -> Option<(String, String)> {
+    pub fn get_opponent_ids(&self) -> Option<(String, String)> {
         if let Some(game_state) = &self.game_state {
             if let Some(TeamCategories { opposing_team, .. }) =
                 game_state.get_immutable_team_categories()
@@ -439,6 +618,22 @@ impl AppState {
             }
         } else {
             None
+        }
+    }
+
+    pub fn can_set_trade(&self) -> bool {
+        matches!(&self.selected_pre_play_card, Some(_))
+    }
+
+    pub fn has_submitted_trade(&self) -> bool {
+        if let Some(game_state) = &self.game_state {
+            if let PublicGameStage::Trade(trade_state) = &game_state.stage {
+                trade_state.submitted_trades.contains(&self.user_id)
+            } else {
+                false
+            }
+        } else {
+            false
         }
     }
 }
@@ -482,28 +677,4 @@ pub fn use_setup_app_reducer() -> UseReducerHandle<AppState> {
 #[derive(Clone, Debug, PartialEq)]
 pub struct AppContext {
     pub reducer_handle: UseReducerHandle<AppState>,
-}
-
-/// Internal Tichu-client message for alerting that it's time to send a websocket message
-///
-/// This type reflects the common::CTSMsg, except with all data values tripped,
-/// since the data values are formulated in the send_ws_message message
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum CTSMsgInternal {
-    JoinGameWithGameCode,
-    MoveToTeam(TeamOption),
-    RenameTeam(TeamOption),
-    CreateGame,
-    LeaveGame,
-    StartGrandTichu,
-    SubmitTrade,
-    PlayCards,
-    Pass,
-    CallGrandTichu(CallGrandTichuRequest),
-    CallSmallTichu,
-    __Admin_SkipToPlay,
-
-    Ping,
-    Pong,
-    Test,
 }
