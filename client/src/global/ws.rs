@@ -6,7 +6,7 @@ use common::{
     sort_cards_for_hand, validate_display_name, validate_game_code, validate_team_name, CTSMsg,
     CallGrandTichuRequest, CardTrade, OtherPlayerOption, PublicGameStage, STCMsg, TeamOption,
 };
-use gloo::timers::callback::Interval;
+use gloo::timers::callback::{Interval, Timeout};
 use log::*;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, rc::Rc};
@@ -43,12 +43,30 @@ pub fn connect_to_ws(
 ) {
     let ws_is_none = (*ws_mut_ref).borrow().ws.is_none();
     if ws_is_none {
-        info!("Connecting to websocket...");
+        info!("Opening websocket...");
         let url = format!(
             "ws://localhost:8080/ws?user_id={}",
             (*app_reducer_handle).user_id
         );
-        let ws = WebSocket::new(&url).expect("Should connect to URL without error");
+        let ws = WebSocket::new(&url);
+        let ws = match ws {
+            Err(e) => {
+                // log and retry on failure
+                error!(
+                    "Error opening WebSocket connection. Will retry in {} seconds. Error: {:?}",
+                    PING_INTERVAL_MS, e
+                );
+                let app_reducer_handle = app_reducer_handle.clone();
+                let ws_mut_ref = ws_mut_ref.clone();
+                Timeout::new(PING_INTERVAL_MS, move || {
+                    connect_to_ws(app_reducer_handle.clone(), ws_mut_ref.clone());
+                })
+                .forget();
+                return;
+            }
+            Ok(ws) => ws,
+        };
+
         ws.set_binary_type(web_sys::BinaryType::Arraybuffer);
         let ws_mut_ref_clone = ws_mut_ref.clone();
         // on message
@@ -205,9 +223,23 @@ fn send_ws_message(
     ws_mut_ref: Rc<RefCell<WSState>>,
     msg_type: CTSMsgInternal,
 ) -> bool {
-    let (ws_is_none, ws_is_alive) = {
+    let (ws_is_none, ws_is_alive, ws_is_closed) = {
         let ws_state = (*ws_mut_ref).borrow();
-        (ws_state.ws.is_none(), ws_state.is_alive)
+        let ws_is_closed = if let Some(ws) = &ws_state.ws {
+            match ws.ready_state() {
+                WebSocket::CONNECTING => false,
+                WebSocket::OPEN => false,
+                WebSocket::CLOSED => true,
+                WebSocket::CLOSING => true,
+                _ => {
+                    warn!("Unexpected ws ready state encountered");
+                    true
+                }
+            }
+        } else {
+            true
+        };
+        (ws_state.ws.is_none(), ws_state.is_alive, ws_is_closed)
     };
     info!("Sending websocket message: {:#?}", msg_type);
     match msg_type {
@@ -224,10 +256,14 @@ fn send_ws_message(
                     "Trying to ping, but there is no websocket connection. Attempting to reconnect"
                 );
                 true
-            } else if !ws_is_alive {
-                info!("Trying to ping, but websocket is not alive. Closing websocket connection and attempting to reconnect.");
+            } else if !ws_is_alive || ws_is_closed {
+                info!("Trying to ping, but websocket is not alive or has closed. Dropping websocket connection and attempting to reconnect.");
                 let mut ws_state = (*ws_mut_ref).borrow_mut();
-                drop(ws_state.ws.take());
+                let ws = ws_state.ws.take();
+                if let Some(ws) = ws {
+                    ws.close().ok();
+                    drop(ws);
+                }
                 drop(ws_state.ws_callbacks.take());
                 true
             } else {
