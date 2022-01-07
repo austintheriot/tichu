@@ -10,9 +10,11 @@ use log::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{ErrorEvent, MessageEvent, WebSocket};
-use yew::{use_effect, use_effect_with_deps, use_mut_ref, UseReducerHandle};
+use yew::{use_effect_with_deps, use_mut_ref, UseReducerHandle};
 
 use crate::app::state::{AppReducerAction, AppState};
+
+pub const PING_INTERVAL_MS: u32 = 5000;
 
 pub struct WSCallbacks {
     #[allow(dead_code)]
@@ -28,6 +30,7 @@ pub struct WSCallbacks {
 #[derive(Default)]
 pub struct WSState {
     ws: Option<WebSocket>,
+    is_alive: bool,
     ws_callbacks: Option<WSCallbacks>,
     ping_interval: Option<Interval>,
 }
@@ -116,8 +119,6 @@ pub fn connect_to_ws(
     }
 }
 
-pub const PING_INTERVAL_MS: u32 = 5000;
-
 pub fn begin_ping(
     app_reducer_handle: UseReducerHandle<AppState>,
     ws_mut_ref: Rc<RefCell<WSState>>,
@@ -197,7 +198,10 @@ fn send_ws_message(
     ws_mut_ref: Rc<RefCell<WSState>>,
     msg_type: CTSMsgInternal,
 ) -> bool {
-    let ws_is_none = (*ws_mut_ref).borrow().ws.is_none();
+    let (ws_is_none, ws_is_alive) = {
+        let ws_state = (*ws_mut_ref).borrow();
+        (ws_state.ws.is_none(), ws_state.is_alive)
+    };
     info!("Sending websocket message: {:#?}", msg_type);
     match msg_type {
         CTSMsgInternal::Test => {
@@ -213,7 +217,7 @@ fn send_ws_message(
                     "Trying to ping, but there is no websocket connection. Attempting to reconnect"
                 );
                 true
-            } else if !(*app_reducer_handle).is_alive {
+            } else if !ws_is_alive {
                 info!("Trying to ping, but websocket is not alive. Closing websocket connection and attempting to reconnect.");
                 let mut ws_state = (*ws_mut_ref).borrow_mut();
                 drop(ws_state.ws.take());
@@ -223,7 +227,8 @@ fn send_ws_message(
                 false
             };
 
-            app_reducer_handle.dispatch(AppReducerAction::SetIsAlive(false));
+            // if is_alive is still false on next Ping, then the websocket is unresponsive
+            (*ws_mut_ref).borrow_mut().is_alive = false;
             if should_reconnect {
                 connect_to_ws(app_reducer_handle.clone(), ws_mut_ref.clone());
             } else {
@@ -473,12 +478,12 @@ fn send_ws_message(
 
 /// Helper function to actually send the websocket message
 fn _send_ws_message(ws_mut_ref: Rc<RefCell<WSState>>, msg: CTSMsg) {
-    let mut ws_state = (*ws_mut_ref).borrow_mut();
+    let ws_state = (*ws_mut_ref).borrow();
     match ws_state.ws {
         None => {
             warn!("Can't send message. Websocket is None in state");
         }
-        Some(ref mut ws) => {
+        Some(ref ws) => {
             let msg = bincode::serialize(&msg).expect("Could not serialize message");
             ws.send_with_u8_array(&msg)
                 .expect("Error sending websocket data as u8 array over websocket");
@@ -515,6 +520,10 @@ fn handle_ws_message_received(
     }
     let data: Option<STCMsg> = bincode::deserialize(&data.unwrap()).ok();
     info!("Received websocket message: {:#?}", &data);
+
+    // any valid message received from the server indicates that the websocket is still alive
+    (*ws_mut_ref).borrow_mut().is_alive = true;
+
     match data {
         None => {
             warn!("Deserialized data is None. This probably indicates there was an error deserializing the websocket message binary");
@@ -569,9 +578,7 @@ fn handle_ws_message_received(
                     s
                 );
             }
-            STCMsg::Pong => {
-                app_reducer_handle.dispatch(AppReducerAction::SetIsAlive(true));
-            }
+            STCMsg::Pong => { /* is_alive is set to true if ANY message is received */ }
             STCMsg::TeamARenamed(new_team_a_name) => {
                 app_reducer_handle.dispatch(AppReducerAction::SetTeamANameInput(new_team_a_name));
             }

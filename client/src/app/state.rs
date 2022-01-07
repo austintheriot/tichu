@@ -21,7 +21,6 @@ pub enum WSConnectionStatus {
 }
 
 pub enum AppReducerAction {
-    SetIsAlive(bool),
     WebsocketOpen,
     WebsocketError,
     WebsocketClosed,
@@ -52,7 +51,6 @@ pub struct AppState {
     pub user_id: String,
     pub display_name: String,
     pub game_state: Option<PublicGameState>,
-    pub is_alive: bool,
 
     pub join_room_game_code_input: String,
     pub display_name_input: String,
@@ -97,15 +95,12 @@ impl Reducible for AppState {
                 next_state.show_user_id_to_give_dragon_to_form = bool;
             }
             AppReducerAction::WebsocketOpen => {
-                next_state.is_alive = true;
                 next_state.ws_connection_status = WSConnectionStatus::Open;
             }
             AppReducerAction::WebsocketError => {
-                next_state.is_alive = false;
                 next_state.ws_connection_status = WSConnectionStatus::Error;
             }
             AppReducerAction::WebsocketClosed => {
-                next_state.is_alive = false;
                 next_state.ws_connection_status = WSConnectionStatus::Closed;
             }
             AppReducerAction::SetUserId(s) => {
@@ -242,9 +237,6 @@ impl Reducible for AppState {
             AppReducerAction::SetWishedForCard(i) => {
                 let wished_for_card_value = Deck::get_wished_for_card_value_from_i(i);
                 next_state.wished_for_card_value = wished_for_card_value;
-            }
-            AppReducerAction::SetIsAlive(bool) => {
-                next_state.is_alive = bool;
             }
         }
         Rc::new(next_state)
@@ -655,7 +647,6 @@ pub fn use_setup_app_reducer() -> UseReducerHandle<AppState> {
             display_name_input: display_name,
             game_state: None,
             join_room_game_code_input: "".into(),
-            is_alive: false,
             team_a_name_input: "".into(),
             team_b_name_input: "".into(),
             selected_pre_play_card: None,
