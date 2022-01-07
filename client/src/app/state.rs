@@ -8,7 +8,9 @@ use gloo::storage::{LocalStorage, Storage};
 use log::*;
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
-use yew::{Reducible, UseReducerHandle};
+use yew::{Callback, Reducible, UseReducerHandle};
+
+use crate::components::app::ws::CTSMsgInternal;
 
 pub const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
 pub const DISPLAY_NAME_STORAGE_KEY: &str = "yew.tichu.display_name";
@@ -664,4 +666,5 @@ impl AppState {
 #[derive(Clone, Debug, PartialEq)]
 pub struct AppContext {
     pub app_reducer_handle: UseReducerHandle<AppState>,
+    pub send_ws_message: Callback<CTSMsgInternal>,
 }

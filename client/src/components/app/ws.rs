@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{ErrorEvent, MessageEvent, WebSocket};
-use yew::{use_effect_with_deps, use_mut_ref, UseReducerHandle};
+use yew::{use_effect_with_deps, use_mut_ref, Callback, UseReducerHandle};
 
 pub const PING_INTERVAL_MS: u32 = 5000;
 
@@ -497,12 +497,15 @@ fn _send_ws_message(ws_mut_ref: Rc<RefCell<WSState>>, msg: CTSMsg) {
     }
 }
 
-pub fn use_setup_app_ws(app_reducer_handle: UseReducerHandle<AppState>) -> Rc<RefCell<WSState>> {
+pub fn use_setup_app_ws(
+    app_reducer_handle: UseReducerHandle<AppState>,
+) -> Callback<CTSMsgInternal> {
     let ws_mut_ref = use_mut_ref(|| WSState::default());
 
     // connect to ws and begin pinging server once app has mounted
     {
         let ws_mut_ref = ws_mut_ref.clone();
+        let app_reducer_handle = app_reducer_handle.clone();
         use_effect_with_deps(
             move |_| {
                 connect_to_ws(app_reducer_handle.clone(), ws_mut_ref.clone());
@@ -514,7 +517,11 @@ pub fn use_setup_app_ws(app_reducer_handle: UseReducerHandle<AppState>) -> Rc<Re
         );
     }
 
-    ws_mut_ref
+    let app_reducer_handle = app_reducer_handle.clone();
+    let ws_mut_ref = ws_mut_ref.clone();
+    Callback::from(move |msg: CTSMsgInternal| {
+        send_ws_message(app_reducer_handle.clone(), ws_mut_ref.clone(), msg);
+    })
 }
 
 /// Handles when a websocket message is received from the server

@@ -7,11 +7,14 @@ use yew::{function_component, html, prelude::*};
 pub fn app() -> Html {
     // initialize app state
     let app_reducer_handle = use_reducer_eq(AppState::default);
-    // setup websocket and
-    use_setup_app_ws(app_reducer_handle.clone());
-    // pass app state and websocket down through context
+
+    // setup websocket and begin pinging server
+    let send_ws_message = use_setup_app_ws(app_reducer_handle.clone());
+
+    // pass app state and a send_ws_message utility down through context
     let context = AppContext {
         app_reducer_handle: app_reducer_handle.clone(),
+        send_ws_message,
     };
 
     html! {
