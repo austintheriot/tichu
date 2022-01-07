@@ -1,7 +1,7 @@
 use crate::global::state::AppContext;
 use crate::global::state::AppState;
 use crate::global::ws::use_setup_app_ws;
-use crate::ui::lobby::lobby::Lobby;
+use crate::ui::{debug::debug::Debug, lobby::lobby::Lobby};
 use yew::{function_component, html, prelude::*};
 
 #[function_component(App)]
@@ -21,6 +21,7 @@ pub fn app() -> Html {
     html! {
         <ContextProvider<AppContext> {context}>
             <Lobby />
+            <Debug />
         </ContextProvider<AppContext>>
     }
 }
