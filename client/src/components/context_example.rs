@@ -1,4 +1,4 @@
-use yew::{function_component, html, prelude::*, use_state, Properties};
+use yew::{function_component, html, prelude::*, use_state};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Theme {
