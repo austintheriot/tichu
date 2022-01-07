@@ -109,7 +109,7 @@ pub enum CTSMsg {
     },
 
     /// Admin message: skip to play stage
-    __Admin_SkipToPlay,
+    __AdminSkipToPlay,
 
     Pass,
 

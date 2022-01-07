@@ -192,7 +192,7 @@ pub enum CTSMsgInternal {
     Pass,
     CallGrandTichu(CallGrandTichuRequest),
     CallSmallTichu,
-    __Admin_SkipToPlay,
+    __AdminSkipToPlay,
 
     Ping,
     Pong,
@@ -476,8 +476,8 @@ fn send_ws_message(
             app_reducer_handle.dispatch(AppReducerAction::SetShowUserIdToGiveDragonToForm(false));
             true
         }
-        CTSMsgInternal::__Admin_SkipToPlay => {
-            _send_ws_message(ws_mut_ref.clone(), CTSMsg::__Admin_SkipToPlay);
+        CTSMsgInternal::__AdminSkipToPlay => {
+            _send_ws_message(ws_mut_ref.clone(), CTSMsg::__AdminSkipToPlay);
             false
         }
     }

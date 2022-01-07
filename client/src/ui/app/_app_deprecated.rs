@@ -1515,7 +1515,7 @@ impl App {
     fn view_debug_skip_to_play(&self, link: &Scope<Self>) -> Html {
         html! {
             <button
-                onclick={link.callback(move |_| AppMsg::SendWSMsg(CTSMsgInternal::__Admin_SkipToPlay))}
+                onclick={link.callback(move |_| AppMsg::SendWSMsg(CTSMsgInternal::__AdminSkipToPlay))}
             >
                 {"Skip to Play Stage"}
             </button>
@@ -2119,8 +2119,8 @@ impl App {
                 self.state.show_user_id_to_give_dragon_to_form = false;
                 true
             }
-            CTSMsgInternal::__Admin_SkipToPlay => {
-                self._send_ws_message(&CTSMsg::__Admin_SkipToPlay);
+            CTSMsgInternal::__AdminSkipToPlay => {
+                self._send_ws_message(&CTSMsg::__AdminSkipToPlay);
                 false
             }
         }

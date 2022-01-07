@@ -123,7 +123,7 @@ pub async fn handle_message_received(
         CTSMsg::Pass => {
             pass(&user_id, &connections, &games, &game_codes).await;
         }
-        CTSMsg::__Admin_SkipToPlay => {
+        CTSMsg::__AdminSkipToPlay => {
             __admin_skip_to_play(&user_id, &connections, &games, &game_codes).await;
         }
     }
