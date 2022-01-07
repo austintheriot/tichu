@@ -1,17 +1,13 @@
-use anyhow::Error;
 use common::{
     clean_up_display_name, clean_up_game_code, get_card_combination,
-    get_user_can_play_wished_for_card, next_combo_beats_prev, sort_cards_for_hand,
-    validate_display_name, validate_game_code, CallGrandTichuRequest, Card, CardValue, Deck,
-    OtherPlayerOption, PublicGameStage, PublicGameState, TeamCategories, TeamOption,
-    TichuCallStatus, ValidCardCombo, DRAGON, NO_USER_ID,
+    get_user_can_play_wished_for_card, next_combo_beats_prev, sort_cards_for_hand, Card, CardValue,
+    Deck, OtherPlayerOption, PublicGameStage, PublicGameState, TeamCategories, TichuCallStatus,
+    ValidCardCombo, DRAGON, NO_USER_ID,
 };
 use gloo::storage::{LocalStorage, Storage};
 use log::*;
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
-use wasm_bindgen::prelude::Closure;
-use web_sys::{ErrorEvent, MessageEvent};
 use yew::{use_reducer_eq, Reducible, UseReducerHandle};
 
 pub const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";

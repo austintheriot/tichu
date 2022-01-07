@@ -5,17 +5,14 @@ use common::{
     sort_cards_for_hand, validate_display_name, validate_game_code, validate_team_name, CTSMsg,
     CallGrandTichuRequest, CardTrade, OtherPlayerOption, PublicGameStage, STCMsg, TeamOption,
 };
-use gloo::timers::callback::Interval;
+use gloo::timers::callback::{Interval, Timeout};
 use log::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{ErrorEvent, MessageEvent, WebSocket};
-use yew::{use_effect, use_mut_ref, UseReducerHandle};
+use yew::{use_effect, use_effect_with_deps, use_mut_ref, UseReducerHandle};
 
-use crate::{
-    app::state::{AppReducerAction, AppState},
-    components::_app::App,
-};
+use crate::app::state::{AppReducerAction, AppState};
 
 pub struct WSCallbacks {
     #[allow(dead_code)]
@@ -39,8 +36,8 @@ pub fn connect_to_ws(
     app_reducer_handle: UseReducerHandle<AppState>,
     ws_mut_ref: Rc<RefCell<WSState>>,
 ) {
-    let mut ws_state = (*ws_mut_ref).borrow_mut();
-    if ws_state.ws.is_none() {
+    let ws_is_none = (*ws_mut_ref).borrow().ws.is_none();
+    if ws_is_none {
         info!("Connecting to websocket...");
         let url = format!(
             "ws://localhost:8080/ws?user_id={}",
@@ -78,9 +75,17 @@ pub fn connect_to_ws(
         ws.set_onmessage(Some(onmessage_callback.as_ref().unchecked_ref()));
 
         // on open
+        let ws_mut_ref_clone = ws_mut_ref.clone();
         let onopen_callback = Closure::wrap(Box::new(move || {
             info!("Websocket open event");
             onopen_app_reducer_handle.dispatch(AppReducerAction::WebsocketOpen);
+            let onopen_app_reducer_handle = onopen_app_reducer_handle.clone();
+            let ws_mut_ref_clone = ws_mut_ref_clone.clone();
+            let timeout = Timeout::new(PING_INTERVAL_MS, move || {
+                // start pinging 5s websocket has opened
+                begin_ping(onopen_app_reducer_handle.clone(), ws_mut_ref_clone.clone());
+            });
+            timeout.forget();
         }) as Box<dyn FnMut()>);
         ws.set_onopen(Some(onopen_callback.as_ref().unchecked_ref()));
 
@@ -98,6 +103,7 @@ pub fn connect_to_ws(
         }) as Box<dyn FnMut()>);
         ws.set_onclose(Some(onclose_callback.as_ref().unchecked_ref()));
 
+        let mut ws_state = (*ws_mut_ref).borrow_mut();
         ws_state.ws = Some(ws);
         ws_state.ws_callbacks = Some(WSCallbacks {
             onmessage: onmessage_callback,
@@ -191,7 +197,7 @@ fn send_ws_message(
     ws_mut_ref: Rc<RefCell<WSState>>,
     msg_type: CTSMsgInternal,
 ) -> bool {
-    let mut ws_state = (*ws_mut_ref).borrow_mut();
+    let ws_is_none = (*ws_mut_ref).borrow().ws.is_none();
     info!("Sending websocket message: {:#?}", msg_type);
     match msg_type {
         CTSMsgInternal::Test => {
@@ -202,13 +208,14 @@ fn send_ws_message(
             false
         }
         CTSMsgInternal::Ping => {
-            let should_reconnect = if ws_state.ws.is_none() {
+            let should_reconnect = if ws_is_none {
                 info!(
                     "Trying to ping, but there is no websocket connection. Attempting to reconnect"
                 );
                 true
             } else if !(*app_reducer_handle).is_alive {
                 info!("Trying to ping, but websocket is not alive. Closing websocket connection and attempting to reconnect.");
+                let mut ws_state = (*ws_mut_ref).borrow_mut();
                 drop(ws_state.ws.take());
                 drop(ws_state.ws_callbacks.take());
                 true
@@ -483,13 +490,15 @@ pub fn use_setup_app_ws(app_reducer_handle: UseReducerHandle<AppState>) {
     let ws_mut_ref = use_mut_ref(|| WSState::default());
 
     // connect to ws and begin pinging server once app has mounted
-    use_effect(move || {
-        connect_to_ws(app_reducer_handle.clone(), ws_mut_ref.clone());
-        begin_ping(app_reducer_handle, ws_mut_ref);
+    use_effect_with_deps(
+        move |_| {
+            connect_to_ws(app_reducer_handle.clone(), ws_mut_ref.clone());
 
-        // cleanup function ?
-        || {}
-    });
+            // cleanup function ?
+            || {}
+        },
+        (),
+    );
 }
 
 /// Handles when a websocket message is received from the server
