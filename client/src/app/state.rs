@@ -1,5 +1,7 @@
 use anyhow::Error;
-use common::{CallGrandTichuRequest, Card, CardValue, OtherPlayerOption, PublicGameState};
+use common::{
+    CallGrandTichuRequest, Card, CardValue, OtherPlayerOption, PublicGameState, TeamOption,
+};
 use log::*;
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
@@ -30,30 +32,30 @@ pub struct WSCallbacks {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AppState {
-    ws_connection_status: WSConnectionStatus,
-    user_id: String,
-    display_name: String,
-    game_state: Option<PublicGameState>,
-    is_alive: bool,
+    pub ws_connection_status: WSConnectionStatus,
+    pub user_id: String,
+    pub display_name: String,
+    pub game_state: Option<PublicGameState>,
+    pub is_alive: bool,
 
-    join_room_game_code_input: String,
-    display_name_input: String,
-    team_a_name_input: String,
-    team_b_name_input: String,
+    pub join_room_game_code_input: String,
+    pub display_name_input: String,
+    pub team_a_name_input: String,
+    pub team_b_name_input: String,
 
     /// temporary card selected for trading, etc. (i.e. game stage is not Play)
     /// this card is then moved into `trade_to_opponent` state once the user chooses
     /// who to give the card to
-    selected_pre_play_card: Option<Card>,
-    trade_to_opponent1: Option<Card>,
-    trade_to_teammate: Option<Card>,
-    trade_to_opponent2: Option<Card>,
+    pub selected_pre_play_card: Option<Card>,
+    pub trade_to_opponent1: Option<Card>,
+    pub trade_to_teammate: Option<Card>,
+    pub trade_to_opponent2: Option<Card>,
 
     /// cards selected for playing
-    selected_play_cards: Vec<Card>,
-    wished_for_card_value: Option<CardValue>,
-    user_id_to_give_dragon_to: Option<String>,
-    show_user_id_to_give_dragon_to_form: bool,
+    pub selected_play_cards: Vec<Card>,
+    pub wished_for_card_value: Option<CardValue>,
+    pub user_id_to_give_dragon_to: Option<String>,
+    pub show_user_id_to_give_dragon_to_form: bool,
 }
 
 impl Reducible for AppState {
@@ -65,7 +67,7 @@ impl Reducible for AppState {
         let mut next_state = (*self).clone();
         match action {
             AppReducerAction::Debug => {
-                log!("Debug action called");
+                info!("Debug action called");
             }
             _ => {}
         }
