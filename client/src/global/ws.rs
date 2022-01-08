@@ -161,38 +161,6 @@ pub fn begin_ping(
     (*ws_mut_ref).borrow_mut().ping_interval = Some(interval);
 }
 
-fn can_create_game(
-    app_reducer_handle: UseReducerHandle<AppState>,
-    ws_mut_ref: Rc<RefCell<WSState>>,
-) -> bool {
-    let ws_state = (*ws_mut_ref).borrow();
-    ws_state.ws.is_some()
-        && validate_display_name(&(*app_reducer_handle).display_name_input).is_none()
-}
-
-fn can_join_game(
-    app_reducer_handle: UseReducerHandle<AppState>,
-    ws_mut_ref: Rc<RefCell<WSState>>,
-) -> bool {
-    let ws_state = (*ws_mut_ref).borrow();
-    ws_state.ws.is_some()
-        && validate_display_name(&(*app_reducer_handle).display_name_input).is_none()
-        && validate_game_code(&(*app_reducer_handle).join_room_game_code_input).is_none()
-}
-
-fn can_leave_game(
-    app_reducer_handle: UseReducerHandle<AppState>,
-    ws_mut_ref: Rc<RefCell<WSState>>,
-) -> bool {
-    let ws_state = (*ws_mut_ref).borrow();
-    ws_state.ws.is_some()
-        && (*app_reducer_handle).game_state.is_some()
-        && matches!(
-            (*app_reducer_handle).game_state.as_ref().unwrap().stage,
-            PublicGameStage::Lobby
-        )
-}
-
 /// Internal Tichu-client message for alerting that it's time to send a websocket message
 ///
 /// This type reflects the common::CTSMsg, except with all data values tripped,
@@ -284,7 +252,7 @@ fn send_ws_message(
             false
         }
         CTSMsgInternal::CreateGame => {
-            if !can_create_game(app_reducer_handle.clone(), ws_mut_ref.clone()) {
+            if !(*app_reducer_handle).can_create_game() {
                 return false;
             }
 
@@ -296,7 +264,7 @@ fn send_ws_message(
             false
         }
         CTSMsgInternal::JoinGameWithGameCode => {
-            if !can_join_game(app_reducer_handle.clone(), ws_mut_ref.clone()) {
+            if !(*app_reducer_handle).can_join_game() {
                 return false;
             }
 
@@ -313,7 +281,7 @@ fn send_ws_message(
             false
         }
         CTSMsgInternal::LeaveGame => {
-            if !can_leave_game(app_reducer_handle.clone(), ws_mut_ref.clone()) {
+            if !(*app_reducer_handle).can_leave_game() {
                 return false;
             }
 

@@ -1,7 +1,8 @@
 use crate::global::state::AppContext;
 use crate::global::state::AppState;
 use crate::global::ws::use_setup_app_ws;
-use crate::ui::{debug::debug::Debug, lobby::lobby::Lobby};
+use crate::ui::{debug::debug::Debug, join::join::Join, lobby::lobby::Lobby};
+use common::PublicGameStage;
 use yew::{function_component, html, prelude::*};
 
 #[function_component(App)]
@@ -18,10 +19,30 @@ pub fn app() -> Html {
         send_ws_message,
     };
 
+    let app_state = &*app_reducer_handle;
+
     html! {
         <ContextProvider<AppContext> {context}>
-            <Lobby />
+            <div>
+            {match &app_state.game_state {
+                None => html! { <Join /> },
+                Some(game_state) =>{
+                    match game_state.stage {
+                        PublicGameStage::Lobby => html! { <Lobby /> },
+                        PublicGameStage::Teams(_) => todo!(),
+                        PublicGameStage::GrandTichu(_) => todo!(),
+                        PublicGameStage::Trade(_) => todo!(),
+                        PublicGameStage::Play(_) => todo!(),
+                        _ => html!{<> </>}
+                    }
+                }
+            }}
+            <br />
+            <br />
+            <hr />
+            <br />
             <Debug />
+            </div>
         </ContextProvider<AppContext>>
     }
 }

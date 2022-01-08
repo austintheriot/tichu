@@ -2,9 +2,10 @@
 
 use common::{
     clean_up_display_name, clean_up_game_code, get_card_combination,
-    get_user_can_play_wished_for_card, next_combo_beats_prev, sort_cards_for_hand, Card, CardValue,
-    Deck, OtherPlayerOption, PublicGameStage, PublicGameState, TeamCategories, TichuCallStatus,
-    ValidCardCombo, DRAGON, NO_USER_ID,
+    get_user_can_play_wished_for_card, next_combo_beats_prev, sort_cards_for_hand,
+    validate_display_name, validate_game_code, Card, CardValue, Deck, OtherPlayerOption,
+    PublicGameStage, PublicGameState, TeamCategories, TichuCallStatus, ValidCardCombo, DRAGON,
+    NO_USER_ID,
 };
 use gloo::storage::{LocalStorage, Storage};
 use log::*;
@@ -298,6 +299,26 @@ impl AppState {
     /// only for use in the Trade stage
     pub fn can_select_pre_play_card(&self) -> bool {
         self.stage_is_trade() && !self.has_submitted_trade()
+    }
+
+    pub fn can_create_game(&self) -> bool {
+        self.ws_connection_status == WSConnectionStatus::Open
+            && validate_display_name(&self.display_name_input).is_none()
+    }
+
+    pub fn can_join_game(&self) -> bool {
+        self.ws_connection_status == WSConnectionStatus::Open
+            && validate_display_name(&self.display_name_input).is_none()
+            && validate_game_code(&self.join_room_game_code_input).is_none()
+    }
+
+    pub fn can_leave_game(&self) -> bool {
+        self.ws_connection_status == WSConnectionStatus::Open
+            && self.game_state.is_some()
+            && matches!(
+                self.game_state.as_ref().unwrap().stage,
+                PublicGameStage::Lobby
+            )
     }
 
     pub fn can_play_cards(&self) -> bool {

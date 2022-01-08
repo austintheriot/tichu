@@ -1,32 +1,38 @@
+use super::super::debug::view_participants::ViewParticipants;
+use crate::global::{state::AppContext, ws::CTSMsgInternal};
 use yew::prelude::*;
-
-use crate::global::{
-    state::{AppContext, AppReducerAction},
-    ws::CTSMsgInternal,
-};
 
 #[function_component(Lobby)]
 pub fn lobby() -> Html {
     let app_context = use_context::<AppContext>().expect("no ctx found");
-    let handle_debug = {
-        let reducer_handle = app_context.app_reducer_handle.clone();
-        Callback::from(move |_: MouseEvent| reducer_handle.dispatch(AppReducerAction::Debug))
-    };
-    let handle_ping = {
+    let send_leave_game_message = {
         let send_ws_message = app_context.send_ws_message.clone();
         Callback::from(move |_: MouseEvent| {
-            send_ws_message.emit(CTSMsgInternal::Ping);
+            send_ws_message.emit(CTSMsgInternal::LeaveGame);
         })
     };
+    let app_state = &*app_context.app_reducer_handle;
 
     html! {
-        <>
-            <button onclick={handle_debug}>
-                {"Pass Debug Action"}
-            </button>
-            <button onclick={handle_ping}>
-                {"Send ping"}
-            </button>
-        </>
+            <>
+                <h1>{"Lobby"}</h1>
+                <h2>{"Game Code: "} {
+                    if let Some(game_state) = &app_state.game_state {
+                        &game_state.game_code
+                } else {
+                        ""
+                }
+            }
+                </h2>
+                <h3>{"Joined:"}</h3>
+                <br />
+                <ViewParticipants />
+                <button
+                    onclick={send_leave_game_message}
+                    disabled={!app_state.can_leave_game()}
+                    >
+                    {"Leave game"}
+                </button>
+            </>
     }
 }
