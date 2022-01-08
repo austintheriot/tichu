@@ -1,7 +1,10 @@
 use crate::global::state::AppContext;
 use crate::global::state::AppState;
 use crate::global::ws::use_setup_app_ws;
-use crate::ui::{debug::debug::Debug, join::join::Join, lobby::lobby::Lobby};
+use crate::ui::debug::debug::Debug;
+use crate::ui::join::join::Join;
+use crate::ui::lobby::lobby::Lobby;
+use crate::ui::teams::teams::Teams;
 use common::PublicGameStage;
 use yew::{function_component, html, prelude::*};
 
@@ -29,7 +32,7 @@ pub fn app() -> Html {
                 Some(game_state) =>{
                     match game_state.stage {
                         PublicGameStage::Lobby => html! { <Lobby /> },
-                        PublicGameStage::Teams(_) => todo!(),
+                        PublicGameStage::Teams(_) => html!{ <Teams /> },
                         PublicGameStage::GrandTichu(_) => todo!(),
                         PublicGameStage::Trade(_) => todo!(),
                         PublicGameStage::Play(_) => todo!(),
