@@ -1,27 +1,10 @@
+use crate::global::state::AppContext;
 use common::{PublicGameStage, TichuCallStatus};
 use yew::prelude::*;
-
-use crate::global::{
-    state::{AppContext, AppReducerAction},
-    ws::CTSMsgInternal,
-};
 
 #[function_component(GrandTichuStatusCurrentUser)]
 pub fn grand_tichu_status_current_user() -> Html {
     let app_context = use_context::<AppContext>().expect("AppContext not found");
-
-    let dispatch_action = {
-        let reducer_handle = app_context.app_reducer_handle.clone();
-        Callback::from(move |_: MouseEvent| reducer_handle.dispatch(AppReducerAction::Debug))
-    };
-
-    let send_ws_message = {
-        let send_ws_message = app_context.send_ws_message.clone();
-        Callback::from(move |_: MouseEvent| {
-            send_ws_message.emit(CTSMsgInternal::Ping);
-        })
-    };
-
     let app_state = &*app_context.app_reducer_handle;
 
     let grand_tichu_call_status = match &app_state.game_state {

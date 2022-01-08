@@ -5,6 +5,7 @@ use crate::ui::debug::debug::Debug;
 use crate::ui::grand_tichu::grand_tichu::GrandTichu;
 use crate::ui::join::join::Join;
 use crate::ui::lobby::lobby::Lobby;
+use crate::ui::play::play::Play;
 use crate::ui::teams::teams::Teams;
 use crate::ui::trade::trade::Trade;
 use common::PublicGameStage;
@@ -37,7 +38,7 @@ pub fn app() -> Html {
                         PublicGameStage::Teams(_) => html!{ <Teams /> },
                         PublicGameStage::GrandTichu(_) => html!{ <GrandTichu /> },
                         PublicGameStage::Trade(_) => html!{ <Trade/> },
-                        PublicGameStage::Play(_) => todo!(),
+                        PublicGameStage::Play(_) => html! { <Play /> },
                         _ => html!{<> </>}
                     }
                 }
