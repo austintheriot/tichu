@@ -673,6 +673,15 @@ impl AppState {
         matches!(&self.selected_pre_play_card, Some(_))
     }
 
+    pub fn can_remove_trade(&self, trade_to_person: &OtherPlayerOption) -> bool {
+        match trade_to_person {
+            OtherPlayerOption::Opponent1 => &self.trade_to_opponent1,
+            OtherPlayerOption::Teammate => &self.trade_to_teammate,
+            OtherPlayerOption::Opponent2 => &self.trade_to_opponent2,
+        }
+        .is_some()
+    }
+
     pub fn has_submitted_trade(&self) -> bool {
         if let Some(game_state) = &self.game_state {
             if let PublicGameStage::Trade(trade_state) = &game_state.stage {
