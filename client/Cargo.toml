@@ -24,6 +24,7 @@ anyhow = "1.0.44"
 bincode = "1.3.3"
 lazy_static = "1.4.0"
 gloo = "0.4.0"
+stylist = {version = "0.10", features = ["yew_integration"]}
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

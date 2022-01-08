@@ -1,11 +1,11 @@
-use wasm_bindgen::JsCast;
-use web_sys::{EventTarget, HtmlInputElement};
-use yew::prelude::*;
-
 use crate::global::{
     state::{AppContext, AppReducerAction},
     ws::CTSMsgInternal,
 };
+use crate::ui::common::button::Button;
+use wasm_bindgen::JsCast;
+use web_sys::{EventTarget, HtmlInputElement};
+use yew::prelude::*;
 
 #[function_component(Join)]
 pub fn join() -> Html {
@@ -60,45 +60,41 @@ pub fn join() -> Html {
     let app_state = &*app_context.app_reducer_handle;
 
     html! {
-          <>
-          <h1>{"Tichu"}</h1>
-              <form onsubmit={handle_join_room_form_submit}>
-                  <label for="join-room-display-name-input">{"Display Name"}</label>
-                  <br />
-                  <input
-                      id="join-room-display-name-input"
-                      type="text"
-                      value={app_state.display_name_input.clone()}
-                      oninput={handle_join_room_display_name_input} />
-                  <br />
-                  <label for="join-room-game-code-input">{"Game Code"}</label>
-                  <br />
-                  <input
-                      id="join-room-game-code-input"
-                      type="text"
-                      value={app_state.join_room_game_code_input.clone()}
-                      oninput={handle_join_room_room_code_input} />
-                  <br />
-                  <button
-                      type="submit"
-                      disabled={!app_state.can_join_game()}
-                      >{"Join game"}</button>
-              </form>
-              <br />
-              <br />
-              <form onsubmit={handle_create_game_form_submit} >
-                  <label for="join-room-display-name-input">{"Display Name"}</label>
-                  <br />
-                  <input
-                      id="create-room-display-name-input"
-                      type="text"
-                      value={app_state.display_name_input.clone()}
-                      oninput={handle_create_room_display_name_input} />
-                  <br />
-                  <button
-                      type="submit"
+            <>
+            <h1>{"Tichu"}</h1>
+                <form onsubmit={handle_join_room_form_submit}>
+                    <label for="join-room-display-name-input">{"Display Name"}</label>
+                    <input
+                        id="join-room-display-name-input"
+                        type="text"
+                        value={app_state.display_name_input.clone()}
+                        oninput={handle_join_room_display_name_input} />
+                    <label for="join-room-game-code-input">{"Game Code"}</label>
+                    <input
+                        id="join-room-game-code-input"
+                        type="text"
+                        value={app_state.join_room_game_code_input.clone()}
+                        oninput={handle_join_room_room_code_input} />
+                    <Button
+                        button_type="submit"
+                        disabled={!app_state.can_join_game()}
+                      >
+                        {"Join game"}
+                      </Button>
+                </form>
+                <form onsubmit={handle_create_game_form_submit} >
+                    <label for="join-room-display-name-input">{"Display Name"}</label>
+                    <input
+                        id="create-room-display-name-input"
+                        type="text"
+                        value={app_state.display_name_input.clone()}
+                        oninput={handle_create_room_display_name_input} />
+                    <Button
+                      button_type="submit"
                       disabled={!app_state.can_create_game()}
-                      >{"Create game"}</button>
+                    >
+                      {"Create game"}
+                    </Button>
               </form>
           </>
     }
