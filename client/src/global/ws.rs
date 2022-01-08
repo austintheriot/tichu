@@ -3,8 +3,8 @@
 use crate::global::state::{AppReducerAction, AppState};
 use anyhow::Error;
 use common::{
-    sort_cards_for_hand, validate_display_name, validate_game_code, validate_team_name, CTSMsg,
-    CallGrandTichuRequest, CardTrade, OtherPlayerOption, PublicGameStage, STCMsg, TeamOption,
+    sort_cards_for_hand, validate_team_name, CTSMsg, CallGrandTichuRequest, CardTrade,
+    OtherPlayerOption, PublicGameStage, STCMsg, TeamOption,
 };
 use gloo::timers::callback::{Interval, Timeout};
 use log::*;

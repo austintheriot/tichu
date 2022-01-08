@@ -39,7 +39,6 @@ pub enum AppReducerAction {
     SetSelectedPrePlayCard(usize),
     RemoveSelectedPrePlayCard,
     ResetAfterPlayCards,
-
     SetTrade(OtherPlayerOption),
     RemoveTrade(OtherPlayerOption),
     AddSelectedPlayCard(usize),
@@ -47,7 +46,6 @@ pub enum AppReducerAction {
     SetUserIdToGiveDragonTo(Option<String>),
     SetShowUserIdToGiveDragonToForm(bool),
     SetWishedForCard(usize),
-    Debug,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -87,9 +85,6 @@ impl Reducible for AppState {
         match action {
             AppReducerAction::SetGameState(public_game_state) => {
                 next_state.game_state = public_game_state;
-            }
-            AppReducerAction::Debug => {
-                info!("Debug action called");
             }
             AppReducerAction::ResetAfterPlayCards => {
                 next_state.selected_play_cards.drain(..);
