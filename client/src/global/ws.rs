@@ -1,4 +1,14 @@
 //! Websocket logic for communicating with Tichu server
+//!
+//! To avoid trying to send on a non-ready websocket, ping_interval is only
+//! initialized once the websocket as actually been opened. Occasionally, however,
+//! the process doesn't get far enough for ping_interval to get setup.
+//!
+//! If no ping_interval has been schedule yet, then a manual retry_timeout is scheduled.
+//!
+//! However, if a ping_interval HAS been scheduled (i.e. the websocket got setup and then it closed),
+//! then the ping will automatically try to reopen the websocket if it is closed/not working,
+//! so no need to schedule a manual retry timeout.
 
 use crate::global::state::{AppReducerAction, AppState};
 use anyhow::Error;
@@ -33,6 +43,7 @@ pub struct WSState {
     is_alive: bool,
     ws_callbacks: Option<WSCallbacks>,
     ping_interval: Option<Interval>,
+    reschedule_timeout: Option<Timeout>,
 }
 
 /// Connects to server websocket and assigns listeners for all websocket events.
@@ -56,12 +67,11 @@ pub fn connect_to_ws(
                     "Error opening WebSocket connection. Will retry in {} seconds. Error: {:?}",
                     PING_INTERVAL_MS, e
                 );
-                let app_reducer_handle = app_reducer_handle.clone();
-                let ws_mut_ref = ws_mut_ref.clone();
-                Timeout::new(PING_INTERVAL_MS, move || {
-                    connect_to_ws(app_reducer_handle.clone(), ws_mut_ref.clone());
-                })
-                .forget();
+                schedule_ws_reconnect(
+                    app_reducer_handle.clone(),
+                    ws_mut_ref.clone(),
+                    PING_INTERVAL_MS,
+                );
                 return;
             }
             Ok(ws) => ws,
@@ -102,6 +112,7 @@ pub fn connect_to_ws(
         let onopen_callback = {
             let app_reducer_handle = app_reducer_handle.clone();
             let ws_mut_ref = ws_mut_ref_clone.clone();
+
             Closure::wrap(Box::new(move || {
                 info!("Websocket open event");
                 app_reducer_handle.dispatch(AppReducerAction::WebsocketOpen);
@@ -113,9 +124,20 @@ pub fn connect_to_ws(
         // on error
         let onerror_callback = {
             let app_reducer_handle = app_reducer_handle.clone();
+            let ws_mut_ref = ws_mut_ref.clone();
+
             Closure::wrap(Box::new(move |e: ErrorEvent| {
-                error!("Websocket event: {:?}", e);
+                error!("Websocket error event: {:?}", e);
                 app_reducer_handle.dispatch(AppReducerAction::WebsocketError);
+                cleanup_ws_state(ws_mut_ref.clone());
+                // if ping has been scheduled, then we don't need to retry connection
+                if (*ws_mut_ref.borrow()).ping_interval.is_none() {
+                    schedule_ws_reconnect(
+                        app_reducer_handle.clone(),
+                        ws_mut_ref.clone(),
+                        PING_INTERVAL_MS,
+                    );
+                }
             }) as Box<dyn FnMut(ErrorEvent)>)
         };
         ws.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
@@ -123,9 +145,20 @@ pub fn connect_to_ws(
         // on close
         let onclose_callback = {
             let app_reducer_handle = app_reducer_handle.clone();
+            let ws_mut_ref = ws_mut_ref.clone();
+
             Closure::wrap(Box::new(move || {
                 error!("Websocket close event");
                 app_reducer_handle.dispatch(AppReducerAction::WebsocketClosed);
+                cleanup_ws_state(ws_mut_ref.clone());
+                // if ping has been scheduled, then we don't need to retry connection
+                if (*ws_mut_ref.borrow()).ping_interval.is_none() {
+                    schedule_ws_reconnect(
+                        app_reducer_handle.clone(),
+                        ws_mut_ref.clone(),
+                        PING_INTERVAL_MS,
+                    );
+                }
             }) as Box<dyn FnMut()>)
         };
         ws.set_onclose(Some(onclose_callback.as_ref().unchecked_ref()));
@@ -147,6 +180,7 @@ pub fn begin_ping(
     app_reducer_handle: UseReducerHandle<AppState>,
     ws_mut_ref: Rc<RefCell<WSState>>,
 ) {
+    info!("Scheduling WebSocket ping");
     // start pinging on an interval
     let interval = {
         let ws_mut_ref = ws_mut_ref.clone();
@@ -158,7 +192,14 @@ pub fn begin_ping(
             );
         })
     };
-    (*ws_mut_ref).borrow_mut().ping_interval = Some(interval);
+    // we don't need to retry on a timeout if ping is running
+    let mut ws_state = (*ws_mut_ref).borrow_mut();
+    let timeout = ws_state.reschedule_timeout.take();
+    if let Some(timeout) = timeout {
+        timeout.cancel();
+    }
+
+    ws_state.ping_interval = Some(interval);
 }
 
 /// Internal Tichu-client message for alerting that it's time to send a websocket message
@@ -183,6 +224,46 @@ pub enum CTSMsgInternal {
     Ping,
     Pong,
     Test,
+}
+
+fn schedule_ws_reconnect(
+    app_reducer_handle: UseReducerHandle<AppState>,
+    ws_mut_ref: Rc<RefCell<WSState>>,
+    interval: u32,
+) {
+    if (*ws_mut_ref).borrow().reschedule_timeout.is_some() {
+        warn!("Timeout already scheduled to reopen websocket. Ignoring request.");
+        return;
+    }
+    info!("Will try to reopen websocket in {}ms", interval);
+    let new_timeout = {
+        let ws_mut_ref = ws_mut_ref.clone();
+        Timeout::new(interval, move || {
+            // delete its handle in state
+            let timeout_in_state = (*ws_mut_ref).borrow_mut().reschedule_timeout.take();
+            drop(timeout_in_state);
+            connect_to_ws(app_reducer_handle.clone(), ws_mut_ref.clone());
+        })
+    };
+    (*ws_mut_ref).borrow_mut().reschedule_timeout = Some(new_timeout);
+}
+
+/// Close websocket state: remove and drop websocket w/ its callbacks
+fn cleanup_ws_state(ws_mut_ref: Rc<RefCell<WSState>>) {
+    info!("cleaning up Websocket state");
+    let mut ws_state = (*ws_mut_ref).borrow_mut();
+    let ws = ws_state.ws.take();
+    if let Some(ws) = ws {
+        // remove event listeners
+        ws.set_onclose(None);
+        ws.set_onerror(None);
+        ws.set_onopen(None);
+        ws.set_onmessage(None);
+        // close if it wasn't already
+        ws.close().ok();
+        drop(ws);
+    }
+    drop(ws_state.ws_callbacks.take());
 }
 
 /// Sends a message to the server via websocket
@@ -226,13 +307,8 @@ fn send_ws_message(
                 true
             } else if !ws_is_alive || ws_is_closed {
                 info!("Trying to ping, but websocket is not alive or has closed. Dropping websocket connection and attempting to reconnect.");
-                let mut ws_state = (*ws_mut_ref).borrow_mut();
-                let ws = ws_state.ws.take();
-                if let Some(ws) = ws {
-                    ws.close().ok();
-                    drop(ws);
-                }
-                drop(ws_state.ws_callbacks.take());
+                cleanup_ws_state(ws_mut_ref.clone());
+                // ping continues retrying, so no need to reschedule a retry here
                 true
             } else {
                 false
