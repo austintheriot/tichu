@@ -5,6 +5,7 @@ extern crate common;
 
 mod global;
 mod ui;
+mod utils;
 
 use wasm_bindgen::prelude::*;
 
