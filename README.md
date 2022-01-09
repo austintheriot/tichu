@@ -2,9 +2,9 @@
 
 ## About
 
-Tichu is an adaptation of the Chinese game *Zheng Fen* by Urs Hostettler and was released in 1991. It is a strategically complex game and is quite addicting. Watch out if you ever learn it! You may not want to play other card games.
+Tichu is an adaptation of the Chinese game *Zheng Fen* by Urs Hostettler and was released in 1991. It is a strategically complex game and is quite addicting. Watch out if you ever learn it! It might leave you reluctant to play other card games...
 
-Copyright of this game belongs to the original publisher of Tichu, and I do not claim any copyright on the underlying material. This project was made for educational purposes only. 
+Copyright of this game belongs to the original publisher of Tichu, and I do not claim any copyright on the underlying material/mechanics of the game. This project was made for educational purposes only—namely that of learning Rust. 
 
 ## Scripts
 - Prerequisite for running scripts in watch mode: 
