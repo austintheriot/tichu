@@ -1,3 +1,5 @@
+//! Experiment in making CSS utility hooks for component-scoped styles
+
 use gloo::utils::document;
 use log::*;
 use uuid::Uuid;
@@ -5,11 +7,11 @@ use wasm_bindgen::JsCast;
 use web_sys::{CssStyleSheet, HtmlStyleElement};
 use yew::{use_effect, use_mut_ref, use_ref};
 
-const APP_STYLES_ID: &'static str = "tichu-app-styles";
+const _APP_STYLES_ID: &'static str = "tichu-app-styles";
 
-fn get_or_make_style_sheet() -> CssStyleSheet {
+fn _get_or_make_style_sheet() -> CssStyleSheet {
     document()
-        .get_element_by_id(APP_STYLES_ID)
+        .get_element_by_id(_APP_STYLES_ID)
         // if it exists in the document, it is an HtmlStyleElement
         .and_then(|element| element.dyn_into::<HtmlStyleElement>().ok())
         // get its style sheet
@@ -23,7 +25,7 @@ fn get_or_make_style_sheet() -> CssStyleSheet {
             // create element
             let element = document().create_element("style").unwrap();
             let style_element = element.dyn_into::<HtmlStyleElement>().unwrap();
-            style_element.set_id(APP_STYLES_ID);
+            style_element.set_id(_APP_STYLES_ID);
 
             // append style element to head
             document()
@@ -40,13 +42,13 @@ fn get_or_make_style_sheet() -> CssStyleSheet {
         .unwrap()
 }
 
-pub fn use_style_sheet_styles(selector: &str, rules: &str) -> String {
+pub fn _use_style_sheet_styles(selector: &str, rules: &str) -> String {
     let uuid = use_ref(|| {
         let mut uuid = Uuid::new_v4().to_string();
         uuid.retain(|ch| ch.is_alphabetic());
         uuid
     });
-    let style_sheet = use_ref(get_or_make_style_sheet);
+    let style_sheet = use_ref(_get_or_make_style_sheet);
     let indexes = use_mut_ref(|| Vec::new());
 
     {

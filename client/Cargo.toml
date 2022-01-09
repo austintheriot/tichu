@@ -47,4 +47,6 @@ features = [
   "MessageEvent",
   "ProgressEvent",
   "CssStyleSheet",
+  "HtmlStyleElement",
+  "HtmlHeadElement",
 ]
