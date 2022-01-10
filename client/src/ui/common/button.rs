@@ -12,6 +12,8 @@ pub struct ButtonProps {
     pub disabled: bool,
     #[prop_or_else(|| "".into())]
     pub styles: String,
+    #[prop_or_else(|| Callback::from(|_| {}))]
+    onclick: Callback<MouseEvent>,
 }
 
 #[styled_component(Button)]
@@ -27,12 +29,17 @@ pub fn button(props: &ButtonProps) -> Html {
       border: 1px solid var(--gray-75);
       border-radius: 5px;
       font-size: 16px;
+      cursor: pointer;
     }"#,
         &props.styles,
     );
 
     html! {
-      <button type={props.button_type.clone()} class={&class_name}>
+      <button
+        type={props.button_type.clone()}
+        class={&class_name}
+        onclick={&props.onclick}
+      >
         {for props.children.iter()}
       </button>
     }

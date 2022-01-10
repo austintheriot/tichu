@@ -3,6 +3,7 @@ use crate::global::{
     ws::CTSMsgInternal,
 };
 use crate::ui::common::button::Button;
+use crate::ui::common::input::Input;
 use wasm_bindgen::JsCast;
 use web_sys::{EventTarget, HtmlInputElement};
 use yew::prelude::*;
@@ -63,12 +64,13 @@ pub fn join() -> Html {
             <>
             <h1>{"Tichu"}</h1>
                 <form onsubmit={handle_join_room_form_submit}>
-                    <label for="join-room-display-name-input">{"Display Name"}</label>
-                    <input
+                    <Input
+                        label="Display Name"
                         id="join-room-display-name-input"
-                        type="text"
+                        oninput={handle_join_room_display_name_input}
+                        input_type="text"
                         value={app_state.display_name_input.clone()}
-                        oninput={handle_join_room_display_name_input} />
+                    />
                     <label for="join-room-game-code-input">{"Game Code"}</label>
                     <input
                         id="join-room-game-code-input"
