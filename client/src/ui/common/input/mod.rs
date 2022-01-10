@@ -13,12 +13,17 @@ pub struct InputProps {
     pub value: String,
     #[prop_or_else(|| Callback::from(|_| {}))]
     pub oninput: Callback<InputEvent>,
+    #[prop_or_default]
+    pub classes: Vec<String>,
 }
 
 #[function_component(Input)]
 pub fn input(props: &InputProps) -> Html {
+    let mut base_classes = props.classes.clone();
+    base_classes.push("Button".into());
+
     html! {
-      <div>
+      <div class={base_classes}>
         <label for={props.id.clone()}>{&props.label}</label>
         <input
           id={props.id.clone()}
