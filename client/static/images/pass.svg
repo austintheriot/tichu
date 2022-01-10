@@ -56,13 +56,6 @@
      id="g839"
      transform="translate(-20,-20)">
     <path
-       d="M 45,69 C 58.2548,69 69,58.2548 69,45 69,31.7452 58.2548,21 45,21 31.7452,21 21,31.7452 21,45 21,58.2548 31.7452,69 45,69 Z"
-       stroke="#b5a8f4"
-       stroke-width="2"
-       stroke-linecap="round"
-       stroke-linejoin="round"
-       id="path833" />
-    <path
        d="m 32.699623,55.909927 22.83109,-22.83109"
        stroke="#b5a8f4"
        stroke-width="3.36334"
