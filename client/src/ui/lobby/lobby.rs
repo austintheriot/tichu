@@ -1,5 +1,6 @@
 use super::super::debug::view_participants::ViewParticipants;
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
+use crate::ui::common::layout::Layout;
 use yew::prelude::*;
 
 #[function_component(Lobby)]
@@ -14,15 +15,15 @@ pub fn lobby() -> Html {
     let app_state = &*app_context.app_reducer_handle;
 
     html! {
-            <>
+            <Layout>
                 <h1>{"Lobby"}</h1>
-                <h2>{"Game Code: "} {
+                <h2>{"Game Code: "}{
                     if let Some(game_state) = &app_state.game_state {
                         &game_state.game_code
-                } else {
+                    } else {
                         ""
+                    }
                 }
-            }
                 </h2>
                 <h3>{"Joined:"}</h3>
                 <br />
@@ -33,6 +34,6 @@ pub fn lobby() -> Html {
                     >
                     {"Leave game"}
                 </button>
-            </>
+            </Layout>
     }
 }

@@ -4,6 +4,7 @@ use crate::global::{
 };
 use crate::ui::common::button::Button;
 use crate::ui::common::input::Input;
+use crate::ui::common::layout::Layout;
 use wasm_bindgen::JsCast;
 use web_sys::{EventTarget, HtmlInputElement};
 use yew::prelude::*;
@@ -61,7 +62,7 @@ pub fn join() -> Html {
     let app_state = &*app_context.app_reducer_handle;
 
     html! {
-        <div class="Join__Container">
+        <Layout classes={vec!["Join__Container".into()]}>
             <h1>{"Tichu"}</h1>
             <form onsubmit={handle_join_room_form_submit}>
                 <Input
@@ -101,6 +102,6 @@ pub fn join() -> Html {
                     {"Create game"}
                 </Button>
             </form>
-        </div>
+        </Layout>
     }
 }
