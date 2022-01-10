@@ -61,43 +61,46 @@ pub fn join() -> Html {
     let app_state = &*app_context.app_reducer_handle;
 
     html! {
-            <>
+        <div class="Join__Container">
             <h1>{"Tichu"}</h1>
-                <form onsubmit={handle_join_room_form_submit}>
-                    <Input
-                        label="Display Name"
-                        id="join-room-display-name-input"
-                        oninput={handle_join_room_display_name_input}
-                        input_type="text"
-                        value={app_state.display_name_input.clone()}
-                    />
-                    <label for="join-room-game-code-input">{"Game Code"}</label>
-                    <input
-                        id="join-room-game-code-input"
-                        type="text"
-                        value={app_state.join_room_game_code_input.clone()}
-                        oninput={handle_join_room_room_code_input} />
-                    <Button
-                        button_type="submit"
-                        disabled={!app_state.can_join_game()}
-                      >
-                        {"Join game"}
-                      </Button>
-                </form>
-                <form onsubmit={handle_create_game_form_submit} >
-                    <label for="join-room-display-name-input">{"Display Name"}</label>
-                    <input
-                        id="create-room-display-name-input"
-                        type="text"
-                        value={app_state.display_name_input.clone()}
-                        oninput={handle_create_room_display_name_input} />
-                    <Button
-                      button_type="submit"
-                      disabled={!app_state.can_create_game()}
+            <form onsubmit={handle_join_room_form_submit}>
+                <Input
+                    label="Display Name"
+                    id="join-room-display-name-input"
+                    oninput={handle_join_room_display_name_input}
+                    input_type="text"
+                    value={app_state.display_name_input.clone()}
+                />
+                <Input
+                    label="Game Code"
+                    id="join-room-game-code-input"
+                    input_type="text"
+                    oninput={handle_join_room_room_code_input}
+                    value={app_state.join_room_game_code_input.clone()}
+                />
+                <Button
+                    button_type="submit"
+                    disabled={!app_state.can_join_game()}
                     >
-                      {"Create game"}
+                    {"Join game"}
                     </Button>
-              </form>
-          </>
+            </form>
+            <hr />
+            <form onsubmit={handle_create_game_form_submit} >
+                <Input
+                    label="Display Name"
+                    id="join-room-display-name-input"
+                    input_type="text"
+                    oninput={handle_create_room_display_name_input}
+                    value={app_state.display_name_input.clone()}
+                />
+                <Button
+                    button_type="submit"
+                    disabled={!app_state.can_create_game()}
+                >
+                    {"Create game"}
+                </Button>
+            </form>
+        </div>
     }
 }

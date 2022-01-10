@@ -1,3 +1,4 @@
+use log::info;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]

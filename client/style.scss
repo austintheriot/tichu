@@ -1,5 +1,6 @@
 @use './src/ui/common/button.scss';
 @use './src/ui/common/input.scss';
+@use './src/ui/join/join.scss';
 
 :root {
   --primary-00: #060A42;
@@ -34,4 +35,15 @@ h1 {
   line-height: 53px;
   text-align: center;
   color: var(--primary-00);
+  text-transform: uppercase;
+  font-weight: 300;
+}
+hr {
+  margin: 1rem auto;
+  width: 100%;
+  max-width: 300px;
+  height: 1px;
+  border: 0;
+  outline: 0;
+  background-color: var(--gray-75);
 }
