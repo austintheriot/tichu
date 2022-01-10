@@ -20,7 +20,7 @@ pub struct InputProps {
 #[function_component(Input)]
 pub fn input(props: &InputProps) -> Html {
     let mut base_classes = props.classes.clone();
-    base_classes.push("Button".into());
+    base_classes.push("Input".into());
 
     html! {
       <div class={base_classes}>

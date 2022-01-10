@@ -1,11 +1,8 @@
 #![feature(format_args_capture)]
 #![recursion_limit = "1024"]
-
 extern crate common;
-
 mod global;
 mod ui;
-
 use wasm_bindgen::prelude::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global allocator.
