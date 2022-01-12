@@ -829,8 +829,10 @@ impl PrivateGameState {
                 }
             };
 
-            // if one team is over 1000 and there is now tie, then highest scoring team wins
-            if play_state.teams.iter().any(|team| team.score > 1000) {
+            // if one team is over 1000 and there is no tie, then highest scoring team wins
+            if play_state.teams.iter().any(|team| team.score > 1000)
+                && play_state.teams[0].score != play_state.teams[1].score
+            {
                 new_game_state.game_over()?;
             } else {
                 // else start next round
@@ -892,21 +894,27 @@ impl PrivateGameState {
 
     /// Team has high enough points at the end of around to have won the game.
     ///
-    /// If one team is over 1000 and there is now tie, then highest scoring team wins, so move to scoreboard stage.
+    /// If one team is over 1000 and there is no tie, then highest scoring team wins, so move to scoreboard stage.
     /// Mutates state in place
     pub fn game_over(&mut self) -> Result<(), String> {
         return if let PrivateGameStage::Play(play_state) = &self.stage {
-            // clear users' state (hands, tricks, etc.)
-            self.participants.iter_mut().for_each(|participant| {
-                participant.tricks.clear();
-                participant.hand.clear();
-                participant.has_played_first_card = false;
-            });
+            return if play_state.teams.iter().any(|team| team.score > 1000)
+                && play_state.teams[0].score != play_state.teams[1].score
+            {
+                // clear users' state (hands, tricks, etc.)
+                self.participants.iter_mut().for_each(|participant| {
+                    participant.tricks.clear();
+                    participant.hand.clear();
+                    participant.has_played_first_card = false;
+                });
 
-            self.stage = PrivateGameStage::Score((**play_state).to_owned().into());
-            Ok(())
+                self.stage = PrivateGameStage::Score((**play_state).to_owned().into());
+                Ok(())
+            } else {
+                Err("No team's points exceeded the score threshold, or there was tie".to_string())
+            };
         } else {
-            Err("Can't end game when stage is not Play".to_string())
+            Err("Can't end game when PrivateGameStage is not Play".to_string())
         };
     }
 
