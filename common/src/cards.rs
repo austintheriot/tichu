@@ -398,10 +398,11 @@ impl PartialEq for Single {
         if self.value.is_noop() && other.value.is_noop() {
             if self.cards[0].suit == other.cards[0].suit {
                 // can't compare two identical special cards to each other
-                panic!("{COMPARE_IDENTICAL_SPECIAL_CARDS}");
+                panic!(
+                    "{COMPARE_IDENTICAL_SPECIAL_CARDS}: {:#?} was compared to {:#?}",
+                    self.cards[0], other.cards[0]
+                );
             } else {
-                // only compare suits if they are special cards
-                return self.cards[0].suit == other.cards[0].suit;
             }
         }
 
