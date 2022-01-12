@@ -62,7 +62,7 @@ pub async fn pass(user_id: &str, connections: &Connections, games: &Games, game_
     // todo!();
 
     // if game stage changed to Scoreboard, send GameStageChanged event?
-    // if let PrivateGameStage::Scoreboard = &new_game_state.stage {
+    // if let PrivateGameStage::Score = &new_game_state.stage {
     //     eprintln!("{FUNCTION_NAME}: Game state moved to Scoreboard for game {game_id}");
     //     send_ws_message::to_group(
     //         &game_id,

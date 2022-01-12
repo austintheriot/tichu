@@ -38,7 +38,7 @@ pub async fn call_small_tichu(
 
     // game stage cannot be lobby, teams, or scoreboard
     let small_tichus = match &mut game_state.stage {
-        PrivateGameStage::Lobby | PrivateGameStage::Teams(_) | PrivateGameStage::Scoreboard => {
+        PrivateGameStage::Lobby | PrivateGameStage::Teams(_) | PrivateGameStage::Score(_) => {
             eprintln!(
                 "{FUNCTION_NAME}: Can't call Small Tichu when game is not active. Ignoring request from user {}",
                 user_id

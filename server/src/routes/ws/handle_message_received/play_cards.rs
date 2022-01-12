@@ -68,19 +68,6 @@ pub async fn play_cards(
     )
     .await;
 
-    // if game stage changed to Scoreboard, send GameStageChanged event
-    if let PrivateGameStage::Scoreboard = &new_game_state.stage {
-        eprintln!("{FUNCTION_NAME}: Game state moved to Scoreboard for game {game_id}");
-        send_ws_message::to_group(
-            &game_id,
-            STCMsg::GameStageChanged(new_game_state.stage.clone().into()),
-            connections,
-            games,
-            game_codes,
-        )
-        .await;
-    }
-
     // send updated game state
     send_ws_message::game_state_to_group(&game_id, &new_game_state, connections, games, game_codes)
         .await;
