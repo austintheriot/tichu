@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod test_get_next_user_turn_id {
-    use common::{ImmutableTeam, PassWithUserId, PrivatePlay, UserIdWithTichuCallStatus};
+    use common::{
+        ImmutableTeam, PassWithUserId, PrivatePlay, TeamScore, UserIdWithTichuCallStatus,
+    };
 
     #[test]
     fn it_should_return_the_correct_next_user_id() {
@@ -80,6 +82,16 @@ mod test_get_next_user_turn_id {
                 user_3.clone(),
                 user_4.clone(),
             ],
+            scores: [
+                TeamScore {
+                    id: teams[0].id.clone(),
+                    score: 0,
+                },
+                TeamScore {
+                    id: teams[1].id.clone(),
+                    score: 0,
+                },
+            ],
         };
         assert_eq!(private_play.get_next_turn_user_id(), "3");
 
@@ -99,6 +111,16 @@ mod test_get_next_user_turn_id {
                 user_3.clone(),
                 user_4.clone(),
             ],
+            scores: [
+                TeamScore {
+                    id: teams[0].id.clone(),
+                    score: 0,
+                },
+                TeamScore {
+                    id: teams[1].id.clone(),
+                    score: 0,
+                },
+            ],
         };
         assert_eq!(private_play.get_next_turn_user_id(), "4");
 
@@ -118,6 +140,16 @@ mod test_get_next_user_turn_id {
                 user_3.clone(),
                 user_4.clone(),
             ],
+            scores: [
+                TeamScore {
+                    id: teams[0].id.clone(),
+                    score: 0,
+                },
+                TeamScore {
+                    id: teams[1].id.clone(),
+                    score: 0,
+                },
+            ],
         };
         assert_eq!(private_play.get_next_turn_user_id(), "2");
 
@@ -131,11 +163,16 @@ mod test_get_next_user_turn_id {
             user_id_to_give_dragon_to: None,
             wished_for_card_value: None,
             passes: passes.clone(),
-            users_in_play: vec![
-                user_1.clone(),
-                user_2,
-                user_3.clone(),
-                user_4.clone(),
+            users_in_play: vec![user_1.clone(), user_2, user_3.clone(), user_4.clone()],
+            scores: [
+                TeamScore {
+                    id: teams[0].id.clone(),
+                    score: 0,
+                },
+                TeamScore {
+                    id: teams[1].id.clone(),
+                    score: 0,
+                },
             ],
         };
         assert_eq!(private_play.get_next_turn_user_id(), "1");
@@ -153,6 +190,16 @@ mod test_get_next_user_turn_id {
             wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone(), user_4.clone()],
+            scores: [
+                TeamScore {
+                    id: teams[0].id.clone(),
+                    score: 0,
+                },
+                TeamScore {
+                    id: teams[1].id.clone(),
+                    score: 0,
+                },
+            ],
         };
         assert_eq!(private_play.get_next_turn_user_id(), "3");
 
@@ -167,6 +214,16 @@ mod test_get_next_user_turn_id {
             wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone(), user_4.clone()],
+            scores: [
+                TeamScore {
+                    id: teams[0].id.clone(),
+                    score: 0,
+                },
+                TeamScore {
+                    id: teams[1].id.clone(),
+                    score: 0,
+                },
+            ],
         };
         assert_eq!(private_play.get_next_turn_user_id(), "4");
 
@@ -181,6 +238,16 @@ mod test_get_next_user_turn_id {
             wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone(), user_4],
+            scores: [
+                TeamScore {
+                    id: teams[0].id.clone(),
+                    score: 0,
+                },
+                TeamScore {
+                    id: teams[1].id.clone(),
+                    score: 0,
+                },
+            ],
         };
         assert_eq!(private_play.get_next_turn_user_id(), "1");
 
@@ -197,13 +264,23 @@ mod test_get_next_user_turn_id {
             wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone()],
+            scores: [
+                TeamScore {
+                    id: teams[0].id.clone(),
+                    score: 0,
+                },
+                TeamScore {
+                    id: teams[1].id.clone(),
+                    score: 0,
+                },
+            ],
         };
         assert_eq!(private_play.get_next_turn_user_id(), "3");
 
         let private_play = PrivatePlay {
             small_tichus: tichu_call_statuses.clone(),
             grand_tichus: tichu_call_statuses,
-            teams: teams,
+            teams: teams.clone(),
             table: vec![],
             turn_user_id: user_3.clone(),
             winning_user_id: None,
@@ -211,6 +288,16 @@ mod test_get_next_user_turn_id {
             wished_for_card_value: None,
             passes: passes,
             users_in_play: vec![user_1, user_3],
+            scores: [
+                TeamScore {
+                    id: teams[0].id.clone(),
+                    score: 0,
+                },
+                TeamScore {
+                    id: teams[1].id.clone(),
+                    score: 0,
+                },
+            ],
         };
         assert_eq!(private_play.get_next_turn_user_id(), "1");
     }

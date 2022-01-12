@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     CardValue, GetSmallTichu, ImmutableTeam, ImmutableTeams, PrivateTrade, SmallTichuArray,
     TeamCategories, ValidCardCombo,
@@ -8,6 +10,12 @@ use serde::{Deserialize, Serialize};
 pub struct PassWithUserId {
     pub user_id: String,
     pub passed: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct TeamScore {
+    pub id: String,
+    pub score: u16,
 }
 
 /// Server state: includes sensitive information, such as the Deck
@@ -24,8 +32,10 @@ pub struct PrivatePlay {
     pub user_id_to_give_dragon_to: Option<String>,
     pub wished_for_card_value: Option<CardValue>,
     pub passes: [PassWithUserId; 4],
+
     /// Users who have not run out of cards: in turn order
     pub users_in_play: Vec<String>,
+    pub scores: [TeamScore; 2],
 }
 
 impl From<PrivateTrade> for PrivatePlay {
@@ -54,7 +64,7 @@ impl From<PrivateTrade> for PrivatePlay {
         PrivatePlay {
             small_tichus: private_trade.small_tichus.clone(),
             grand_tichus: private_trade.grand_tichus.clone(),
-            teams: private_trade.teams,
+            teams: private_trade.teams.clone(),
             table: vec![],
             // this value is set in game state on transition
             turn_user_id: String::from(""),
@@ -63,6 +73,16 @@ impl From<PrivateTrade> for PrivatePlay {
             user_id_to_give_dragon_to: None,
             passes,
             users_in_play,
+            scores: [
+                TeamScore {
+                    id: private_trade.teams[0].id.clone(),
+                    score: 0,
+                },
+                TeamScore {
+                    id: private_trade.teams[1].id.clone(),
+                    score: 0,
+                },
+            ],
         }
     }
 }

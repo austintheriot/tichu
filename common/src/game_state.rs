@@ -3,7 +3,7 @@ use crate::{
     next_combo_beats_prev, sort_cards_for_hand, user::UserRole, CallGrandTichuRequest, Card,
     CardSuit, CardValue, Deck, GetSmallTichu, ImmutableTeam, MutableTeam, OtherPlayers,
     PassWithUserId, PrivateGameStage, PrivateGrandTichu, PrivatePlay, PrivateUser, PublicGameStage,
-    PublicUser, SubmitTrade, TeamCategories, TeamOption, TichuCallStatus,
+    PublicUser, SubmitTrade, TeamCategories, TeamOption, TeamScore, TichuCallStatus,
     UserIdWithTichuCallStatus, ValidCardCombo, DRAGON, MAH_JONG, MAX_CARDS_IN_HAND,
     NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
 };
@@ -734,26 +734,8 @@ impl PrivateGameState {
                 new_play_state.table.drain(..).collect();
             receiving_user.tricks.append(&mut current_table_cards);
 
-            // if round is over, get if only team is left in play
-            let TeamCategories {
-                current_team,
-                opposing_team,
-            } = new_play_state.get_turn_user_team_categories();
-            let only_one_team_is_in_play = new_play_state
-                .users_in_play
-                .iter()
-                .all(|user_id_in_play| current_team.user_ids.contains(user_id_in_play))
-                || new_play_state
-                    .users_in_play
-                    .iter()
-                    .all(|user_id_in_play| opposing_team.user_ids.contains(user_id_in_play));
-            // round over (plain)
-            if (new_play_state.users_in_play.len() == 1)
-                // round over (double victory)
-                || (new_play_state.users_in_play.len() == 2
-                    && only_one_team_is_in_play)
-            {
-                return new_game_state.round_over();
+            if self.get_round_is_over() {
+                return self.round_over();
             }
         }
 
@@ -770,12 +752,69 @@ impl PrivateGameState {
     }
 
     fn round_over(&self) -> Result<Self, String> {
-        // if only one person is left then the round is over (plain over)
-        // else if only 2 users who are on the same team are left, then it is a double victory
+        if !self.get_round_is_over() {
+            return Err("Can't calculate round over state when the round is not over".to_string());
+        }
 
-        // if point goal has been met then game is over, so move to to scoreboard
-        // else start next round
-        todo!();
+        let mut new_state = self.clone();
+        if let PrivateGameStage::Play(play_state) = &mut new_state.stage {
+            let is_double_victory =
+                play_state.users_in_play.len() == 2 && self.get_is_only_one_team_in_play();
+
+            if is_double_victory {
+                // get users who went out
+                let users_who_went_out: Vec<PrivateUser> = self
+                    .participants
+                    .clone()
+                    .into_iter()
+                    .filter(|participant| !play_state.users_in_play.contains(&participant.user_id))
+                    .collect();
+                let user_who_went_out = users_who_went_out.first();
+                let double_victory_team_id = if let Some(user_who_went_out) = user_who_went_out {
+                    play_state
+                        .teams
+                        .iter()
+                        .find(|team| team.user_ids.contains(&user_who_went_out.user_id))
+                        .and_then(|team| Some(team.id.clone()))
+                        .expect("Should be able to find the team id of the double victory team")
+                } else {
+                    return Err(
+                        "Couldn't find the team of the users who went out first in double victory"
+                            .to_string(),
+                    );
+                };
+
+                let double_victory_team_score = play_state
+                    .scores
+                    .iter_mut()
+                    .find(|team_score| team_score.id == double_victory_team_id)
+                    .expect("Should be able to find the double victory team score in scores");
+
+                double_victory_team_score.score += 200;
+            } else {
+                // plain round over (not double victory)
+
+                // if not double victory:
+                // last player out gives cards to opponent
+                // last player gives tricks to user who went out first
+                // score the round:
+                // + 10 for each king and each ten
+                // + 5 for each five
+                // + 25 for the Dragon, and
+                // - 25 for the Phoenix
+                // increment points
+
+                todo!();
+            }
+
+            // if one team is over 1000 and there is now tie, then highest scoring team wins
+            // move to scoreboard
+            // else start next round
+
+            todo!();
+        } else {
+            return Err("Can't count round over, because it is not the Play stage".to_string());
+        }
     }
 
     pub fn get_user_by_user_id(&self, user_id: &str) -> Option<&PrivateUser> {
@@ -887,6 +926,16 @@ impl PrivateGameState {
                     updated_teams[0].user_ids[1].clone(),
                     updated_teams[1].user_ids[1].clone(),
                 ],
+                scores: [
+                    TeamScore {
+                        id: team_state[0].id.clone(),
+                        score: 0,
+                    },
+                    TeamScore {
+                        id: team_state[1].id.clone(),
+                        score: 0,
+                    },
+                ],
             }));
 
             let new_state = PrivateGameState {
@@ -901,6 +950,42 @@ impl PrivateGameState {
         } else {
             Err(String::from("Not in Teams stage"))
         }
+    }
+
+    pub fn get_is_only_one_team_in_play(&self) -> bool {
+        if let PrivateGameStage::Play(play_state) = &self.stage {
+            let TeamCategories {
+                current_team,
+                opposing_team,
+            } = play_state.get_turn_user_team_categories();
+            play_state
+                .users_in_play
+                .iter()
+                .all(|user_id_in_play| current_team.user_ids.contains(user_id_in_play))
+                || play_state
+                    .users_in_play
+                    .iter()
+                    .all(|user_id_in_play| opposing_team.user_ids.contains(user_id_in_play))
+        } else {
+            false
+        }
+    }
+
+    pub fn get_round_is_over(&self) -> bool {
+        if let PrivateGameStage::Play(play_state) = &self.stage {
+            // if round is over get if only 1 person is left in play (normal ending)
+            // or if two teammates go out first
+            let only_one_team_is_in_play = self.get_is_only_one_team_in_play();
+
+            // round over (plain)
+            if (play_state.users_in_play.len() == 1)
+            // round over (double victory)
+            || (play_state.users_in_play.len() == 2 && only_one_team_is_in_play)
+            {
+                return true;
+            }
+        }
+        false
     }
 
     pub fn play_cards(
@@ -1015,24 +1100,8 @@ impl PrivateGameState {
                             .hand
                             .retain(|card| !next_cards.contains(card));
 
-                        // if round is over get if only teammates are left in play
-                        let TeamCategories {
-                            current_team,
-                            opposing_team,
-                            ..
-                        } = new_play_stage.get_turn_user_team_categories();
-                        let only_one_team_is_in_play =
-                            new_play_stage.users_in_play.iter().all(|user_id_in_play| {
-                                current_team.user_ids.contains(user_id_in_play)
-                            }) || new_play_stage.users_in_play.iter().all(|user_id_in_play| {
-                                opposing_team.user_ids.contains(user_id_in_play)
-                            });
                         // round over (plain)
-                        if (new_play_stage.users_in_play.len() == 1)
-                            // round over (double victory)
-                            || (new_play_stage.users_in_play.len() == 2
-                                && only_one_team_is_in_play)
-                        {
+                        if self.get_round_is_over() {
                             return self.round_over();
                         }
 
