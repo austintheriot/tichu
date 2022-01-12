@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod test_get_next_user_turn_id {
-    use common::{
-        ImmutableTeam, PassWithUserId, PrivatePlay, TeamScore, UserIdWithTichuCallStatus,
-    };
+    use common::{ImmutableTeam, PassWithUserId, PrivatePlay, UserIdWithTichuCallStatus};
 
     #[test]
     fn it_should_return_the_correct_next_user_id() {

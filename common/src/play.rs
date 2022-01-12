@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     CardValue, GetSmallTichu, ImmutableTeam, ImmutableTeams, PrivateTrade, SmallTichuArray,
     TeamCategories, ValidCardCombo,
@@ -10,12 +8,6 @@ use serde::{Deserialize, Serialize};
 pub struct PassWithUserId {
     pub user_id: String,
     pub passed: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct TeamScore {
-    pub id: String,
-    pub score: u16,
 }
 
 /// Server state: includes sensitive information, such as the Deck

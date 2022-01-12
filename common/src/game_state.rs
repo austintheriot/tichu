@@ -3,7 +3,7 @@ use crate::{
     next_combo_beats_prev, sort_cards_for_hand, user::UserRole, CallGrandTichuRequest, Card,
     CardSuit, CardValue, Deck, GetSmallTichu, ImmutableTeam, MutableTeam, OtherPlayers,
     PassWithUserId, PrivateGameStage, PrivateGrandTichu, PrivatePlay, PrivateUser, PublicGameStage,
-    PublicUser, SubmitTrade, TeamCategories, TeamOption, TeamScore, TichuCallStatus,
+    PublicUser, SubmitTrade, TeamCategories, TeamOption, TichuCallStatus,
     UserIdWithTichuCallStatus, ValidCardCombo, DRAGON, MAH_JONG, MAX_CARDS_IN_HAND,
     NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
 };
@@ -436,7 +436,7 @@ impl PrivateGameState {
 
         // game stage cannot be lobby, teams, or scoreboard
         let small_tichus = match &mut new_game_state.stage {
-            PrivateGameStage::Lobby | PrivateGameStage::Teams(_) | PrivateGameStage::Scoreboard => {
+            PrivateGameStage::Lobby | PrivateGameStage::Teams(_) | PrivateGameStage::Score(_) => {
                 return Err(format!(
                     "Can't call Small Tichu when game is not active. Ignoring request from user {}",
                     user_id
@@ -831,7 +831,7 @@ impl PrivateGameState {
 
             // if one team is over 1000 and there is now tie, then highest scoring team wins
             if play_state.teams.iter().any(|team| team.score > 1000) {
-                new_game_state = new_game_state.game_over()?;
+                new_game_state.game_over()?;
             } else {
                 // else start next round
                 new_game_state.start_new_round()?
@@ -894,8 +894,20 @@ impl PrivateGameState {
     ///
     /// If one team is over 1000 and there is now tie, then highest scoring team wins, so move to scoreboard stage.
     /// Mutates state in place
-    pub fn game_over(&mut self) -> Result<Self, String> {
-        todo!()
+    pub fn game_over(&mut self) -> Result<(), String> {
+        return if let PrivateGameStage::Play(play_state) = &self.stage {
+            // clear users' state (hands, tricks, etc.)
+            self.participants.iter_mut().for_each(|participant| {
+                participant.tricks.clear();
+                participant.hand.clear();
+                participant.has_played_first_card = false;
+            });
+
+            self.stage = PrivateGameStage::Score((**play_state).to_owned().into());
+            Ok(())
+        } else {
+            Err("Can't end game when stage is not Play".to_string())
+        };
     }
 
     pub fn get_user_by_user_id(&self, user_id: &str) -> Option<&PrivateUser> {

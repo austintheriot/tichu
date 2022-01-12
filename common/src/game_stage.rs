@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     MutableTeams, PrivateGrandTichu, PrivatePlay, PrivateTrade, PublicGrandTichu, PublicPlay,
-    PublicTrade,
+    PublicTrade, Score,
 };
 
 /// Server state that holds all stage-specific state and is PRIVATE.
@@ -14,7 +14,7 @@ pub enum PrivateGameStage {
     GrandTichu(Box<PrivateGrandTichu>),
     Trade(Box<PrivateTrade>),
     Play(Box<PrivatePlay>),
-    Scoreboard,
+    Score(Score),
 }
 
 /// Client state that holds all stage-specific state and is PUBLIC.
@@ -27,7 +27,7 @@ pub enum PublicGameStage {
     GrandTichu(Box<PublicGrandTichu>),
     Trade(Box<PublicTrade>),
     Play(Box<PublicPlay>),
-    Scoreboard,
+    Score(Score),
 }
 
 impl From<PrivateGameStage> for PublicGameStage {
@@ -42,7 +42,7 @@ impl From<PrivateGameStage> for PublicGameStage {
                 Self::Trade(Box::new((*private_trade).into()))
             }
             PrivateGameStage::Play(private_play) => Self::Play(Box::new((*private_play).into())),
-            PrivateGameStage::Scoreboard => PublicGameStage::Scoreboard,
+            PrivateGameStage::Score(score) => PublicGameStage::Score(score),
         }
     }
 }
