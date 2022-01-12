@@ -272,7 +272,7 @@ impl Deck {
         Deck::default()
     }
 
-    pub fn shuffle(&mut self) -> &mut Self {
+    pub fn shuffle(mut self) -> Self {
         let rand_num = get_random_u64();
         self.0.shuffle(&mut SmallRng::seed_from_u64(rand_num));
         self
@@ -403,6 +403,8 @@ impl PartialEq for Single {
                     self.cards[0], other.cards[0]
                 );
             } else {
+                // only compare suits if they are special cards
+                return self.cards[0].suit == other.cards[0].suit;
             }
         }
 

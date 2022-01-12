@@ -5,7 +5,7 @@ use uuid::Uuid;
 fn get_random_string_of_len(len: usize) -> String {
     let random_uuid = Uuid::new_v4().to_string();
     let mut random_uuid = random_uuid.graphemes(true).collect::<Vec<&str>>();
-    // random_uuid.retain(|s| *s != "-");
+    random_uuid.retain(|s| *s != "-");
     random_uuid.truncate(len);
     let random_uuid = random_uuid.join("");
     random_uuid.to_uppercase()

@@ -947,8 +947,7 @@ impl PrivateGameState {
         eprintln!("{:#?}", self);
         if let PrivateGameStage::Teams(team_state) = &self.stage {
             let mut updated_participants = self.participants.clone();
-            let mut deck = Deck::new();
-            deck.shuffle();
+            let deck = Deck::new().shuffle();
             updated_participants[0].hand = deck.0[0..MAX_CARDS_IN_HAND].to_vec();
             updated_participants[1].hand =
                 deck.0[(MAX_CARDS_IN_HAND * 1)..(MAX_CARDS_IN_HAND * 2)].to_vec();

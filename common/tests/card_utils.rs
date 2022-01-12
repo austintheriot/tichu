@@ -4859,8 +4859,7 @@ mod test_sort_cards_for_hand {
 
     #[test]
     fn it_should_sort_for_hand_correctly() {
-        let mut deck = Deck::new();
-        deck.shuffle();
+        let mut deck = Deck::new().shuffle();
         sort_cards_for_hand(&mut deck.0);
 
         assert_eq!(
