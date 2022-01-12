@@ -1,5 +1,5 @@
 use crate::{routes::ws::send_ws_message, Connections, GameCodes, Games};
-use common::{Card, CardValue, PrivateGameStage, STCMsg};
+use common::{Card, CardValue, STCMsg};
 
 const FUNCTION_NAME: &str = "play_cards";
 
