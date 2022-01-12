@@ -35,7 +35,7 @@ pub struct PrivatePlay {
 
     /// Users who have not run out of cards: in turn order
     pub users_in_play: Vec<String>,
-    pub scores: [TeamScore; 2],
+    pub first_user_out: Option<String>,
 }
 
 impl From<PrivateTrade> for PrivatePlay {
@@ -73,16 +73,7 @@ impl From<PrivateTrade> for PrivatePlay {
             user_id_to_give_dragon_to: None,
             passes,
             users_in_play,
-            scores: [
-                TeamScore {
-                    id: private_trade.teams[0].id.clone(),
-                    score: 0,
-                },
-                TeamScore {
-                    id: private_trade.teams[1].id.clone(),
-                    score: 0,
-                },
-            ],
+            first_user_out: None,
         }
     }
 }

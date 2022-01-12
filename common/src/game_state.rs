@@ -756,8 +756,8 @@ impl PrivateGameState {
             return Err("Can't calculate round over state when the round is not over".to_string());
         }
 
-        let mut new_state = self.clone();
-        if let PrivateGameStage::Play(play_state) = &mut new_state.stage {
+        let mut new_game_state = self.clone();
+        return if let PrivateGameStage::Play(play_state) = &mut new_game_state.stage {
             let is_double_victory =
                 play_state.users_in_play.len() == 2 && self.get_is_only_one_team_in_play();
 
@@ -770,13 +770,12 @@ impl PrivateGameState {
                     .filter(|participant| !play_state.users_in_play.contains(&participant.user_id))
                     .collect();
                 let a_user_who_went_out = users_who_went_out.first();
-                let double_victory_team_id = if let Some(user_who_went_out) = a_user_who_went_out {
+                let double_victory_team = if let Some(user_who_went_out) = a_user_who_went_out {
                     play_state
                         .teams
-                        .iter()
+                        .iter_mut()
                         .find(|team| team.user_ids.contains(&user_who_went_out.user_id))
-                        .and_then(|team| Some(team.id.clone()))
-                        .expect("Should be able to find the team id of the double victory team")
+                        .expect("Should be able to find the double victory team")
                 } else {
                     return Err(
                         "Couldn't find the team of the users who went out first in double victory"
@@ -784,16 +783,9 @@ impl PrivateGameState {
                     );
                 };
 
-                let double_victory_team_score = play_state
-                    .scores
-                    .iter_mut()
-                    .find(|team_score| team_score.id == double_victory_team_id)
-                    .expect("Should be able to find the double victory team score in scores");
-
-                double_victory_team_score.score += 200;
+                double_victory_team.score += 200;
             } else {
                 // plain round over (not double victory)
-                // last player out gives cards to opponent
                 let last_player_user_id = play_state
                     .users_in_play
                     .last()
@@ -808,50 +800,103 @@ impl PrivateGameState {
                     .first()
                     .expect("Opposing team should have a user in it");
 
+                let first_user_out_id = play_state
+                    .first_user_out
+                    .clone()
+                    .unwrap_or_else(|| String::from(""));
+
                 let mut an_opponent = None;
                 let mut last_player = None;
-                for participant in new_state.participants.iter_mut() {
+                let mut first_user_out = None;
+                for participant in new_game_state.participants.iter_mut() {
                     if *participant.user_id == *an_opponent_id {
                         an_opponent = Some(participant);
                     } else if *participant.user_id == *last_player_user_id {
                         last_player = Some(participant);
+                    } else if participant.user_id == *first_user_out_id {
+                        first_user_out = Some(participant);
                     }
                 }
 
                 let an_opponent = an_opponent.expect("Should find opponent in participants");
-                let mut last_player_cards = last_player
-                    .expect("Should find last player in participants")
-                    .hand
-                    .drain(..)
-                    .collect();
+                let last_player = last_player.expect("Should find last player in participants");
+                let first_user_out = first_user_out.expect(
+                    "At the the end of the round, there should always be a user who went out first",
+                );
 
+                // last player out gives cards to an opponent (doesn't matter which)
+                let mut last_player_cards = last_player.hand.drain(..).collect();
                 an_opponent.hand.append(&mut last_player_cards);
 
                 // last player gives tricks to user who went out first
-                // score the round:
-                // + 10 for each king and each ten
-                // + 5 for each five
-                // + 25 for the Dragon, and
-                // - 25 for the Phoenix
-                // increment points
+                let mut last_player_tricks: Vec<ValidCardCombo> =
+                    last_player.tricks.drain(..).collect();
+                first_user_out.tricks.append(&mut last_player_tricks);
 
-                todo!();
-            }
+                // increment team points based on their newly moved cards
+                for team in play_state.teams.iter_mut() {
+                    for user_id in team.user_ids.iter() {
+                        let participant = PrivateGameState::get_user_by_user_id_from_participants(
+                            &new_game_state.participants,
+                            user_id,
+                        );
+                        if let Some(participant) = participant {
+                            for combo in participant.tricks.iter() {
+                                for card in combo.cards().iter() {
+                                    match card {
+                                        // + 10 for each king and each ten
+                                        Card {
+                                            value: CardValue(10) | CardValue(13),
+                                            ..
+                                        } => team.score += 10,
+                                        // + 5 for each five
+                                        Card {
+                                            value: CardValue(5),
+                                            ..
+                                        } => team.score += 5,
+                                        // + 25 for the Dragon, and
+                                        Card {
+                                            suit: CardSuit::Dragon,
+                                            ..
+                                        } => team.score += 25,
+                                        // - 25 for the Phoenix
+                                        Card {
+                                            suit: CardSuit::Phoenix,
+                                            ..
+                                        } => team.score -= 25,
+                                        _ => {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
 
             // if one team is over 1000 and there is now tie, then highest scoring team wins
-            // move to scoreboard
-            // else start next round
+            if play_state.teams.iter().any(|team| team.score > 1000) {
+                // move to scoreboard
+            } else {
+                // else start next round
+            }
 
-            todo!();
+            Ok(new_game_state)
         } else {
-            return Err("Can't count round over, because it is not the Play stage".to_string());
-        }
+            Err("Can't count round over, because it is not the Play stage".to_string())
+        };
     }
 
     pub fn get_user_by_user_id(&self, user_id: &str) -> Option<&PrivateUser> {
         self.participants
             .iter()
             .find(|user| (*user.user_id == *user_id))
+    }
+
+    pub fn get_user_by_user_id_from_participants<'a>(
+        participants: &'a Vec<PrivateUser>,
+        user_id: &str,
+    ) -> Option<&'a PrivateUser> {
+        participants.iter().find(|user| (*user.user_id == *user_id))
     }
 
     pub fn get_user_is_out_of_cards(&self, user_id: &str) -> bool {
@@ -957,16 +1002,7 @@ impl PrivateGameState {
                     updated_teams[0].user_ids[1].clone(),
                     updated_teams[1].user_ids[1].clone(),
                 ],
-                scores: [
-                    TeamScore {
-                        id: team_state[0].id.clone(),
-                        score: 0,
-                    },
-                    TeamScore {
-                        id: team_state[1].id.clone(),
-                        score: 0,
-                    },
-                ],
+                first_user_out: None,
             }));
 
             let new_state = PrivateGameState {
@@ -1112,6 +1148,11 @@ impl PrivateGameState {
 
                         // if user is out of cards, remove them from users_in_play
                         if new_current_user.hand.is_empty() {
+                            // if first user to go out, save it
+                            if new_play_stage.users_in_play.len() == 4 {
+                                new_play_stage.first_user_out = Some(user_id.to_owned());
+                            }
+
                             new_play_stage
                                 .users_in_play
                                 .retain(|user_id_in_play| *user_id_in_play == user_id)

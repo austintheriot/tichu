@@ -82,16 +82,7 @@ mod test_get_next_user_turn_id {
                 user_3.clone(),
                 user_4.clone(),
             ],
-            scores: [
-                TeamScore {
-                    id: teams[0].id.clone(),
-                    score: 0,
-                },
-                TeamScore {
-                    id: teams[1].id.clone(),
-                    score: 0,
-                },
-            ],
+            first_user_out: None,
         };
         assert_eq!(private_play.get_next_turn_user_id(), "3");
 
@@ -111,16 +102,7 @@ mod test_get_next_user_turn_id {
                 user_3.clone(),
                 user_4.clone(),
             ],
-            scores: [
-                TeamScore {
-                    id: teams[0].id.clone(),
-                    score: 0,
-                },
-                TeamScore {
-                    id: teams[1].id.clone(),
-                    score: 0,
-                },
-            ],
+            first_user_out: None,
         };
         assert_eq!(private_play.get_next_turn_user_id(), "4");
 
@@ -140,16 +122,7 @@ mod test_get_next_user_turn_id {
                 user_3.clone(),
                 user_4.clone(),
             ],
-            scores: [
-                TeamScore {
-                    id: teams[0].id.clone(),
-                    score: 0,
-                },
-                TeamScore {
-                    id: teams[1].id.clone(),
-                    score: 0,
-                },
-            ],
+            first_user_out: None,
         };
         assert_eq!(private_play.get_next_turn_user_id(), "2");
 
@@ -164,16 +137,7 @@ mod test_get_next_user_turn_id {
             wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_2, user_3.clone(), user_4.clone()],
-            scores: [
-                TeamScore {
-                    id: teams[0].id.clone(),
-                    score: 0,
-                },
-                TeamScore {
-                    id: teams[1].id.clone(),
-                    score: 0,
-                },
-            ],
+            first_user_out: None,
         };
         assert_eq!(private_play.get_next_turn_user_id(), "1");
 
@@ -190,16 +154,7 @@ mod test_get_next_user_turn_id {
             wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone(), user_4.clone()],
-            scores: [
-                TeamScore {
-                    id: teams[0].id.clone(),
-                    score: 0,
-                },
-                TeamScore {
-                    id: teams[1].id.clone(),
-                    score: 0,
-                },
-            ],
+            first_user_out: None,
         };
         assert_eq!(private_play.get_next_turn_user_id(), "3");
 
@@ -214,16 +169,7 @@ mod test_get_next_user_turn_id {
             wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone(), user_4.clone()],
-            scores: [
-                TeamScore {
-                    id: teams[0].id.clone(),
-                    score: 0,
-                },
-                TeamScore {
-                    id: teams[1].id.clone(),
-                    score: 0,
-                },
-            ],
+            first_user_out: None,
         };
         assert_eq!(private_play.get_next_turn_user_id(), "4");
 
@@ -238,16 +184,7 @@ mod test_get_next_user_turn_id {
             wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone(), user_4],
-            scores: [
-                TeamScore {
-                    id: teams[0].id.clone(),
-                    score: 0,
-                },
-                TeamScore {
-                    id: teams[1].id.clone(),
-                    score: 0,
-                },
-            ],
+            first_user_out: None,
         };
         assert_eq!(private_play.get_next_turn_user_id(), "1");
 
@@ -264,16 +201,7 @@ mod test_get_next_user_turn_id {
             wished_for_card_value: None,
             passes: passes.clone(),
             users_in_play: vec![user_1.clone(), user_3.clone()],
-            scores: [
-                TeamScore {
-                    id: teams[0].id.clone(),
-                    score: 0,
-                },
-                TeamScore {
-                    id: teams[1].id.clone(),
-                    score: 0,
-                },
-            ],
+            first_user_out: None,
         };
         assert_eq!(private_play.get_next_turn_user_id(), "3");
 
@@ -288,16 +216,7 @@ mod test_get_next_user_turn_id {
             wished_for_card_value: None,
             passes: passes,
             users_in_play: vec![user_1, user_3],
-            scores: [
-                TeamScore {
-                    id: teams[0].id.clone(),
-                    score: 0,
-                },
-                TeamScore {
-                    id: teams[1].id.clone(),
-                    score: 0,
-                },
-            ],
+            first_user_out: None,
         };
         assert_eq!(private_play.get_next_turn_user_id(), "1");
     }
