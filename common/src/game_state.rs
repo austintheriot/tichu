@@ -769,8 +769,8 @@ impl PrivateGameState {
                     .into_iter()
                     .filter(|participant| !play_state.users_in_play.contains(&participant.user_id))
                     .collect();
-                let user_who_went_out = users_who_went_out.first();
-                let double_victory_team_id = if let Some(user_who_went_out) = user_who_went_out {
+                let a_user_who_went_out = users_who_went_out.first();
+                let double_victory_team_id = if let Some(user_who_went_out) = a_user_who_went_out {
                     play_state
                         .teams
                         .iter()
@@ -793,9 +793,40 @@ impl PrivateGameState {
                 double_victory_team_score.score += 200;
             } else {
                 // plain round over (not double victory)
-
-                // if not double victory:
                 // last player out gives cards to opponent
+                let last_player_user_id = play_state
+                    .users_in_play
+                    .last()
+                    .expect("There should be a user left in play");
+
+                let an_opponent_id = play_state
+                    .teams
+                    .iter()
+                    .find(|team| team.user_ids.contains(last_player_user_id))
+                    .expect("Should be able to find opposing team to the last player in the game")
+                    .user_ids
+                    .first()
+                    .expect("Opposing team should have a user in it");
+
+                let mut an_opponent = None;
+                let mut last_player = None;
+                for participant in new_state.participants.iter_mut() {
+                    if *participant.user_id == *an_opponent_id {
+                        an_opponent = Some(participant);
+                    } else if *participant.user_id == *last_player_user_id {
+                        last_player = Some(participant);
+                    }
+                }
+
+                let an_opponent = an_opponent.expect("Should find opponent in participants");
+                let mut last_player_cards = last_player
+                    .expect("Should find last player in participants")
+                    .hand
+                    .drain(..)
+                    .collect();
+
+                an_opponent.hand.append(&mut last_player_cards);
+
                 // last player gives tricks to user who went out first
                 // score the round:
                 // + 10 for each king and each ten
