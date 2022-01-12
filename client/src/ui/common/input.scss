@@ -6,6 +6,7 @@
   position: relative;
 
   label {
+    transition: all 0.2s;
     position: absolute;
     top: 0.5rem;
     left: 1rem;
@@ -32,4 +33,11 @@
       border: 1px solid var(--primary-40);
     }
   }
+}
+
+.InputLabelDown {
+  label {
+    transform: translateY(0.8rem);
+    font-size: 1rem;
+  };
 }
