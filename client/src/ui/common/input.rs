@@ -1,5 +1,4 @@
 use gloo::utils::document;
-use log::info;
 use wasm_bindgen::JsCast;
 use web_sys::{EventTarget, HtmlInputElement};
 use yew::prelude::*;
