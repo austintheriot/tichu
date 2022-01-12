@@ -875,15 +875,33 @@ impl PrivateGameState {
 
             // if one team is over 1000 and there is now tie, then highest scoring team wins
             if play_state.teams.iter().any(|team| team.score > 1000) {
-                // move to scoreboard
+                new_game_state = new_game_state.game_over()?;
             } else {
                 // else start next round
+                new_game_state = new_game_state.start_new_round()?;
             }
 
             Ok(new_game_state)
         } else {
             Err("Can't count round over, because it is not the Play stage".to_string())
         };
+    }
+
+    /// A round has finished, but nobody's points are high enough to actually win the game yet,
+    /// so clear tricks and deal fresh cards
+    pub fn start_new_round(&mut self) -> Result<Self, String> {
+        // move back to grand tichu stage
+        // clear everyone's tricks
+        // clear everyone's hands
+        // deal out first 9 cards
+        todo!();
+    }
+
+    /// Team has high enough points at the end of around to have won the game.
+    ///
+    /// If one team is over 1000 and there is now tie, then highest scoring team wins, so move to scoreboard stage.
+    pub fn game_over(&mut self) -> Result<Self, String> {
+        todo!()
     }
 
     pub fn get_user_by_user_id(&self, user_id: &str) -> Option<&PrivateUser> {
