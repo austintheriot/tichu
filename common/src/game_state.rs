@@ -259,6 +259,32 @@ impl PrivateGameState {
         }
     }
 
+    pub fn create_undecided_tichu_statuses(
+        participants: &Vec<PrivateUser>,
+    ) -> Result<[UserIdWithTichuCallStatus; 4], String> {
+        if participants.len() < 4 {
+            return Err("Not enough participants to make Grand Tichu call statuses".into());
+        }
+        Ok([
+            UserIdWithTichuCallStatus {
+                user_id: participants[0].user_id.clone(),
+                tichu_call_status: TichuCallStatus::Undecided,
+            },
+            UserIdWithTichuCallStatus {
+                user_id: participants[1].user_id.clone(),
+                tichu_call_status: TichuCallStatus::Undecided,
+            },
+            UserIdWithTichuCallStatus {
+                user_id: participants[2].user_id.clone(),
+                tichu_call_status: TichuCallStatus::Undecided,
+            },
+            UserIdWithTichuCallStatus {
+                user_id: participants[3].user_id.clone(),
+                tichu_call_status: TichuCallStatus::Undecided,
+            },
+        ])
+    }
+
     /// Move from Teams stage to Grand Tichu stage
     pub fn start_grand_tichu(&self, requesting_user_id: &str) -> Result<Self, String> {
         let mut new_game_state = self.clone();
@@ -297,83 +323,13 @@ impl PrivateGameState {
                                 });
 
                             // create undecided Grand Tichu statuses
-                            let grand_tichus = [
-                                UserIdWithTichuCallStatus {
-                                    user_id: new_game_state
-                                        .participants
-                                        .get(0)
-                                        .unwrap()
-                                        .user_id
-                                        .clone(),
-                                    tichu_call_status: TichuCallStatus::Undecided,
-                                },
-                                UserIdWithTichuCallStatus {
-                                    user_id: new_game_state
-                                        .participants
-                                        .get(1)
-                                        .unwrap()
-                                        .user_id
-                                        .clone(),
-                                    tichu_call_status: TichuCallStatus::Undecided,
-                                },
-                                UserIdWithTichuCallStatus {
-                                    user_id: new_game_state
-                                        .participants
-                                        .get(2)
-                                        .unwrap()
-                                        .user_id
-                                        .clone(),
-                                    tichu_call_status: TichuCallStatus::Undecided,
-                                },
-                                UserIdWithTichuCallStatus {
-                                    user_id: new_game_state
-                                        .participants
-                                        .get(3)
-                                        .unwrap()
-                                        .user_id
-                                        .clone(),
-                                    tichu_call_status: TichuCallStatus::Undecided,
-                                },
-                            ];
+                            let grand_tichus = PrivateGameState::create_undecided_tichu_statuses(
+                                &new_game_state.participants,
+                            )?;
                             // create undecided Small Tichu statuses
-                            let small_tichus = [
-                                UserIdWithTichuCallStatus {
-                                    user_id: new_game_state
-                                        .participants
-                                        .get(0)
-                                        .unwrap()
-                                        .user_id
-                                        .clone(),
-                                    tichu_call_status: TichuCallStatus::Undecided,
-                                },
-                                UserIdWithTichuCallStatus {
-                                    user_id: new_game_state
-                                        .participants
-                                        .get(1)
-                                        .unwrap()
-                                        .user_id
-                                        .clone(),
-                                    tichu_call_status: TichuCallStatus::Undecided,
-                                },
-                                UserIdWithTichuCallStatus {
-                                    user_id: new_game_state
-                                        .participants
-                                        .get(2)
-                                        .unwrap()
-                                        .user_id
-                                        .clone(),
-                                    tichu_call_status: TichuCallStatus::Undecided,
-                                },
-                                UserIdWithTichuCallStatus {
-                                    user_id: new_game_state
-                                        .participants
-                                        .get(3)
-                                        .unwrap()
-                                        .user_id
-                                        .clone(),
-                                    tichu_call_status: TichuCallStatus::Undecided,
-                                },
-                            ];
+                            let small_tichus = PrivateGameState::create_undecided_tichu_statuses(
+                                &new_game_state.participants,
+                            )?;
 
                             let grand_tichu_game_state = PrivateGrandTichu {
                                 grand_tichus,
@@ -878,7 +834,7 @@ impl PrivateGameState {
                 new_game_state = new_game_state.game_over()?;
             } else {
                 // else start next round
-                new_game_state = new_game_state.start_new_round()?;
+                new_game_state.start_new_round()?
             }
 
             Ok(new_game_state)
@@ -889,17 +845,55 @@ impl PrivateGameState {
 
     /// A round has finished, but nobody's points are high enough to actually win the game yet,
     /// so clear tricks and deal fresh cards
-    pub fn start_new_round(&mut self) -> Result<Self, String> {
-        // move back to grand tichu stage
-        // clear everyone's tricks
-        // clear everyone's hands
-        // deal out first 9 cards
-        todo!();
+    ///
+    /// Mutates game state in place
+    pub fn start_new_round(&mut self) -> Result<(), String> {
+        return if let PrivateGameStage::Play(play_state) = &self.stage {
+            let mut deck = Deck::new().shuffle().to_owned();
+
+            // deal 9 cards to each player
+            self.participants.iter_mut().for_each(|participant| {
+                participant.tricks.clear();
+
+                participant.hand.clear();
+
+                participant.has_played_first_card = false;
+
+                // deal 9 cards
+                let mut cards = deck.draw(NUM_CARDS_BEFORE_GRAND_TICHU);
+                sort_cards_for_hand(&mut cards);
+                for card in cards.into_iter() {
+                    participant.hand.push(card);
+                }
+            });
+
+            // create undecided Grand Tichu statuses
+            let grand_tichus =
+                PrivateGameState::create_undecided_tichu_statuses(&self.participants)?;
+            // create undecided Small Tichu statuses
+            let small_tichus =
+                PrivateGameState::create_undecided_tichu_statuses(&self.participants)?;
+
+            let grand_tichu_game_state = PrivateGrandTichu {
+                grand_tichus,
+                small_tichus,
+                teams: play_state.teams.clone(),
+                deck,
+            };
+
+            // move into Grand Tichu stage
+            self.stage = PrivateGameStage::GrandTichu(Box::new(grand_tichu_game_state));
+
+            Ok(())
+        } else {
+            Err("Can't start new round if not already in play stage".to_string())
+        };
     }
 
     /// Team has high enough points at the end of around to have won the game.
     ///
     /// If one team is over 1000 and there is now tie, then highest scoring team wins, so move to scoreboard stage.
+    /// Mutates state in place
     pub fn game_over(&mut self) -> Result<Self, String> {
         todo!()
     }
