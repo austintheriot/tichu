@@ -18,11 +18,10 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
-- split front end into multiple components --> use Yewdux for state management
-- Game state implementation for Pass move
+- user who CAN play a card should NOT be able to pass
 - move more front-end state checks into /common (in prep for bot player)
   
-- use "into" pattern more: 
+- use "into" pattern more?:
 - fn last_name(mut self, last_name: impl Into<String>) -> Self {
         self.last_name = Some(last_name.into());
         self

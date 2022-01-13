@@ -648,7 +648,7 @@ impl PrivateGameState {
     pub fn pass(&self, user_id: &str) -> Result<Self, String> {
         let mut new_game_state = self.clone();
 
-        let is_final_pass = new_game_state.get_number_of_users_who_have_passed() == Ok(3);
+        let is_penultimate_pass = new_game_state.get_number_of_users_who_have_passed() == Ok(2);
 
         let new_play_state =
             if let PrivateGameStage::Play(new_play_state) = &mut new_game_state.stage {
@@ -660,14 +660,15 @@ impl PrivateGameState {
                 ));
             };
 
-        // if this is the final pass, next user wins the trick,so move them into the user's tricks
-        if is_final_pass {
+        // if this is the penultimate pass, next user wins the trick,so move them into the user's tricks
+        if is_penultimate_pass {
             let last_trick = new_play_state
                 .table
                 .get(0)
                 .expect("Table should have at least one combo if this is the final pass");
             let last_trick_contains_dragon = last_trick.cards().contains(&DRAGON);
 
+            let user_who_played_last_trick_id = last_trick.user_id().clone();
             let receiving_user_id = if last_trick_contains_dragon {
                 // if it contains a dragon, give trick to the user who the winner chose
                 new_play_state
@@ -677,7 +678,7 @@ impl PrivateGameState {
                 .clone()
             } else {
                 // if it does not contains a dragon, give it to the user who played the last trick
-                last_trick.user_id().clone()
+                user_who_played_last_trick_id.clone()
             };
 
             // remove trick from table and give to receiving user
@@ -693,15 +694,25 @@ impl PrivateGameState {
             if self.get_round_is_over() {
                 return self.round_over();
             }
+
+            // user keeps the lead if they won the trick
+            new_play_state.turn_user_id = user_who_played_last_trick_id;
+
+            // reset passes
+            new_play_state.passes.iter_mut().for_each(|pass| {
+                pass.passed = false;
+            });
+
+            return Ok(new_game_state);
         }
 
-        // else if not the final pass, merely save the pass and move the turn
-        let users_index = new_play_state
+        // else if not the penultimate pass, merely save the pass and move the turn
+        let user_pass_index = new_play_state
             .passes
             .iter()
             .position(|pass| pass.user_id == user_id)
             .expect("User should be in the passes state");
-        new_play_state.passes[users_index].passed = true;
+        new_play_state.passes[user_pass_index].passed = true;
         new_play_state.turn_user_id = new_play_state.get_next_turn_user_id().clone();
 
         Ok(new_game_state)
