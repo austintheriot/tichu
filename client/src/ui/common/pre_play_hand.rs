@@ -32,7 +32,7 @@ pub fn pre_play_hand() -> Html {
                                         disabled={!app_state.can_select_pre_play_card()}
                                         onclick={make_handle_select_pre_play_card(i)}
                                         >
-                                        {&format!("{:#?}", card)}
+                                        {&format!("{}", card)}
                                     </button>
                                 </li>
                         }

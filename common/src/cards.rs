@@ -2,7 +2,7 @@
 use js_sys::Math::random;
 use rand::{prelude::SliceRandom, rngs::SmallRng, SeedableRng};
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt::Display};
 
 pub const NUM_PLAYERS: usize = 4;
 pub const TOTAL_CARDS: usize = 56;
@@ -60,6 +60,12 @@ impl CardValue {
     }
 }
 
+impl Display for CardValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 impl Iterator for CardValue {
     type Item = Self;
 
@@ -85,6 +91,22 @@ pub enum CardSuit {
     Dog,
     Phoenix,
     Dragon,
+}
+
+impl Display for CardSuit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let suit_string = match self {
+            CardSuit::Dog => "Dog",
+            CardSuit::Dragon => "Dragon",
+            CardSuit::Phoenix => "Phoenix",
+            CardSuit::MahJong => "MahJong",
+            CardSuit::Jade => "Jade",
+            CardSuit::Pagoda => "Pagoda",
+            CardSuit::Sword => "Sword",
+            CardSuit::Star => "Star",
+        };
+        write!(f, "{}", suit_string)
+    }
 }
 
 impl CardSuit {
@@ -128,6 +150,23 @@ impl Card {
         Card {
             suit: CARD_SUIT_START_ITER,
             value: CardValue::start_iter(),
+        }
+    }
+}
+
+impl Display for Card {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.suit.is_special() {
+            write!(f, "{}", self.suit)
+        } else {
+            let value_string = match self.value.0 {
+                11 => "J".to_string(),
+                12 => "Q".to_string(),
+                13 => "K".to_string(),
+                14 => "A".to_string(),
+                _ => self.value.0.to_string(),
+            };
+            write!(f, "{} of {}s", value_string, self.suit)
         }
     }
 }

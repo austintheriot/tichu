@@ -28,7 +28,7 @@ pub fn play_hand() -> Html {
                                         disabled={!app_state.can_select_play_card()}
                                         onclick={make_handle_selected_play_card(i)}
                                         >
-                                        {&format!("{:#?}", card)}
+                                        {&format!("{}", card)}
                                     </button>
                                 </li>
                         }

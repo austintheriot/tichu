@@ -461,33 +461,6 @@ mod test_single_card {
 
     #[test]
     #[should_panic(expected = "identical special cards")]
-    fn comparing_two_dragons_for_equality_should_panic() {
-        // suppress panic logs
-        let original_panic_hook = std::panic::take_hook();
-        std::panic::set_hook(Box::new(|_| {}));
-        assert_eq!(
-            Single {
-                cards: vec![Card {
-                    suit: CardSuit::Dragon,
-                    value: CardValue::noop(),
-                }],
-                value: CardValue::noop(),
-                user_id: "1".to_string(),
-            } == Single {
-                cards: vec![Card {
-                    suit: CardSuit::Dragon,
-                    value: CardValue::noop(),
-                }],
-                value: CardValue::noop(),
-                user_id: "1".to_string(),
-            },
-            true
-        );
-        std::panic::set_hook(original_panic_hook);
-    }
-
-    #[test]
-    #[should_panic(expected = "identical special cards")]
     fn comparing_two_dragons_for_less_than_should_panic() {
         // suppress panic logs
         let original_panic_hook = std::panic::take_hook();
@@ -653,33 +626,6 @@ mod test_single_card {
             },
             false
         );
-    }
-
-    #[test]
-    #[should_panic(expected = "identical special cards")]
-    fn comparing_two_phoenixes_for_equality_should_panic() {
-        // suppress panic logs
-        let original_panic_hook = std::panic::take_hook();
-        std::panic::set_hook(Box::new(|_| {}));
-        assert_eq!(
-            Single {
-                cards: vec![Card {
-                    suit: CardSuit::Phoenix,
-                    value: CardValue::noop(),
-                }],
-                value: CardValue::noop(),
-                user_id: "1".to_string(),
-            } == Single {
-                cards: vec![Card {
-                    suit: CardSuit::Phoenix,
-                    value: CardValue::noop(),
-                }],
-                value: CardValue::noop(),
-                user_id: "1".to_string(),
-            },
-            true
-        );
-        std::panic::set_hook(original_panic_hook);
     }
 
     #[test]

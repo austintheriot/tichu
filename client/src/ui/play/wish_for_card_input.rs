@@ -7,6 +7,7 @@ use yew::prelude::*;
 #[function_component(WishForCardInput)]
 pub fn wish_for_card_input() -> Html {
     let app_context = use_context::<AppContext>().expect("AppContext not found");
+    let app_state = &*app_context.app_reducer_handle;
     let handle_wished_for_card_input = {
         let reducer_handle = app_context.app_reducer_handle.clone();
         Callback::from(move |e: InputEvent| {
@@ -29,6 +30,7 @@ pub fn wish_for_card_input() -> Html {
             <label for="wish-for-card">{"Wish for a card?"}</label>
             <select name="wish-for-card" id="wish-for-card"
                 oninput={handle_wished_for_card_input}
+                value={format!("{:#?}", app_state.wished_for_card_value)}
             >
                 {for wish_for_options.iter().enumerate().map(move|(i, card_string)| {
                     html!{

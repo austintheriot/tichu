@@ -13,7 +13,7 @@ pub fn wished_for_card() -> Html {
                 return html! {
                    <>
                     <p>{"Wished for card value:"}</p>
-                    <p>{format!("{:#?}", wished_for_card_value)}</p>
+                    <p>{format!("{}", wished_for_card_value)}</p>
                    </>
                 };
             }
