@@ -345,10 +345,10 @@ impl Deck {
     }
 
     /// Find index of a card in the wished for possibilities
-    pub fn i_of_wished_for_card_value(card_value: CardValue) -> Option<usize> {
+    pub fn i_of_wished_for_card_value(card_value: &CardValue) -> Option<usize> {
         Deck::wished_for_card_values()
             .iter()
-            .position(|wished_for_card_value| *wished_for_card_value == card_value)
+            .position(|wished_for_card_value| wished_for_card_value == card_value)
     }
 
     pub fn get_wished_for_card_value_from_i(i: usize) -> Option<CardValue> {

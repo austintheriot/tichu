@@ -36,11 +36,10 @@ pub fn wish_for_card_input() -> Html {
             <label for="wish-for-card">{"Wish for a card?"}</label>
             <select name="wish-for-card" id="wish-for-card"
                 oninput={handle_wished_for_card_input}
-                value={format!("{}", app_state.wished_for_card_value)}
             >
                 {for wish_for_options.iter().enumerate().map(move|(i, card_string)| {
                     html!{
-                        <option value={format!("{}", i)}>
+                        <option value={format!("{}", i)} selected={i == 0}>
                             {card_string}
                         </option>
                     }
