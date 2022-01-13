@@ -343,6 +343,12 @@ impl AppState {
         let some_card_has_been_wished_for = wished_for_card_value.is_some()
             && *wished_for_card_value.as_ref().unwrap() != CardValue::noop();
 
+        info!(
+            "some_card_has_been_wished_for {:?}",
+            some_card_has_been_wished_for
+        );
+        info!("wished_for_card_value {:?}", wished_for_card_value);
+
         if let Some(combo) = combo {
             let user_can_play_wished_for_card = if some_card_has_been_wished_for {
                 let wished_for_card_value = wished_for_card_value.as_ref().unwrap();
@@ -622,35 +628,15 @@ impl AppState {
 
     pub fn get_user_has_selected_user_id_to_give_dragon_to(&self) -> bool {
         let opponent_ids = self.get_opponent_ids();
-        if let Some(game_state) = &self.game_state {
-            // game stage is Play
-            if let PublicGameStage::Play(play_state) = &game_state.stage {
-                // this is the last user to pass
-
-                if play_state.passes.iter().filter(|pass| pass.passed).count() == 3 {
-                    // last trick has a dragon in it
-                    if play_state
-                        .table
-                        .iter()
-                        .any(|combo| combo.cards().contains(&DRAGON))
-                    {
-                        let (opponent_id_0, opponent_id_1) =
-                            opponent_ids.expect("Opponents should be found in state");
-                        // user has chosen an opponent to give the dragon to
-                        return if let Some(user_id_to_give_dragon_to) =
-                            &self.user_id_to_give_dragon_to
-                        {
-                            user_id_to_give_dragon_to == &opponent_id_0
-                                || user_id_to_give_dragon_to == &opponent_id_1
-                        } else {
-                            false
-                        };
-                    }
-                }
-            }
-        }
-
-        false
+        let (opponent_id_0, opponent_id_1) =
+            opponent_ids.expect("Opponents should be found in state");
+        // user has chosen an opponent to give the dragon to
+        return if let Some(user_id_to_give_dragon_to) = &self.user_id_to_give_dragon_to {
+            user_id_to_give_dragon_to == &opponent_id_0
+                || user_id_to_give_dragon_to == &opponent_id_1
+        } else {
+            false
+        };
     }
 
     pub fn get_opponent_ids(&self) -> Option<(String, String)> {
