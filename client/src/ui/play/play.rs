@@ -4,6 +4,7 @@ use super::play_hand::PlayHand;
 use super::selected_play_cards::SelectedPlayCards;
 use super::turn_display_name::TurnDisplayName;
 use super::wish_for_card_input::WishForCardInput;
+use super::wished_for_card::WishedForCard;
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
 use crate::ui::common::call_small_tichu_button::CallSmallTichuButton;
 use common::{get_card_combination, DRAGON, MAH_JONG};
@@ -21,6 +22,13 @@ pub fn play() -> Html {
         })
     };
 
+    let handle_pass = {
+        let send_ws_message = app_context.send_ws_message.clone();
+        Callback::from(move |_: MouseEvent| {
+            send_ws_message.emit(CTSMsgInternal::Pass);
+        })
+    };
+
     html! {
           <>
             <h1>{"Play"}</h1>
@@ -32,6 +40,7 @@ pub fn play() -> Html {
             <CardsOnTable />
             <br />
             <br />
+            <WishedForCard />
             {if app_state.selected_play_cards.contains(&MAH_JONG) {
                 html!{ <WishForCardInput /> }
             } else {
@@ -46,13 +55,27 @@ pub fn play() -> Html {
             }}
             <br />
             <br />
-            <button
-                disabled={!app_state.can_play_cards()}
-                onclick={handle_submit_play_cards}
-                type="submit"
-                >
-                {"Submit cards"}
-            </button>
+            {if app_state.selected_play_cards.len() == 0 {
+               html!{
+                <button
+                    onclick={handle_pass}
+                    type="button"
+                    disabled={!app_state.get_can_pass()}
+                    >
+                    {"Pass"}
+                </button>
+               }
+            } else {
+                html!{
+                    <button
+                        disabled={!app_state.can_play_cards()}
+                        onclick={handle_submit_play_cards}
+                        type="button"
+                        >
+                        {"Submit cards"}
+                    </button>
+                }
+            }}
             <br />
             <br />
             <CallSmallTichuButton />

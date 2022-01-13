@@ -542,6 +542,7 @@ fn send_ws_message(
         }
         CTSMsgInternal::Pass => {
             if !(*app_reducer_handle).get_can_pass() {
+                // todo!() -- rethink this flow. Is it necessary?
                 // user must select an opponent to give the dragon to
                 if (*app_reducer_handle).get_user_must_select_user_id_to_give_dragon_to()
                     && !(*app_reducer_handle).get_user_has_selected_user_id_to_give_dragon_to()
