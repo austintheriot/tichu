@@ -19,17 +19,21 @@ pub fn wish_for_card_input() -> Html {
         })
     };
 
+    let wish_for_options: Vec<String> = Deck::wished_for_card_values()
+        .iter()
+        .map(|card| format!("{:#?}", card))
+        .collect();
+
     html! {
         <>
             <label for="wish-for-card">{"Wish for a card?"}</label>
             <select name="wish-for-card" id="wish-for-card"
                 oninput={handle_wished_for_card_input}
             >
-                {for Deck::wished_for_card_values().iter().enumerate().map(|(i, card)| {
-                    let card_string = format!("{:#?}", card);
+                {for wish_for_options.iter().enumerate().map(move|(i, card_string)| {
                     html!{
                         <option value={format!("{}", i)}>
-                            {card_string.clone()}
+                            {card_string}
                         </option>
                     }
                 })}

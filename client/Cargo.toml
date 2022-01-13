@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Austin Theriot"]
 edition = "2021"
 
+[profile.release]
+debug = true
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -24,6 +27,7 @@ anyhow = "1.0.44"
 bincode = "1.3.3"
 lazy_static = "1.4.0"
 gloo = "0.4.0"
+console_error_panic_hook = "0.1.7"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

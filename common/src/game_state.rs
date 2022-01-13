@@ -1017,19 +1017,19 @@ impl PrivateGameState {
                 passes: [
                     PassWithUserId {
                         passed: false,
-                        user_id: "0".into(),
+                        user_id: self.participants[0].user_id.clone(),
                     },
                     PassWithUserId {
                         passed: false,
-                        user_id: "1".into(),
+                        user_id: self.participants[1].user_id.clone(),
                     },
                     PassWithUserId {
                         passed: false,
-                        user_id: "2".into(),
+                        user_id: self.participants[2].user_id.clone(),
                     },
                     PassWithUserId {
                         passed: false,
-                        user_id: "3".into(),
+                        user_id: self.participants[3].user_id.clone(),
                     },
                 ],
                 users_in_play: vec![

@@ -396,16 +396,10 @@ impl Ord for Single {
 impl PartialEq for Single {
     fn eq(&self, other: &Self) -> bool {
         if self.value.is_noop() && other.value.is_noop() {
-            if self.cards[0].suit == other.cards[0].suit {
-                // can't compare two identical special cards to each other
-                panic!(
-                    "{COMPARE_IDENTICAL_SPECIAL_CARDS}: {:#?} was compared to {:#?}",
-                    self.cards[0], other.cards[0]
-                );
-            } else {
-                // only compare suits if they are special cards
-                return self.cards[0].suit == other.cards[0].suit;
-            }
+            // this is not useful for comparing combos,
+            // but it is necessary for comparing state changes in front end:
+            // only compare suits if they are special cards
+            return self.cards[0].suit == other.cards[0].suit;
         }
 
         self.value == other.value
