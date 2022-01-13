@@ -13,7 +13,7 @@
 use crate::global::state::{AppReducerAction, AppState};
 use anyhow::Error;
 use common::{
-    sort_cards_for_hand, validate_team_name, CTSMsg, CallGrandTichuRequest, CardTrade,
+    sort_cards_for_hand, validate_team_name, CTSMsg, CallGrandTichuRequest, CardTrade, CardValue,
     OtherPlayerOption, PublicGameStage, STCMsg, TeamOption,
 };
 use gloo::timers::callback::{Interval, Timeout};
@@ -524,7 +524,13 @@ fn send_ws_message(
             }
 
             let cards = (*app_reducer_handle).selected_play_cards.clone();
-            let wished_for_card_value = (*app_reducer_handle).wished_for_card_value.clone();
+            // CardValue::noop() is equivalent to None
+            let wished_for_card_value =
+                if (*app_reducer_handle).wished_for_card_value == CardValue::noop() {
+                    None
+                } else {
+                    Some((*app_reducer_handle).wished_for_card_value.clone())
+                };
             let user_id_to_give_dragon_to = (*app_reducer_handle).user_id_to_give_dragon_to.clone();
 
             // reset state

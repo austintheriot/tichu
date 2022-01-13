@@ -1,5 +1,5 @@
 use crate::global::state::AppContext;
-use common::PublicGameStage;
+use common::{CardValue, PublicGameStage};
 use yew::prelude::*;
 
 #[function_component(WishedForCard)]
@@ -13,7 +13,11 @@ pub fn wished_for_card() -> Html {
                 return html! {
                    <>
                     <p>{"Wished for card value:"}</p>
-                    <p>{format!("{}", wished_for_card_value)}</p>
+                    <p>{if *wished_for_card_value == CardValue::noop() {
+                        "None".to_string()
+                    } else {
+                        format!("{}", wished_for_card_value)
+                    }}</p>
                    </>
                 };
             }

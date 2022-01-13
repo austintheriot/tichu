@@ -337,27 +337,25 @@ impl Deck {
     }
 
     /// "None" + All Standard Cards
-    pub fn wished_for_card_values() -> Vec<Option<CardValue>> {
-        let mut cards: Vec<Option<CardValue>> = CardValue::full_valid_range()
-            .into_iter()
-            .map(Some)
-            .collect();
-        cards.insert(0, None);
+    pub fn wished_for_card_values() -> Vec<CardValue> {
+        let mut cards: Vec<CardValue> = CardValue::full_valid_range().into_iter().collect();
+        // CardValue::noop() is equivalent to None
+        cards.insert(0, CardValue::noop());
         cards
     }
 
     /// Find index of a card in the wished for possibilities
-    pub fn i_of_wished_for_card_value(card: &Option<CardValue>) -> Option<usize> {
+    pub fn i_of_wished_for_card_value(card_value: CardValue) -> Option<usize> {
         Deck::wished_for_card_values()
             .iter()
-            .position(|wished_for_card| wished_for_card == card)
+            .position(|wished_for_card_value| *wished_for_card_value == card_value)
     }
 
     pub fn get_wished_for_card_value_from_i(i: usize) -> Option<CardValue> {
         let wished_for_cards = Deck::wished_for_card_values();
         let card = wished_for_cards.get(i);
         if let Some(card) = card {
-            card.clone()
+            Some(card.clone())
         } else {
             None
         }

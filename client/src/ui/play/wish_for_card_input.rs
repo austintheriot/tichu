@@ -1,5 +1,5 @@
 use crate::global::state::{AppContext, AppReducerAction};
-use common::Deck;
+use common::{CardValue, Deck};
 use wasm_bindgen::JsCast;
 use web_sys::HtmlSelectElement;
 use yew::prelude::*;
@@ -22,7 +22,13 @@ pub fn wish_for_card_input() -> Html {
 
     let wish_for_options: Vec<String> = Deck::wished_for_card_values()
         .iter()
-        .map(|card| format!("{:#?}", card))
+        .map(|card_value| {
+            if *card_value == CardValue::noop() {
+                "None".to_string()
+            } else {
+                format!("{}", card_value)
+            }
+        })
         .collect();
 
     html! {
@@ -30,7 +36,7 @@ pub fn wish_for_card_input() -> Html {
             <label for="wish-for-card">{"Wish for a card?"}</label>
             <select name="wish-for-card" id="wish-for-card"
                 oninput={handle_wished_for_card_input}
-                value={format!("{:#?}", app_state.wished_for_card_value)}
+                value={format!("{}", app_state.wished_for_card_value)}
             >
                 {for wish_for_options.iter().enumerate().map(move|(i, card_string)| {
                     html!{

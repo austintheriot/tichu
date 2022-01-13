@@ -70,7 +70,7 @@ pub struct AppState {
 
     /// cards selected for playing
     pub selected_play_cards: Vec<Card>,
-    pub wished_for_card_value: Option<CardValue>,
+    pub wished_for_card_value: CardValue,
     pub user_id_to_give_dragon_to: Option<String>,
     pub show_user_id_to_give_dragon_to_form: bool,
 }
@@ -89,7 +89,8 @@ impl Reducible for AppState {
             AppReducerAction::ResetAfterPlayCards => {
                 next_state.selected_play_cards.drain(..);
                 next_state.user_id_to_give_dragon_to = None;
-                next_state.wished_for_card_value = None;
+                // CardValue::noop() is equivalent to None
+                next_state.wished_for_card_value = CardValue::noop();
             }
             AppReducerAction::SetShowUserIdToGiveDragonToForm(bool) => {
                 next_state.show_user_id_to_give_dragon_to_form = bool;
@@ -236,7 +237,9 @@ impl Reducible for AppState {
             }
             AppReducerAction::SetWishedForCard(i) => {
                 let wished_for_card_value = Deck::get_wished_for_card_value_from_i(i);
-                next_state.wished_for_card_value = wished_for_card_value;
+                // CardValue::noop() is equivalent to None
+                next_state.wished_for_card_value =
+                    wished_for_card_value.unwrap_or_else(|| CardValue::noop());
             }
         }
         Rc::new(next_state)
@@ -273,7 +276,8 @@ impl Default for AppState {
             selected_play_cards: Vec::new(),
             user_id_to_give_dragon_to: None,
             show_user_id_to_give_dragon_to_form: false,
-            wished_for_card_value: None,
+            // CardValue::noop() is equivalent to None
+            wished_for_card_value: CardValue::noop(),
         }
     }
 }
@@ -335,7 +339,9 @@ impl AppState {
 
         let wished_for_card_value = game_state.get_wished_for_card_value();
 
-        let some_card_has_been_wished_for = wished_for_card_value.is_some();
+        // CardValue::noop() is equivalent to None
+        let some_card_has_been_wished_for = wished_for_card_value.is_some()
+            && *wished_for_card_value.as_ref().unwrap() != CardValue::noop();
 
         if let Some(combo) = combo {
             let user_can_play_wished_for_card = if some_card_has_been_wished_for {
