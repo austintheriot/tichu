@@ -454,6 +454,11 @@ pub fn sort_cards_for_hand(cards: &mut Vec<Card>) {
 }
 
 pub fn get_user_can_play_wished_for_card(prev_combo: Option<&ValidCardCombo>, users_hand: &Vec<Card>, wished_for_card_value: &CardValue) -> bool {
+    // CardValue::noop() is equivalent to None
+    if *wished_for_card_value == CardValue::noop() {
+        return false;
+    }
+
     // if user does not have the wished for card, return false
     if !users_hand.iter().any(|card| card.value == *wished_for_card_value) {
         return false

@@ -18,7 +18,7 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
-- user who CAN play a card should NOT be able to pass
+- "Choose opponent" shows current user and teammate instead of opposite team
 - move more front-end state checks into /common (in prep for bot player)
   
 - use "into" pattern more?:

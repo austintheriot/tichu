@@ -343,12 +343,6 @@ impl AppState {
         let some_card_has_been_wished_for = wished_for_card_value.is_some()
             && *wished_for_card_value.as_ref().unwrap() != CardValue::noop();
 
-        info!(
-            "some_card_has_been_wished_for {:?}",
-            some_card_has_been_wished_for
-        );
-        info!("wished_for_card_value {:?}", wished_for_card_value);
-
         if let Some(combo) = combo {
             let user_can_play_wished_for_card = if some_card_has_been_wished_for {
                 let wished_for_card_value = wished_for_card_value.as_ref().unwrap();
@@ -579,9 +573,35 @@ impl AppState {
             if let PublicGameStage::Play(play_state) = &game_state.stage {
                 // it is the users turn
                 if play_state.turn_user_id == self.user_id {
+                    let prev_combo = self.get_prev_played_combo();
+
+                    // if a card has been wished for and the user can play it, they can't pass
+                    let wished_for_card_value = game_state.get_wished_for_card_value();
+
+                    // CardValue::noop() is equivalent to None
+                    let some_card_has_been_wished_for = wished_for_card_value.is_some()
+                        && *wished_for_card_value.as_ref().unwrap() != CardValue::noop();
+
+                    let user_can_play_wished_for_card = if let Some(prev_combo) = prev_combo {
+                        if some_card_has_been_wished_for {
+                            let wished_for_card_value = wished_for_card_value.as_ref().unwrap();
+                            get_user_can_play_wished_for_card(
+                                Some(prev_combo),
+                                &game_state.current_user.hand,
+                                wished_for_card_value,
+                            )
+                        } else {
+                            false
+                        }
+                    } else {
+                        true
+                    };
+
                     // user doesn't have to choose an opponent OR does have to choose an opponent and has done so
-                    return !self.get_user_must_select_user_id_to_give_dragon_to()
-                        || self.get_user_has_selected_user_id_to_give_dragon_to();
+                    return (!self.get_user_must_select_user_id_to_give_dragon_to()
+                        || self.get_user_has_selected_user_id_to_give_dragon_to())
+                        && !some_card_has_been_wished_for
+                        || (some_card_has_been_wished_for && !user_can_play_wished_for_card);
                 }
             }
         }

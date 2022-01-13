@@ -662,10 +662,22 @@ impl PrivateGameState {
 
         // if this is the penultimate pass, next user wins the trick,so move them into the user's tricks
         if is_penultimate_pass {
-            let last_trick = new_play_state
-                .table
-                .get(0)
-                .expect("Table should have at least one combo if this is the final pass");
+            let last_trick = new_play_state.table.last();
+
+            let last_trick = if let Some(last_trick) = last_trick {
+                last_trick
+            } else {
+                // if no trick was played, but this is the penultimate pass, then that means
+                // every user passed without playing a card, so lead returns to first player
+                new_play_state.turn_user_id = new_play_state.get_next_turn_user_id().clone();
+
+                // reset passes
+                new_play_state.passes.iter_mut().for_each(|pass| {
+                    pass.passed = false;
+                });
+
+                return Ok(new_game_state);
+            };
             let last_trick_contains_dragon = last_trick.cards().contains(&DRAGON);
 
             let user_who_played_last_trick_id = last_trick.user_id().clone();
