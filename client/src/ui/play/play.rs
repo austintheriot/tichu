@@ -2,6 +2,7 @@ use super::cards_on_table::CardsOnTable;
 use super::choose_opponent_input::ChooseOpponentInput;
 use super::play_hand::PlayHand;
 use super::selected_play_cards::SelectedPlayCards;
+use super::tricks::Tricks;
 use super::turn_display_name::TurnDisplayName;
 use super::wish_for_card_input::WishForCardInput;
 use super::wished_for_card::WishedForCard;
@@ -98,6 +99,9 @@ pub fn play() -> Html {
             <br />
             <br />
             <PlayHand />
+            <br />
+            <br />
+            <Tricks />
           </>
     }
 }
