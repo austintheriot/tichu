@@ -4,7 +4,7 @@ use crate::{
     CardSuit, CardValue, Deck, GetSmallTichu, ImmutableTeam, MutableTeam, OtherPlayers,
     PassWithUserId, PrivateGameStage, PrivateGrandTichu, PrivatePlay, PrivateUser, PublicGameStage,
     PublicUser, SubmitTrade, TeamCategories, TeamOption, TichuCallStatus,
-    UserIdWithTichuCallStatus, ValidCardCombo, DRAGON, MAH_JONG, MAX_CARDS_IN_HAND,
+    UserIdWithTichuCallStatus, ValidCardCombo, DOG, DRAGON, MAH_JONG, MAX_CARDS_IN_HAND,
     NUM_CARDS_AFTER_GRAND_TICHU, NUM_CARDS_BEFORE_GRAND_TICHU,
 };
 use serde::{Deserialize, Serialize};
@@ -1034,7 +1034,6 @@ impl PrivateGameState {
                 ],
                 table: Vec::new(),
                 turn_user_id: user_id_who_has_mah_jong,
-                winning_user_id: None,
                 user_id_to_give_dragon_to: None,
                 wished_for_card_value: None,
                 passes: [
@@ -1177,22 +1176,13 @@ impl PrivateGameState {
                             }
                         }
 
-                        // if user played a dragon, save who they want to give it to if they win
-                        if next_cards.contains(&DRAGON) {
-                            if let Some(user_id_to_give_dragon_to) = user_id_to_give_dragon_to {
-                                new_play_stage
-                                    .user_id_to_give_dragon_to
-                                    .replace(user_id_to_give_dragon_to);
-                            } else {
-                                return Err(format!(
-                                    "Couldn't accept card play submitted by user {} because user didn't choose a user to receive the dragon",
-                                    user_id
-                                ));
-                            }
-                        }
-
                         // put combo on table
                         new_play_stage.table.push(next_combo);
+
+                        // passes reset when someone plays a card
+                        new_play_stage.passes.iter_mut().for_each(|pass| {
+                            pass.passed = false;
+                        });
 
                         // get current user
                         let current_user_i = new_game_state
@@ -1204,15 +1194,6 @@ impl PrivateGameState {
                         // user has now definitely played first card
                         let mut new_current_user = &mut new_game_state.participants[current_user_i];
                         new_current_user.has_played_first_card = true;
-
-                        // user is now the winning user
-                        new_play_stage.winning_user_id.replace(user_id.to_string());
-
-                        // if user played mahjong and has wished for a card, save it
-                        let user_played_mah_jong = next_cards.contains(&MAH_JONG);
-                        if user_played_mah_jong {
-                            new_play_stage.wished_for_card_value = wished_for_card_value;
-                        }
 
                         // clear played cards from user's hand
                         new_current_user
@@ -1231,12 +1212,35 @@ impl PrivateGameState {
                                 .retain(|user_id_in_play| *user_id_in_play == user_id)
                         }
 
-                        // passes reset when someone plays a card
-                        new_play_stage.passes.iter_mut().for_each(|pass| {
-                            pass.passed = false;
-                        });
+                        // if user played Dog, then turn moves to teammate (or next player after that)
+                        if next_cards.len() == 1 && next_cards.contains(&DOG) {
+                            let next_user_id =
+                                new_play_stage.get_next_turn_user_id_from_user_id(user_id);
+                            new_play_stage.turn_user_id = next_user_id.clone();
+                            return Ok(new_game_state);
+                        }
 
-                        // round over (plain)
+                        // if user played a dragon, save who they want to give it to if they win
+                        if next_cards.contains(&DRAGON) {
+                            if let Some(user_id_to_give_dragon_to) = user_id_to_give_dragon_to {
+                                new_play_stage
+                                    .user_id_to_give_dragon_to
+                                    .replace(user_id_to_give_dragon_to);
+                            } else {
+                                return Err(format!(
+                                    "Couldn't accept card play submitted by user {} because user didn't choose a user to receive the dragon",
+                                    user_id
+                                ));
+                            }
+                        }
+
+                        // if user played mahjong and has wished for a card, save it
+                        let user_played_mah_jong = next_cards.contains(&MAH_JONG);
+                        if user_played_mah_jong {
+                            new_play_stage.wished_for_card_value = wished_for_card_value;
+                        }
+
+                        // check if round is over
                         if self.get_round_is_over() {
                             return new_game_state.round_over();
                         }

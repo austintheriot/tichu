@@ -19,8 +19,6 @@ pub struct PrivatePlay {
     pub table: Vec<ValidCardCombo>,
     pub turn_user_id: String,
 
-    /// User whose combo is currently winning the trick
-    pub winning_user_id: Option<String>,
     pub user_id_to_give_dragon_to: Option<String>,
     pub wished_for_card_value: Option<CardValue>,
     pub passes: [PassWithUserId; 4],
@@ -60,7 +58,6 @@ impl From<PrivateTrade> for PrivatePlay {
             table: vec![],
             // this value is set in game state on transition
             turn_user_id: String::from(""),
-            winning_user_id: None,
             wished_for_card_value: None,
             user_id_to_give_dragon_to: None,
             passes,
@@ -107,12 +104,11 @@ impl PrivatePlay {
 
     /// Pattern of turns:
     /// Teammate 1 -> Opponent 1 -> Teammate 2 -> Opponent 2
-    pub fn get_next_turn_user_id(&self) -> &String {
+    pub fn get_next_turn_user_id_from_user_id(&self, current_user_id: &str) -> &String {
         let mut users_in_turn_order = self.get_users_in_turn_order().clone();
-        let current_user_turn_id = &self.turn_user_id;
         let current_user_turn_id_index = users_in_turn_order
             .iter()
-            .position(|user_id| *user_id == current_user_turn_id)
+            .position(|user_id| *user_id == current_user_id)
             .expect("User should be in list of participants");
         // put current user at the beginning of the array and the reset are still in order
         users_in_turn_order.rotate_left(current_user_turn_id_index);
@@ -133,6 +129,15 @@ impl PrivatePlay {
             .get(0)
             .expect("There should never be only one user left");
         next_turn_user_id
+    }
+
+    /// Convenience wrapper for getting the next turn id based off of whose turn
+    /// it currently is.
+    ///
+    /// Pattern of turns:
+    /// Teammate 1 -> Opponent 1 -> Teammate 2 -> Opponent 2
+    pub fn get_next_turn_user_id(&self) -> &String {
+        self.get_next_turn_user_id_from_user_id(&self.turn_user_id)
     }
 }
 
