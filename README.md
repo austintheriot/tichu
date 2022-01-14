@@ -2,11 +2,11 @@
 
 ## About
 
-Tichu is an adaptation of the Chinese game *Zheng Fen* by Urs Hostettler and was released in 1991. It is a strategically complex game and is quite addicting. 
+Tichu is a fun, strategically complex card game based on the traditional Chinese game *Zheng Fen*.
 
-This app is a fullstack multiplayer web app version of the game, allowing players to play online from via their browser. The backend uses the Warp framework for handling websocket connections and synchronizing game state, while the front end is written using the Yew framework and is compiled to WebAssembly for running in-browser. The two communicate via websocket messages in binary (using Serde for quick binary serialization and deserialization on either end). All shared game logic resides in the `/common` directory for easy code and type sharing.
+This app is a fullstack web version of the game, allowing users to play online via their browser. The backend uses the Warp framework for handling websocket connections and synchronizing game state, while the front end is written using the Yew framework and is compiled to WebAssembly for running in-browser. The two communicate via binary websocket messages (using Serde for quick serialization and deserialization on either end). All shared game logic resides in the `/common` directory for easy code and type sharing.
 
-Copyright of this game belongs to the original publisher of Tichu, and I do not claim copyright on any of the underlying material/mechanics of the game. This project was made for educational purposes only—namely that of learning Rust. 
+Although there are numerous editions of Tichu available for sale, copyright of this game appears to belong to the original publisher, Fata Morgana, and I do not claim copyright on any of the underlying material/mechanics of the game. This project was made for nonprofit, educational purposes only—primarily that of learning the Rust programming language.
 
 ## Scripts
 - Prerequisite for running scripts in watch mode: 
