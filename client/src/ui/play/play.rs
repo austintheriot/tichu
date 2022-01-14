@@ -1,6 +1,7 @@
 use super::cards_on_table::CardsOnTable;
 use super::choose_opponent_input::ChooseOpponentInput;
 use super::play_hand::PlayHand;
+use super::scores::Scores;
 use super::selected_play_cards::SelectedPlayCards;
 use super::tricks::Tricks;
 use super::turns::Turns;
@@ -33,6 +34,9 @@ pub fn play() -> Html {
     html! {
           <>
             <h1>{"Play"}</h1>
+            <br />
+            <br />
+            <Scores />
             <br />
             <br />
             <Turns />
