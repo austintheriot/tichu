@@ -62,7 +62,15 @@ impl CardValue {
 
 impl Display for CardValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        let value = match self.0 {
+            0 => "None".to_string(),
+            11 => "Jack".to_string(),
+            12 => "Queen".to_string(),
+            13 => "King".to_string(),
+            14 => "Ace".to_string(),
+            _ => self.0.to_string(),
+        };
+        write!(f, "{}", value)
     }
 }
 
@@ -159,14 +167,7 @@ impl Display for Card {
         if self.suit.is_special() {
             write!(f, "{}", self.suit)
         } else {
-            let value_string = match self.value.0 {
-                11 => "J".to_string(),
-                12 => "Q".to_string(),
-                13 => "K".to_string(),
-                14 => "A".to_string(),
-                _ => self.value.0.to_string(),
-            };
-            write!(f, "{} of {}s", value_string, self.suit)
+            write!(f, "{} of {}s", self.value, self.suit)
         }
     }
 }

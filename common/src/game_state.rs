@@ -704,7 +704,7 @@ impl PrivateGameState {
             receiving_user.tricks.append(&mut current_table_cards);
 
             if self.get_round_is_over() {
-                return self.round_over();
+                return new_game_state.round_over();
             }
 
             // user keeps the lead if they won the trick
@@ -1205,18 +1205,6 @@ impl PrivateGameState {
                         let mut new_current_user = &mut new_game_state.participants[current_user_i];
                         new_current_user.has_played_first_card = true;
 
-                        // if user is out of cards, remove them from users_in_play
-                        if new_current_user.hand.is_empty() {
-                            // if first user to go out, save it
-                            if new_play_stage.users_in_play.len() == 4 {
-                                new_play_stage.first_user_out = Some(user_id.to_owned());
-                            }
-
-                            new_play_stage
-                                .users_in_play
-                                .retain(|user_id_in_play| *user_id_in_play == user_id)
-                        }
-
                         // user is now the winning user
                         new_play_stage.winning_user_id.replace(user_id.to_string());
 
@@ -1231,9 +1219,26 @@ impl PrivateGameState {
                             .hand
                             .retain(|card| !next_cards.contains(card));
 
+                        // if user is out of cards, remove user from users_in_play
+                        if new_current_user.hand.is_empty() {
+                            // if first user to go out, save it
+                            if new_play_stage.users_in_play.len() == 4 {
+                                new_play_stage.first_user_out = Some(user_id.to_owned());
+                            }
+
+                            new_play_stage
+                                .users_in_play
+                                .retain(|user_id_in_play| *user_id_in_play == user_id)
+                        }
+
+                        // passes reset when someone plays a card
+                        new_play_stage.passes.iter_mut().for_each(|pass| {
+                            pass.passed = false;
+                        });
+
                         // round over (plain)
                         if self.get_round_is_over() {
-                            return self.round_over();
+                            return new_game_state.round_over();
                         }
 
                         // if we've gotten this far
