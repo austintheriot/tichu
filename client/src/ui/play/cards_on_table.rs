@@ -19,7 +19,7 @@ pub fn cards_on_table() -> Html {
                                     html!{
                                         <li>
                                             <p>
-                                                {&format!("{:#?}", card)}
+                                                {&format!("{}", card)}
                                             </p>
                                         </li>
                                 }

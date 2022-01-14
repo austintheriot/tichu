@@ -4,7 +4,7 @@ use common::{PrivateGameStage, STCMsg};
 
 const FUNCTION_NAME: &str = "cleanup_state_after_disconnect";
 
-/// When a user disconnects, clean up their connection state and any game state their associated with.
+/// When a user disconnects, clean up their connection state and any game state they're associated with.
 pub async fn cleanup_state_after_disconnect(
     user_id: &str,
     connections: &Connections,

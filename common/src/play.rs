@@ -102,16 +102,39 @@ impl PrivatePlay {
             .all(|users_in_play_id| users_in_play_id != user_id)
     }
 
+    /// rotates list of users in turn order so that the requested user_id is first
+    pub fn get_users_in_turn_order_starting_with(&self, user_id: &str) -> Vec<&String> {
+        let mut users_in_turn_order = self.get_users_in_turn_order();
+        let user_id_index = users_in_turn_order
+            .iter()
+            .position(|users_id| *users_id == user_id)
+            .expect("user_id should be in list of participants in turn order");
+        // put current user at the beginning of the array while the rest are still in order
+        users_in_turn_order.rotate_left(user_id_index);
+        users_in_turn_order
+    }
+
+    pub fn get_next_turn_user_id_starting_with_user_id(&self, user_id: &str) -> Option<&String> {
+        let mut users_in_turn_order = self.get_users_in_turn_order_starting_with(user_id);
+
+        // remove all users who are out
+        let mut i = 0;
+        while i < users_in_turn_order.len() {
+            let user_id = users_in_turn_order.get(i).expect("User should be in Vec");
+            if self.get_is_user_out(user_id) {
+                users_in_turn_order.remove(i);
+            } else {
+                i += 1;
+            }
+        }
+
+        users_in_turn_order.first().and_then(|user| Some(*user))
+    }
+
     /// Pattern of turns:
     /// Teammate 1 -> Opponent 1 -> Teammate 2 -> Opponent 2
-    pub fn get_next_turn_user_id_from_user_id(&self, current_user_id: &str) -> &String {
-        let mut users_in_turn_order = self.get_users_in_turn_order().clone();
-        let current_user_turn_id_index = users_in_turn_order
-            .iter()
-            .position(|user_id| *user_id == current_user_id)
-            .expect("User should be in list of participants");
-        // put current user at the beginning of the array and the reset are still in order
-        users_in_turn_order.rotate_left(current_user_turn_id_index);
+    pub fn get_next_turn_user_id_after_user_id(&self, user_id: &str) -> Option<&String> {
+        let mut users_in_turn_order = self.get_users_in_turn_order_starting_with(user_id);
         // remove current user
         users_in_turn_order.remove(0);
         // remove all users who are out
@@ -125,10 +148,7 @@ impl PrivatePlay {
             }
         }
 
-        let next_turn_user_id = users_in_turn_order
-            .get(0)
-            .expect("There should never be only one user left");
-        next_turn_user_id
+        users_in_turn_order.first().and_then(|user| Some(*user))
     }
 
     /// Convenience wrapper for getting the next turn id based off of whose turn
@@ -136,8 +156,23 @@ impl PrivatePlay {
     ///
     /// Pattern of turns:
     /// Teammate 1 -> Opponent 1 -> Teammate 2 -> Opponent 2
-    pub fn get_next_turn_user_id(&self) -> &String {
-        self.get_next_turn_user_id_from_user_id(&self.turn_user_id)
+    pub fn get_next_turn_user_id(&self) -> Option<&String> {
+        self.get_next_turn_user_id_after_user_id(&self.turn_user_id)
+    }
+
+    pub fn get_teammate_of_user_id(&self, user_id: &str) -> Option<&String> {
+        self.teams
+            .iter()
+            .find(|team| {
+                team.user_ids
+                    .iter()
+                    .any(|team_user_id| team_user_id == user_id)
+            })
+            .and_then(|team| {
+                team.user_ids
+                    .iter()
+                    .find(|team_user_id| team_user_id != &user_id)
+            })
     }
 }
 
@@ -187,5 +222,16 @@ impl From<PrivatePlay> for PublicPlay {
             users_in_play: private_play.users_in_play,
             wished_for_card_value: private_play.wished_for_card_value,
         }
+    }
+}
+
+impl PublicPlay {
+    pub fn get_users_in_turn_order(&self) -> Vec<&String> {
+        vec![
+            &self.teams[0].user_ids[0],
+            &self.teams[1].user_ids[0],
+            &self.teams[0].user_ids[1],
+            &self.teams[1].user_ids[1],
+        ]
     }
 }

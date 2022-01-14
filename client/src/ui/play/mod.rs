@@ -4,6 +4,6 @@ pub mod play;
 mod play_hand;
 mod selected_play_cards;
 mod tricks;
-mod turn_display_name;
+mod turns;
 mod wish_for_card_input;
 mod wished_for_card;

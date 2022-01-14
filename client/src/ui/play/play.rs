@@ -3,7 +3,7 @@ use super::choose_opponent_input::ChooseOpponentInput;
 use super::play_hand::PlayHand;
 use super::selected_play_cards::SelectedPlayCards;
 use super::tricks::Tricks;
-use super::turn_display_name::TurnDisplayName;
+use super::turns::Turns;
 use super::wish_for_card_input::WishForCardInput;
 use super::wished_for_card::WishedForCard;
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
@@ -35,7 +35,7 @@ pub fn play() -> Html {
             <h1>{"Play"}</h1>
             <br />
             <br />
-            <TurnDisplayName />
+            <Turns />
             <br />
             <br />
             <CardsOnTable />

@@ -20,7 +20,7 @@ pub fn selected_play_cards() -> Html {
                 onclick={make_handle_remove_selected_play_card(i)}
                 type="button"
               >
-                {&format!("Remove {:#?}", selected_card)}
+                {&format!("Remove {}", selected_card)}
             </button>
         }
     })

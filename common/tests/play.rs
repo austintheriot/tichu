@@ -81,7 +81,7 @@ mod test_get_next_user_turn_id {
             ],
             first_user_out: None,
         };
-        assert_eq!(private_play.get_next_turn_user_id(), "3");
+        assert_eq!(private_play.get_next_turn_user_id(), Some(&"3".into()));
 
         let private_play = PrivatePlay {
             small_tichus: tichu_call_statuses.clone(),
@@ -100,7 +100,7 @@ mod test_get_next_user_turn_id {
             ],
             first_user_out: None,
         };
-        assert_eq!(private_play.get_next_turn_user_id(), "4");
+        assert_eq!(private_play.get_next_turn_user_id(), Some(&"4".into()));
 
         let private_play = PrivatePlay {
             small_tichus: tichu_call_statuses.clone(),
@@ -119,7 +119,7 @@ mod test_get_next_user_turn_id {
             ],
             first_user_out: None,
         };
-        assert_eq!(private_play.get_next_turn_user_id(), "2");
+        assert_eq!(private_play.get_next_turn_user_id(), Some(&"2".into()));
 
         let private_play = PrivatePlay {
             small_tichus: tichu_call_statuses.clone(),
@@ -133,7 +133,7 @@ mod test_get_next_user_turn_id {
             users_in_play: vec![user_1.clone(), user_2, user_3.clone(), user_4.clone()],
             first_user_out: None,
         };
-        assert_eq!(private_play.get_next_turn_user_id(), "1");
+        assert_eq!(private_play.get_next_turn_user_id(), Some(&"1".into()));
 
         // ONE USER OUT ////////////////////////////////////////////////////////////////
 
@@ -149,7 +149,7 @@ mod test_get_next_user_turn_id {
             users_in_play: vec![user_1.clone(), user_3.clone(), user_4.clone()],
             first_user_out: None,
         };
-        assert_eq!(private_play.get_next_turn_user_id(), "3");
+        assert_eq!(private_play.get_next_turn_user_id(), Some(&"3".into()));
 
         let private_play = PrivatePlay {
             small_tichus: tichu_call_statuses.clone(),
@@ -163,7 +163,7 @@ mod test_get_next_user_turn_id {
             users_in_play: vec![user_1.clone(), user_3.clone(), user_4.clone()],
             first_user_out: None,
         };
-        assert_eq!(private_play.get_next_turn_user_id(), "4");
+        assert_eq!(private_play.get_next_turn_user_id(), Some(&"4".into()));
 
         let private_play = PrivatePlay {
             small_tichus: tichu_call_statuses.clone(),
@@ -177,7 +177,7 @@ mod test_get_next_user_turn_id {
             users_in_play: vec![user_1.clone(), user_3.clone(), user_4],
             first_user_out: None,
         };
-        assert_eq!(private_play.get_next_turn_user_id(), "1");
+        assert_eq!(private_play.get_next_turn_user_id(), Some(&"1".into()));
 
         // TWO USERS OUT ////////////////////////////////////////////////////////////////
 
@@ -193,7 +193,7 @@ mod test_get_next_user_turn_id {
             users_in_play: vec![user_1.clone(), user_3.clone()],
             first_user_out: None,
         };
-        assert_eq!(private_play.get_next_turn_user_id(), "3");
+        assert_eq!(private_play.get_next_turn_user_id(), Some(&"3".into()));
 
         let private_play = PrivatePlay {
             small_tichus: tichu_call_statuses.clone(),
@@ -207,6 +207,6 @@ mod test_get_next_user_turn_id {
             users_in_play: vec![user_1, user_3],
             first_user_out: None,
         };
-        assert_eq!(private_play.get_next_turn_user_id(), "1");
+        assert_eq!(private_play.get_next_turn_user_id(), Some(&"1".into()));
     }
 }

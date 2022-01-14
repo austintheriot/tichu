@@ -10,7 +10,7 @@ use crate::{
     ConnectionData, Connections, GameCodes, Games,
 };
 use common::{STCMsg, NO_USER_ID};
-use futures::{SinkExt, StreamExt, TryFutureExt};
+use futures::{SinkExt, StreamExt};
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -43,10 +43,10 @@ pub async fn handle_ws_upgrade(
         while let Some(message) = rx.next().await {
             // user didn't respond to ping: close connection
             if message == Message::text(CLOSE_WEBSOCKET) {
-                user_ws_tx
-                    .close()
-                    .await
-                    .expect("Could not close websocket for idle connection");
+                let result = user_ws_tx.close().await;
+                if let Err(e) = result {
+                    eprintln!("Error closing websocket {:#?}", e);
+                }
                 cleanup_state_after_disconnect(
                     &user_id_clone,
                     &users_clone,
@@ -57,12 +57,14 @@ pub async fn handle_ws_upgrade(
             }
             // take WS from queue and send to client
             else {
-                user_ws_tx
-                    .send(message)
-                    .unwrap_or_else(|e| {
-                        eprintln!("Websocket send error: {}", e);
-                    })
-                    .await;
+                let result = user_ws_tx.send(message).await;
+                if let Err(e) = result {
+                    eprintln!("Websocket send error: {}", e);
+                    let result = user_ws_tx.close().await;
+                    if let Err(e) = result {
+                        eprintln!("Error closing websocket {:#?}", e);
+                    }
+                }
             }
         }
     });

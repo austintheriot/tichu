@@ -33,7 +33,7 @@ pub async fn game_state_to_group(
             }
         };
         if let Err(_disconnected) = ws.tx.send(msg.clone()) {
-            eprintln!("User is disconnected. Couldn't send message {:?}", &msg);
+            eprintln!("User is disconnected. Couldn't send message.");
         } else {
             eprintln!("Message successfully sent");
         }
@@ -63,7 +63,7 @@ pub async fn to_group(
             }
         };
         if let Err(_disconnected) = ws.tx.send(msg.clone()) {
-            eprintln!("User is disconnected. Couldn't send message {:?}", &msg);
+            eprintln!("User is disconnected. Couldn't send message.");
         } else {
             eprintln!("Message successfully sent");
         }
@@ -77,7 +77,7 @@ pub async fn to_user(user_id: &str, msg: STCMsg, connections: &Connections) {
     let read_connections = connections.read().await;
     let ws = read_connections.get(user_id).expect(USER_ID_NOT_IN_MAP);
     if let Err(_disconnected) = ws.tx.send(msg.clone()) {
-        eprintln!("User is disconnected. Couldn't send message {:?}", &msg);
+        eprintln!("User is disconnected. Couldn't send message.");
     } else {
         eprintln!("Message successfully sent");
     }

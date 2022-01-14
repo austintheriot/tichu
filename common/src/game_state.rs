@@ -648,7 +648,8 @@ impl PrivateGameState {
     pub fn pass(&self, user_id: &str) -> Result<Self, String> {
         let mut new_game_state = self.clone();
 
-        let is_penultimate_pass = new_game_state.get_number_of_users_who_have_passed() == Ok(2);
+        let number_of_users_who_have_passed =
+            new_game_state.get_number_of_users_who_have_passed()?;
 
         let new_play_state =
             if let PrivateGameStage::Play(new_play_state) = &mut new_game_state.stage {
@@ -660,6 +661,9 @@ impl PrivateGameState {
                 ));
             };
 
+        let is_penultimate_pass =
+            number_of_users_who_have_passed == new_play_state.users_in_play.len() - 1;
+
         // if this is the penultimate pass, next user wins the trick,so move them into the user's tricks
         if is_penultimate_pass {
             let last_trick = new_play_state.table.last();
@@ -669,7 +673,10 @@ impl PrivateGameState {
             } else {
                 // if no trick was played, but this is the penultimate pass, then that means
                 // every user passed without playing a card, so lead returns to first player
-                new_play_state.turn_user_id = new_play_state.get_next_turn_user_id().clone();
+                new_play_state.turn_user_id = new_play_state
+                    .get_next_turn_user_id()
+                    .ok_or_else(|| format!("Couldn't find next user id: {:#?}", new_play_state))?
+                    .clone();
 
                 // reset passes
                 new_play_state.passes.iter_mut().for_each(|pass| {
@@ -725,7 +732,10 @@ impl PrivateGameState {
             .position(|pass| pass.user_id == user_id)
             .expect("User should be in the passes state");
         new_play_state.passes[user_pass_index].passed = true;
-        new_play_state.turn_user_id = new_play_state.get_next_turn_user_id().clone();
+        new_play_state.turn_user_id = new_play_state
+            .get_next_turn_user_id()
+            .ok_or_else(|| format!("Couldn't find next user id: {:#?}", new_play_state))?
+            .clone();
 
         Ok(new_game_state)
     }
@@ -1209,13 +1219,20 @@ impl PrivateGameState {
 
                             new_play_stage
                                 .users_in_play
-                                .retain(|user_id_in_play| *user_id_in_play == user_id)
+                                .retain(|user_id_in_play| *user_id_in_play != user_id)
                         }
 
                         // if user played Dog, then turn moves to teammate (or next player after that)
                         if next_cards.len() == 1 && next_cards.contains(&DOG) {
-                            let next_user_id =
-                                new_play_stage.get_next_turn_user_id_from_user_id(user_id);
+                            // find teammate user_id
+                            let teammate_user_id = new_play_stage
+                                .get_teammate_of_user_id(user_id)
+                                .expect("Should be able to find teammate in state");
+                            let next_user_id = new_play_stage
+                                .get_next_turn_user_id_starting_with_user_id(teammate_user_id)
+                                .ok_or_else(|| {
+                                    format!("Couldn't find next user id: {:#?}", new_play_stage)
+                                })?;
                             new_play_stage.turn_user_id = next_user_id.clone();
                             return Ok(new_game_state);
                         }
@@ -1246,8 +1263,11 @@ impl PrivateGameState {
                         }
 
                         // if we've gotten this far
-                        // there should always be users left in play so, move to the next user
-                        let next_user_id = new_play_stage.get_next_turn_user_id();
+                        // there should always be users left in play, so move to the next user
+                        let next_user_id =
+                            new_play_stage.get_next_turn_user_id().ok_or_else(|| {
+                                format!("Couldn't find next user id: {:#?}", new_play_stage)
+                            })?;
                         new_play_stage.turn_user_id = next_user_id.clone();
                     } else {
                         return Err(format!(

@@ -18,7 +18,9 @@ IDEAS:
 --------------------------------------------------------------------------------------------
 
 TODO:
-- "Choose opponent" shows current user and teammate instead of opposite team
+- "penultimate pass" must be determined by how many users are left in game
+- Add score indicator in <Play />
+- Add "played by" note under combo
 - move more front-end state checks into /common (in prep for bot player)
   
 - use "into" pattern more?:

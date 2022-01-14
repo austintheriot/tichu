@@ -7,7 +7,6 @@ use yew::prelude::*;
 #[function_component(WishForCardInput)]
 pub fn wish_for_card_input() -> Html {
     let app_context = use_context::<AppContext>().expect("AppContext not found");
-    let app_state = &*app_context.app_reducer_handle;
     let handle_wished_for_card_input = {
         let reducer_handle = app_context.app_reducer_handle.clone();
         Callback::from(move |e: InputEvent| {
@@ -22,13 +21,7 @@ pub fn wish_for_card_input() -> Html {
 
     let wish_for_options: Vec<String> = Deck::wished_for_card_values()
         .iter()
-        .map(|card_value| {
-            if *card_value == CardValue::noop() {
-                "None".to_string()
-            } else {
-                format!("{}", card_value)
-            }
-        })
+        .map(|card_value| format!("{}", card_value))
         .collect();
 
     html! {
