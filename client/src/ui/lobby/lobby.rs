@@ -1,6 +1,6 @@
 use super::participants_list::ParticipantsList;
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
-use crate::ui::common::button::Button;
+use crate::ui::common::button::{Button, ButtonVariant};
 use crate::ui::common::layout::Layout;
 use yew::prelude::*;
 
@@ -26,6 +26,13 @@ pub fn lobby() -> Html {
                         {&game_state.game_code}
                     </p>
                     <p class="joined">{"Joined:"}</p>
+
+                    <Button
+                        variant={ButtonVariant::Circle}
+                        disabled=true
+                    >
+                        <img src={"images/check.svg"} />
+                    </Button>
 
                     <ParticipantsList />
 
