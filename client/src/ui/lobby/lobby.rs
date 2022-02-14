@@ -25,15 +25,15 @@ pub fn lobby() -> Html {
                     <p class="game-code-string">
                         {&game_state.game_code}
                     </p>
-                    <p class="joined">{"Joined:"}</p>
 
                     <Button
                         variant={ButtonVariant::Circle}
                         disabled=true
                     >
-                        <img src={"images/check.svg"} />
+                        <img src={"images/check.svg"} alt="" />
                     </Button>
 
+                    <p class="joined">{"Joined:"}</p>
                     <ParticipantsList />
 
                     <Button
