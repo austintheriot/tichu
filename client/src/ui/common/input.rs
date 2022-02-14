@@ -23,7 +23,7 @@ pub struct InputProps {
 #[function_component(Input)]
 pub fn input(props: &InputProps) -> Html {
     let mut base_classes = props.classes.clone();
-    base_classes.push("Input".into());
+    base_classes.push("input".into());
     let input_ref = use_node_ref();
     let is_empty = use_state(|| props.value.is_empty());
     let is_focused = use_state(|| {
@@ -68,7 +68,7 @@ pub fn input(props: &InputProps) -> Html {
     };
 
     if *is_empty && !*is_focused {
-        base_classes.push("InputLabelDown".into());
+        base_classes.push("input-label-down".into());
     }
 
     html! {

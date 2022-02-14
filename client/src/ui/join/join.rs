@@ -62,7 +62,7 @@ pub fn join() -> Html {
     let app_state = &*app_context.app_reducer_handle;
 
     html! {
-        <Layout classes={vec!["Join__Container".into()]}>
+        <Layout classes={vec!["join-container".into()]}>
             <h1>{"Tichu"}</h1>
             <form onsubmit={handle_join_room_form_submit}>
                 <Input

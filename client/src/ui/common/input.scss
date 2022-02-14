@@ -1,4 +1,4 @@
-.Input {
+.input {
   --height: 60px;
   height: var(--height);
   width: 100%;
@@ -35,7 +35,7 @@
   }
 }
 
-.InputLabelDown {
+.input-label-down {
   label {
     transform: translateY(0.8rem);
     font-size: 1rem;

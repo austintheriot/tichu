@@ -1,0 +1,34 @@
+.lobby-container {
+  .game-code-title {
+    margin-top: 30px;
+    font-size: 32px;
+    text-align: center;
+    font-weight: 400;
+  }
+
+  .game-code-string {
+    font-size: 45px;
+    font-weight: 700;
+    line-height: 53px;
+    text-align: center;
+  }
+
+  .joined {
+    margin-top: 32px;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 36px;
+    text-align: center;
+  }
+  
+  .participants-list {
+    width: 100%;
+    margin: 16px auto 48px;
+    text-align: center;
+    list-style-type: none;
+  }
+
+  .button {
+    margin: 20px auto;
+  }
+}

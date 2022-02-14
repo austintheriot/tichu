@@ -9,7 +9,7 @@ pub struct ButtonProps {
     #[prop_or_default]
     pub disabled: bool,
     #[prop_or_else(|| Callback::from(|_| {}))]
-    onclick: Callback<MouseEvent>,
+    pub onclick: Callback<MouseEvent>,
     #[prop_or_default]
     pub classes: Vec<String>,
 }
@@ -17,7 +17,7 @@ pub struct ButtonProps {
 #[function_component(Button)]
 pub fn button(props: &ButtonProps) -> Html {
     let mut base_classes = props.classes.clone();
-    base_classes.push("Button".into());
+    base_classes.push("button".into());
 
     html! {
       <button

@@ -11,7 +11,7 @@ pub struct LayoutProps {
 #[function_component(Layout)]
 pub fn layout(props: &LayoutProps) -> Html {
     let mut base_classes = props.classes.clone();
-    base_classes.push("Layout".into());
+    base_classes.push("layout".into());
 
     html! {
       <div class={base_classes}>

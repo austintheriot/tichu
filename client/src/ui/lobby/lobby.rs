@@ -1,5 +1,6 @@
-use super::super::debug::view_participants::ViewParticipants;
+use super::participants_list::ParticipantsList;
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
+use crate::ui::common::button::Button;
 use crate::ui::common::layout::Layout;
 use yew::prelude::*;
 
@@ -14,26 +15,29 @@ pub fn lobby() -> Html {
     };
     let app_state = &*app_context.app_reducer_handle;
 
-    html! {
-            <Layout>
-                <h1>{"Lobby"}</h1>
-                <h2>{"Game Code: "}{
-                    if let Some(game_state) = &app_state.game_state {
-                        &game_state.game_code
-                    } else {
-                        ""
-                    }
-                }
-                </h2>
-                <h3>{"Joined:"}</h3>
-                <br />
-                <ViewParticipants />
-                <button
-                    onclick={send_leave_game_message}
-                    disabled={!app_state.can_leave_game()}
+    return if let Some(game_state) = &app_state.game_state {
+        html! {
+                <Layout classes={vec!["lobby-container".into()]}>
+                    <h1 class="Title">{"Lobby"}</h1>
+                    <p class="game-code-title">
+                        {"Game Code: "}
+                    </p>
+                    <p class="game-code-string">
+                        {&game_state.game_code}
+                    </p>
+                    <p class="joined">{"Joined:"}</p>
+
+                    <ParticipantsList />
+
+                    <Button
+                        onclick={send_leave_game_message}
+                        disabled={!app_state.can_leave_game()}
                     >
-                    {"Leave game"}
-                </button>
-            </Layout>
-    }
+                        {"Leave"}
+                    </Button>
+                </Layout>
+        }
+    } else {
+        html! {}
+    };
 }
