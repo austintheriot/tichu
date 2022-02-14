@@ -2,6 +2,7 @@ use crate::global::{
     state::{AppContext, AppReducerAction},
     ws::CTSMsgInternal,
 };
+use crate::ui::common::input::Input;
 use common::TeamOption;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
@@ -56,17 +57,15 @@ pub fn team_input(props: &TeamInputProps) -> Html {
     };
 
     html! {
-          <>
-          <h1>{&props.title}</h1>
-              <form onsubmit={handle_team_submit}>
-              <label for={props.input_label_id.clone()}>{"Team Name"}</label>
-              <input
-                  id={props.input_label_id.clone()}
-                  disabled={!app_state.is_team_stage() || is_on_opposite_team}
-                  type="text"
-                  value={input_value}
-                  oninput={handle_team_input} />
-             </form>
-          </>
+        <form onsubmit={handle_team_submit}>
+            <Input
+                label="Team Name"
+                id={props.input_label_id.clone()}
+                oninput={handle_team_input}
+                input_type="text"
+                value={input_value}
+                disabled={!app_state.is_team_stage() || is_on_opposite_team}
+            />
+        </form>
     }
 }
