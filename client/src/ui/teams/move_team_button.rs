@@ -1,15 +1,16 @@
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
+use crate::ui::common::button::Button;
 use common::TeamOption;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
-pub struct TeamButtonProps {
+pub struct MoveTeamButtonProps {
     pub text: String,
     pub team_option: TeamOption,
 }
 
-#[function_component(TeamButton)]
-pub fn team_input(props: &TeamButtonProps) -> Html {
+#[function_component(MoveTeamButton)]
+pub fn team_input(props: &MoveTeamButtonProps) -> Html {
     let app_context = use_context::<AppContext>().expect("AppContext not found");
 
     let handle_move_to_team = {
@@ -28,11 +29,11 @@ pub fn team_input(props: &TeamButtonProps) -> Html {
     };
 
     html! {
-        <button
+        <Button
             onclick={handle_move_to_team}
             disabled={!app_state.is_team_stage() || is_on_team_already}
         >
             {props.text.clone()}
-        </button>
+        </Button>
     }
 }

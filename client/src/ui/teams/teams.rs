@@ -1,7 +1,9 @@
-use super::team_button::TeamButton;
-use super::team_input::TeamInput;
+use super::move_team_button::MoveTeamButton;
+use super::team_name_input::TeamNameInput;
+use super::view_team_as_cards::ViewTeamAsCards;
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
-use common::TeamOption;
+use crate::ui::common::layout::Layout;
+use common::{PublicGameStage, PublicGameState, TeamOption};
 use yew::prelude::*;
 
 #[function_component(Teams)]
@@ -17,36 +19,63 @@ pub fn teams() -> Html {
 
     let app_state = &*app_context.app_reducer_handle;
 
-    html! {
-          <>
-              <h1>{"Teams"}</h1>
-              <TeamInput
-                team_option={TeamOption::TeamA}
-                title={"Team Name".to_string()}
-                input_label_id={"team-a-name-input".to_string()}
-              />
-              <br />
-              <TeamButton text={"Move to Team A".to_string()} team_option={TeamOption::TeamA} />
-              <br />
-              <TeamButton text={"Move to Team B".to_string()} team_option={TeamOption::TeamB} />
-              <br />
-             <TeamInput
-                team_option={TeamOption::TeamB}
-                title={"Team Name".to_string()}
-                input_label_id={"team-b-name-input".to_string()}
-              />
-             {if app_state.is_current_user_owner() {
-                html!{
-                  <button
-                      onclick={handle_start_grand_tichu}
-                      disabled={!app_state.can_start_game()}
-                  >
-                    {"Start"}
-                  </button>
-              }
-          } else {
-                 html!{}
-          }}
-          </>
+    //  app_state
+    //     .game_state
+    //     .as_ref()
+    //     .map(|game_state| {
+    //         if let PublicGameStage::Teams(teams_state) = game_state.stage {
+    //             Some(teams_state.iter().map(|team| {
+    //                 team.iter
+    //             }).collect::<Html>())
+    //         } else {
+    //             None
+    //         }
+    //     })
+    //     .or_else(|| {
+    //         html! {}
+    //     })
+
+    if let Some(PublicGameState {
+        stage: PublicGameStage::Teams(teams_state),
+        ..
+    }) = &app_state.game_state.as_ref()
+    {
+        html! {
+              <Layout classes={vec!["teams-container".into()]}>
+                <h1>{"Teams"}</h1>
+                <div class="input-wrapper">
+                  <TeamNameInput
+                    team_option={TeamOption::TeamA}
+                    title={"Team Name".to_string()}
+                    input_label_id={"team-a-name-input".to_string()}
+                  />
+                  <ViewTeamAsCards team={teams_state[0].clone()} />
+                </div>
+                <MoveTeamButton text={"Move to Team A".to_string()} team_option={TeamOption::TeamA} />
+                <MoveTeamButton text={"Move to Team B".to_string()} team_option={TeamOption::TeamB} />
+                <div class="input-wrapper">
+                  <ViewTeamAsCards team={teams_state[1].clone()} />
+                  <TeamNameInput
+                      team_option={TeamOption::TeamB}
+                      title={"Team Name".to_string()}
+                      input_label_id={"team-b-name-input".to_string()}
+                  />
+                </div>
+                {if app_state.is_current_user_owner() {
+                  html!{
+                    <button
+                        onclick={handle_start_grand_tichu}
+                        disabled={!app_state.can_start_game()}
+                    >
+                      {"Start"}
+                    </button>
+                }
+              } else {
+                     html!{}
+              }}
+              </Layout>
+        }
+    } else {
+        html! {}
     }
 }

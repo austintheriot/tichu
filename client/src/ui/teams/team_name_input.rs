@@ -9,14 +9,14 @@ use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
-pub struct TeamInputProps {
+pub struct TeamNameInputProps {
     pub title: String,
     pub input_label_id: String,
     pub team_option: TeamOption,
 }
 
-#[function_component(TeamInput)]
-pub fn team_input(props: &TeamInputProps) -> Html {
+#[function_component(TeamNameInput)]
+pub fn team_input(props: &TeamNameInputProps) -> Html {
     let app_context = use_context::<AppContext>().expect("AppContext not found");
 
     let handle_team_submit = {
@@ -57,7 +57,7 @@ pub fn team_input(props: &TeamInputProps) -> Html {
     };
 
     html! {
-        <form onsubmit={handle_team_submit}>
+        <form onsubmit={handle_team_submit} class="team-input">
             <Input
                 label="Team Name"
                 id={props.input_label_id.clone()}

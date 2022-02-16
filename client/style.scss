@@ -3,6 +3,7 @@
 @use './src/ui/common/input.scss';
 @use './src/ui/join/join.scss';
 @use './src/ui/lobby/lobby.scss';
+@use './src/ui/teams/teams.scss';
 
 :root {
   --primary-00: #060A42;
@@ -19,6 +20,10 @@
   --gray-50: #9B9B9B;
   --gray-75: #D3D3D5;
   --gray-100: #F0F0F0;
+
+  --card-width: 225px;
+  --card-height: 350px;
+  --card-aspect-ratio-percentage: 1.55%;
 }
 
 * {
