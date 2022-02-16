@@ -32,6 +32,9 @@
     &:focus {
       border: 1px solid var(--primary-40);
     }
+    &:disabled {
+      cursor: not-allowed;
+    }
   }
 }
 

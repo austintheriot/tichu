@@ -56,6 +56,8 @@ pub fn team_input(props: &TeamNameInputProps) -> Html {
         TeamOption::TeamB => app_state.team_b_name_input.clone(),
     };
 
+    let disabled = !app_state.is_team_stage() || is_on_opposite_team;
+
     html! {
         <form onsubmit={handle_team_submit} class="team-input">
             <Input
@@ -64,7 +66,7 @@ pub fn team_input(props: &TeamNameInputProps) -> Html {
                 oninput={handle_team_input}
                 input_type="text"
                 value={input_value}
-                disabled={!app_state.is_team_stage() || is_on_opposite_team}
+               {disabled}
             />
         </form>
     }

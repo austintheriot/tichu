@@ -82,6 +82,7 @@ pub fn input(props: &InputProps) -> Html {
           onfocus={handle_focus}
           onblur={handle_blur}
           ref={input_ref}
+          disabled={props.disabled}
         />
       </div>
     }
