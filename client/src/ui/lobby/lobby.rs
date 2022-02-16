@@ -2,6 +2,7 @@ use super::participants_list::ParticipantsList;
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
 use crate::ui::common::button::{Button, ButtonVariant};
 use crate::ui::common::layout::Layout;
+use crate::ui::icons::check::Check;
 use yew::prelude::*;
 
 #[function_component(Lobby)]
@@ -30,7 +31,7 @@ pub fn lobby() -> Html {
                         variant={ButtonVariant::Circle}
                         disabled=true
                     >
-                        <img src={"images/check.svg"} alt="" />
+                        <Check style="stroke: var(--gray-75);" />
                     </Button>
 
                     <p class="joined">{"Joined:"}</p>

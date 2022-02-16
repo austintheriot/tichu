@@ -19,22 +19,6 @@ pub fn teams() -> Html {
 
     let app_state = &*app_context.app_reducer_handle;
 
-    //  app_state
-    //     .game_state
-    //     .as_ref()
-    //     .map(|game_state| {
-    //         if let PublicGameStage::Teams(teams_state) = game_state.stage {
-    //             Some(teams_state.iter().map(|team| {
-    //                 team.iter
-    //             }).collect::<Html>())
-    //         } else {
-    //             None
-    //         }
-    //     })
-    //     .or_else(|| {
-    //         html! {}
-    //     })
-
     if let Some(PublicGameState {
         stage: PublicGameStage::Teams(teams_state),
         ..
@@ -51,8 +35,8 @@ pub fn teams() -> Html {
                   />
                   <ViewTeamAsCards team={teams_state[0].clone()} />
                 </div>
-                <MoveTeamButton text={"Move to Team A".to_string()} team_option={TeamOption::TeamA} />
-                <MoveTeamButton text={"Move to Team B".to_string()} team_option={TeamOption::TeamB} />
+                <MoveTeamButton team_option={TeamOption::TeamA} />
+                <MoveTeamButton team_option={TeamOption::TeamB} />
                 <div class="input-wrapper">
                   <ViewTeamAsCards team={teams_state[1].clone()} />
                   <TeamNameInput

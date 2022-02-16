@@ -1,11 +1,11 @@
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
-use crate::ui::common::button::Button;
+use crate::ui::common::button::{Button, ButtonVariant};
+use crate::ui::icons::up_arrow::UpArrow;
 use common::TeamOption;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
 pub struct MoveTeamButtonProps {
-    pub text: String,
     pub team_option: TeamOption,
 }
 
@@ -28,12 +28,19 @@ pub fn team_input(props: &MoveTeamButtonProps) -> Html {
         TeamOption::TeamB => app_state.is_on_team_b(),
     };
 
+    let mut classes = vec!["move-team-button".to_string()];
+    if props.team_option == TeamOption::TeamB {
+        classes.push("rotate".into());
+    };
+
     html! {
         <Button
             onclick={handle_move_to_team}
             disabled={!app_state.is_team_stage() || is_on_team_already}
+            variant={ButtonVariant::Circle}
+            {classes}
         >
-            {props.text.clone()}
+            <UpArrow />
         </Button>
     }
 }
