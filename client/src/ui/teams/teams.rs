@@ -2,6 +2,7 @@ use super::move_team_button::MoveTeamButton;
 use super::team_name_input::TeamNameInput;
 use super::view_team_as_cards::ViewTeamAsCards;
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
+use crate::ui::common::button::Button;
 use crate::ui::common::layout::Layout;
 use common::{PublicGameStage, PublicGameState, TeamOption};
 use yew::prelude::*;
@@ -27,6 +28,8 @@ pub fn teams() -> Html {
         html! {
               <Layout classes={vec!["teams-container".into()]}>
                 <h1>{"Teams"}</h1>
+
+                // Team A input
                 <div class="input-wrapper">
                   <TeamNameInput
                     team_option={TeamOption::TeamA}
@@ -35,8 +38,16 @@ pub fn teams() -> Html {
                   />
                   <ViewTeamAsCards team={teams_state[0].clone()} />
                 </div>
+
+                // move to Team A
                 <MoveTeamButton team_option={TeamOption::TeamA} />
+
+                <hr />
+
+                // move to Team B
                 <MoveTeamButton team_option={TeamOption::TeamB} />
+
+                // Team B input
                 <div class="input-wrapper">
                   <ViewTeamAsCards team={teams_state[1].clone()} />
                   <TeamNameInput
@@ -45,14 +56,16 @@ pub fn teams() -> Html {
                       input_label_id={"team-b-name-input".to_string()}
                   />
                 </div>
+
+                // Start button
                 {if app_state.is_current_user_owner() {
                   html!{
-                    <button
+                    <Button
                         onclick={handle_start_grand_tichu}
                         disabled={!app_state.can_start_game()}
                     >
                       {"Start"}
-                    </button>
+                    </Button>
                 }
               } else {
                      html!{}
