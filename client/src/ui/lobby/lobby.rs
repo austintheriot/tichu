@@ -19,7 +19,6 @@ pub fn lobby() -> Html {
     return if let Some(game_state) = &app_state.game_state {
         html! {
                 <Layout classes={vec!["lobby-container".into()]}>
-                    <h1 class="Title">{"Lobby"}</h1>
                     <p class="game-code-title">
                         {"Game Code: "}
                     </p>
