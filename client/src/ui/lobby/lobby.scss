@@ -1,3 +1,5 @@
+@import '../../styles/mixins.scss';
+
 @mixin sub-heading {
   font-size: 32px;
   text-align: center;
@@ -27,6 +29,13 @@
     margin: 16px auto 48px;
     text-align: center;
     list-style-type: none;
+
+    li {
+      width: 100%;
+      text-align: center;
+      margin-top: 8px;
+      @include text-ellipsis;
+    }
   }
 
   .button {

@@ -26,7 +26,7 @@
     border-radius: 5px;
     padding: 1.5rem 1rem 0.5rem;
 
-    &:hover {
+    &:hover:not(:disabled) {
       border: 1px solid var(--gray-50);
     }
     &:focus {

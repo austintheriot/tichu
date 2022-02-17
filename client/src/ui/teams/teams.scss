@@ -1,3 +1,5 @@
+@import '../../styles/mixins.scss';
+
 .teams-container {
   h1 {
     margin-bottom: 32px;
@@ -48,10 +50,7 @@
       top: -24px;
       width: 100%;
 
-      // @todo: replace with text-ellipsis mixin
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
+      @include text-ellipsis;
     }
 
     &.selected {
