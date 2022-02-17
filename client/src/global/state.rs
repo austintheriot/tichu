@@ -15,7 +15,7 @@ use std::rc::Rc;
 use wasm_bindgen::JsValue;
 use yew::{Callback, Reducible, UseReducerHandle};
 
-use super::ws::CTSMsgInternal;
+use super::{js_functions::js_log_with_styling, ws::CTSMsgInternal};
 
 pub const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
 pub const DISPLAY_NAME_STORAGE_KEY: &str = "yew.tichu.display_name";
@@ -27,7 +27,7 @@ pub enum WSConnectionStatus {
     Closed,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AppReducerAction {
     WebsocketOpen,
     WebsocketError,
@@ -78,21 +78,29 @@ pub struct AppState {
     pub show_user_id_to_give_dragon_to_form: bool,
 }
 
-/** Logs basic information about action that caused state update as well as previous and next states */
-fn log_state_update(action: &AppReducerAction, prev_state: &AppState, next_state: &AppState) {
-    info!(
-        "----------------------------------------------------------------------
-Time: {:?}
+/// Wraps information about state updates for serializing events as a single JS Object
+#[derive(Serialize, Deserialize)]
+struct StateUpdateLog {
+    time: String,
+    prev_state: AppState,
+    next_state: AppState,
+    action: AppReducerAction,
+}
 
-Action: {:#?}
-
-Previous State:{:#?}
-
-Next State:{:#?}",
-        Date::new(&JsValue::from_f64(Date::now())).to_string(),
+//// Logs basic information about action that caused state update as well as previous and next states
+fn log_state_update(action: AppReducerAction, prev_state: AppState, next_state: AppState) {
+    let state_update_log = StateUpdateLog {
+        time: Date::new(&JsValue::from_f64(Date::now()))
+            .to_string()
+            .into(),
         action,
         prev_state,
-        next_state
+        next_state,
+    };
+    js_log_with_styling(
+        "%cSTATE UPDATE:",
+        "background-color: blue; color: white; padding: 0 5px;",
+        &JsValue::from_serde(&state_update_log).unwrap(),
     );
 }
 
@@ -269,7 +277,7 @@ impl Reducible for AppState {
             }
         }
 
-        log_state_update(&action, &self, &next_state);
+        log_state_update(action, (*self).clone(), next_state.clone());
         Rc::new(next_state)
     }
 }
