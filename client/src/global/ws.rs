@@ -626,7 +626,7 @@ fn handle_ws_message_received(
         return false;
     }
     let data: Option<STCMsg> = bincode::deserialize(&data.unwrap()).ok();
-    info!("Received websocket message: {:#?}", &data);
+    info!("Received websocket message:\n{:#?}", &data);
 
     // any valid message received from the server indicates that the websocket is still alive
     (*ws_mut_ref).borrow_mut().is_alive = true;
