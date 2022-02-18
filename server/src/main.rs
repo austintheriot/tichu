@@ -49,7 +49,7 @@ static PING_INTERVAL_MS: u64 = 5_000;
 async fn main() {
     pretty_env_logger::init();
 
-    // universal app state
+    // global app state
     let connections = Connections::default();
     let games = Games::default();
     let game_codes = GameCodes::default();

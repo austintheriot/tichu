@@ -1,4 +1,5 @@
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
+use crate::ui::common::button::Button;
 use yew::prelude::*;
 
 #[function_component(CallSmallTichuButton)]
@@ -13,11 +14,12 @@ pub fn call_small_tichu_button() -> Html {
     };
 
     html! {
-          <button
+          <Button
             onclick={handle_send_call_small_tichu}
             disabled={!app_state.can_call_small_tichu()}
+            classes={vec!["call-small-tichu-button".to_string()]}
           >
             {"Call Small Tichu"}
-          </button>
+          </Button>
     }
 }
