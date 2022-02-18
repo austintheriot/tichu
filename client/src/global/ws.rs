@@ -10,7 +10,10 @@
 //! then the ping will automatically try to reopen the websocket if it is closed/not working,
 //! so no need to schedule a manual retry timeout.
 
-use crate::global::state::{AppReducerAction, AppState};
+use crate::global::{
+    js_functions::js_log_with_styling,
+    state::{AppReducerAction, AppState},
+};
 use anyhow::Error;
 use common::{
     sort_cards_for_hand, validate_team_name, CTSMsg, CallGrandTichuRequest, CardTrade, CardValue,
@@ -20,7 +23,7 @@ use gloo::timers::callback::{Interval, Timeout};
 use log::*;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, rc::Rc};
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 use web_sys::{ErrorEvent, MessageEvent, WebSocket};
 use yew::{use_effect_with_deps, use_mut_ref, Callback, UseReducerHandle};
 
@@ -290,7 +293,6 @@ fn send_ws_message(
         };
         (ws_state.ws.is_none(), ws_state.is_alive, ws_is_closed)
     };
-    info!("Sending websocket message: {:#?}", msg_type);
     match msg_type {
         CTSMsgInternal::Test => {
             _send_ws_message(
@@ -578,9 +580,17 @@ fn _send_ws_message(ws_mut_ref: Rc<RefCell<WSState>>, msg: CTSMsg) {
             warn!("Can't send message. Websocket is None in state");
         }
         Some(ref ws) => {
-            let msg = bincode::serialize(&msg).expect("Could not serialize message");
-            ws.send_with_u8_array(&msg)
-                .expect("Error sending websocket data as u8 array over websocket");
+            {
+                let msg = bincode::serialize(&msg).expect("Could not serialize message");
+                ws.send_with_u8_array(&msg)
+                    .expect("Error sending websocket data as u8 array over websocket");
+            }
+
+            js_log_with_styling(
+                "%cWS MSG SENT:",
+                "background-color: #060A42; color: white; padding: 0 5px;",
+                &JsValue::from_serde(&msg).unwrap(),
+            );
         }
     }
 }
@@ -626,7 +636,12 @@ fn handle_ws_message_received(
         return false;
     }
     let data: Option<STCMsg> = bincode::deserialize(&data.unwrap()).ok();
-    info!("Received websocket message:\n{:#?}", &data);
+
+    js_log_with_styling(
+        "%cWS MSG RECEIVED:",
+        "background-color: #3A408C; color: white; padding: 0 5px;",
+        &JsValue::from_serde(&data).unwrap(),
+    );
 
     // any valid message received from the server indicates that the websocket is still alive
     (*ws_mut_ref).borrow_mut().is_alive = true;
