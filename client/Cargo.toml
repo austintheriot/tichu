@@ -6,7 +6,7 @@ edition = "2021"
 
 [profile.release]
 debug = true
-opt-level = "s"
+opt-level = "z"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
