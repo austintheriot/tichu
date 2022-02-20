@@ -1,6 +1,7 @@
 use super::trade_to_person::TradeToPerson;
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
-use crate::ui::common::call_small_tichu_button::CallSmallTichuButton;
+use crate::ui::common::button::Button;
+use crate::ui::common::call_small_tichu_container::CallSmallTichuContainer;
 use crate::ui::common::pre_play_hand::PrePlayHand;
 use common::OtherPlayerOption;
 use yew::prelude::*;
@@ -23,28 +24,19 @@ pub fn trade() -> Html {
               <p>{&format!("Has submitted trade: {:?}", app_state.has_submitted_trade())}</p>
               {if !app_state.has_submitted_trade() {
                   html!{
-                      <>
-                          <button
+                        <>
+                            <Button
                               onclick={handle_submit}
                               disabled={!app_state.can_submit_trade()}
-                              type="submit">
-                          {"Submit"}
-                          </button>
-                          <br />
-                          <br />
-                          <TradeToPerson player={OtherPlayerOption::Opponent1} />
-                          <br />
-                          <TradeToPerson player={OtherPlayerOption::Teammate} />
-                          <br />
-                          <TradeToPerson player={OtherPlayerOption::Opponent2} />
-                          <br />
-                          <br />
-                          <br />
-                          <CallSmallTichuButton />
-                          <br />
-                          <br />
-                          <br />
-                      </>
+                              button_type="submit"
+                            >
+                                {"Submit"}
+                             </Button>
+                            <TradeToPerson player={OtherPlayerOption::Opponent1} />
+                            <TradeToPerson player={OtherPlayerOption::Teammate} />
+                            <TradeToPerson player={OtherPlayerOption::Opponent2} />
+                            <CallSmallTichuContainer />
+                        </>
               }
           } else {
                   html!{

@@ -1,6 +1,6 @@
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
 use crate::ui::common::button::{Button, ButtonVariant};
-use crate::ui::common::call_small_tichu_button::CallSmallTichuButton;
+use crate::ui::common::call_small_tichu_container::CallSmallTichuContainer;
 use crate::ui::common::layout::Layout;
 use crate::ui::common::pre_play_hand::PrePlayHand;
 use crate::ui::icons::check::Check;
@@ -79,10 +79,7 @@ pub fn grand_tichu() -> Html {
         <Layout classes={vec!["grand-tichu-container".to_string()]}>
             {call_grand_tichu_prompt}
 
-            <div class="call-small-tichu-container">
-                <CallSmallTichuButton show_optional=true />
-                <p>{"± 100 points for going out first"}</p>
-            </div>
+            <CallSmallTichuContainer show_optional=true />
 
             <PrePlayHand />
         </Layout>
