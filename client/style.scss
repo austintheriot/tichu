@@ -5,6 +5,7 @@
 @use './src/ui/lobby/lobby.scss';
 @use './src/ui/teams/teams.scss';
 @use './src/ui/grand_tichu/grand-tichu.scss';
+@use './src/ui/common/pre-play-hand.scss';
 
 :root {
   --primary-00: #060A42;
@@ -19,7 +20,7 @@
   --secondary-70: #FFFBD6;
 
   --gray-50: #9B9B9B;
-  --gray-75: #D3D3D5;
+  --gray-75: #D3D3D4;
   --gray-100: #F0F0F0;
 
   --card-width: 225px;

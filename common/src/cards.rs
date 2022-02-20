@@ -58,6 +58,17 @@ impl CardValue {
             .collect();
         full_range
     }
+
+    pub fn icon(&self) -> String {
+        match self.0 {
+            value @ 2..=10 => value.to_string(),
+            11 => "J".to_string(),
+            12 => "Q".to_string(),
+            13 => "K".to_string(),
+            14 => "A".to_string(),
+            _ => String::new(),
+        }
+    }
 }
 
 impl Display for CardValue {
@@ -123,6 +134,19 @@ impl CardSuit {
             || self == &CardSuit::Dragon
             || self == &CardSuit::MahJong
             || self == &CardSuit::Dog
+    }
+
+    pub fn icon(&self) -> &str {
+        match self {
+            CardSuit::Sword => "🗡",
+            CardSuit::Pagoda => "🏠",
+            CardSuit::Jade => "🟩",
+            CardSuit::Star => "⭐️",
+            CardSuit::Dragon => "🐉",
+            CardSuit::Phoenix => "🦅",
+            CardSuit::Dog => "🐕",
+            CardSuit::MahJong => "🐥",
+        }
     }
 }
 

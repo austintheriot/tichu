@@ -621,6 +621,24 @@ impl AppState {
         })
     }
 
+    pub fn get_current_user_small_tichu_call_status(&self) -> Option<&TichuCallStatus> {
+        self.game_state.as_ref().and_then(|game_state| {
+            if let PublicGameStage::GrandTichu(grand_tichu) = &game_state.stage {
+                grand_tichu
+                    .small_tichus
+                    .iter()
+                    .find(|user_id_with_tichu_call_status| {
+                        *user_id_with_tichu_call_status.user_id == *self.user_id
+                    })
+                    .and_then(|user_id_with_tichu_call_status| {
+                        Some(&user_id_with_tichu_call_status.tichu_call_status)
+                    })
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn get_can_pass(&self) -> bool {
         if let Some(game_state) = &self.game_state {
             // game stage is Play

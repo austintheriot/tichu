@@ -80,11 +80,10 @@ pub fn grand_tichu() -> Html {
             {call_grand_tichu_prompt}
 
             <div class="call-small-tichu-container">
-                <CallSmallTichuButton />
+                <CallSmallTichuButton show_optional=true />
                 <p>{"± 100 points for going out first"}</p>
             </div>
 
-            <p>{"Hand:"}</p>
             <PrePlayHand />
         </Layout>
     }

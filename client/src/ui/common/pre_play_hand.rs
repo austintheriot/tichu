@@ -14,7 +14,7 @@ pub fn pre_play_hand() -> Html {
 
     if let Some(game_state) = &app_state.game_state {
         html! {
-                <ul>
+                <ul class="pre-play-hand">
                     {for game_state.current_user.hand.iter().enumerate().map(|(i, card)| {
                         // do not render card if the stage is Trade and it is currently selected
                         // OR if it has been selected for trade with opponent
@@ -32,7 +32,16 @@ pub fn pre_play_hand() -> Html {
                                         disabled={!app_state.can_select_pre_play_card()}
                                         onclick={make_handle_select_pre_play_card(i)}
                                         >
-                                        {&format!("{}", card)}
+                                        if card.suit.is_special() {
+                                            <span class="special">{card.suit.icon()}</span>
+                                        } else {
+                                            <span class="regular-value">
+                                                {card.value.icon()}
+                                            </span>
+                                            <span class="regular-suit">
+                                                {card.suit.icon()}
+                                            </span>
+                                        }
                                     </button>
                                 </li>
                         }
