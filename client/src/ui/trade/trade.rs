@@ -1,4 +1,3 @@
-use super::selected_pre_play_card_button::SelectedPrePlayCardButton;
 use super::trade_to_person::TradeToPerson;
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
 use crate::ui::common::call_small_tichu_button::CallSmallTichuButton;
@@ -42,10 +41,6 @@ pub fn trade() -> Html {
                           <br />
                           <br />
                           <CallSmallTichuButton />
-                          <br />
-                          <br />
-                          <br />
-                          <SelectedPrePlayCardButton />
                           <br />
                           <br />
                           <br />
