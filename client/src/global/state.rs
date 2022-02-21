@@ -15,7 +15,11 @@ use std::rc::Rc;
 use wasm_bindgen::JsValue;
 use yew::{Callback, Reducible, UseReducerHandle};
 
-use super::{js_functions::js_log_with_styling, ws::CTSMsgInternal};
+use super::{
+    js_functions::js_log_with_styling,
+    utils::{get_small_tichus, get_users_tichu_call_status},
+    ws::CTSMsgInternal,
+};
 
 pub const USER_ID_STORAGE_KEY: &str = "yew.tichu.user_id";
 pub const DISPLAY_NAME_STORAGE_KEY: &str = "yew.tichu.display_name";
@@ -622,21 +626,13 @@ impl AppState {
     }
 
     pub fn get_current_user_small_tichu_call_status(&self) -> Option<&TichuCallStatus> {
-        self.game_state.as_ref().and_then(|game_state| {
-            if let PublicGameStage::GrandTichu(grand_tichu) = &game_state.stage {
-                grand_tichu
-                    .small_tichus
-                    .iter()
-                    .find(|user_id_with_tichu_call_status| {
-                        *user_id_with_tichu_call_status.user_id == *self.user_id
-                    })
-                    .and_then(|user_id_with_tichu_call_status| {
-                        Some(&user_id_with_tichu_call_status.tichu_call_status)
-                    })
-            } else {
-                None
-            }
-        })
+        self.game_state
+            .as_ref()
+            .and_then(get_small_tichus)
+            .and_then(|small_tichus| get_users_tichu_call_status(small_tichus, &self.user_id))
+            .and_then(|user_id_with_tichu_call_status| {
+                Some(&user_id_with_tichu_call_status.tichu_call_status)
+            })
     }
 
     pub fn get_can_pass(&self) -> bool {
