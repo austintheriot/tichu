@@ -1,0 +1,24 @@
+@import '../../styles/mixins.scss';
+
+.trade {
+  .trade-to-person-container {
+    --margin: 50px;
+    display: flex;
+    justify-content: space-between;
+    margin-top: calc(var(--margin) + 32px);
+    margin-bottom: 32px;
+
+    // move middle card up
+    .trade-to-person:nth-of-type(2) {
+      margin-top: calc(var(--margin) * -1);
+    }
+  }
+
+  .trade-to-person {
+    --width: 96px;
+    width: var(--width);
+    height: calc(var(--width) / var(--card-aspect-ratio));
+      
+    @include text-ellipsis;
+  }
+}

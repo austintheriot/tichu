@@ -1,7 +1,7 @@
+use crate::global::state::{AppContext, AppReducerAction};
+use crate::ui::common::button::Button;
 use common::OtherPlayerOption;
 use yew::prelude::*;
-
-use crate::global::state::{AppContext, AppReducerAction};
 
 #[derive(Properties, PartialEq)]
 pub struct TradeToPersonProps {
@@ -60,7 +60,8 @@ pub fn trade_to_person(props: &TradeToPersonProps) -> Html {
           <>
             {if app_state.selected_pre_play_card.is_none() {
                 html!{
-                    <button
+                    <Button
+                        classes={vec!["trade-to-person".to_string()]}
                         disabled={!app_state.can_remove_trade(&props.player)}
                         onclick={handle_remove_trade}
                     >
@@ -68,17 +69,20 @@ pub fn trade_to_person(props: &TradeToPersonProps) -> Html {
                         Some(card) => format!("Remove {:?} to {}", card, trade_to_person_display_name),
                         None => format!("No trade selected for {}", trade_to_person_display_name),
                     }}
-                    </button>
+                    </Button>
                 }
             } else {
                     html!{
-                        <button onclick={handle_set_trade}>
+                        <Button
+                            classes={vec!["trade-to-person".to_string()]}
+                            onclick={handle_set_trade}
+                        >
                             {if trade_to_person_state.is_some() {
                                 format!("Replace trade with {}", trade_to_person_display_name)
                             } else {
                                     format!("Send to {}", trade_to_person_display_name)
                             }}
-                        </button>
+                        </Button>
                 }
             }}
           </>
