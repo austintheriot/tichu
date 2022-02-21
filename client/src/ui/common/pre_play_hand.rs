@@ -1,13 +1,17 @@
 use crate::global::state::{AppContext, AppReducerAction};
+use common::{PublicGameStage, PublicGameState};
 use yew::prelude::*;
 
 #[function_component(PrePlayHand)]
 pub fn pre_play_hand() -> Html {
     let app_context = use_context::<AppContext>().expect("AppContext not found");
     let app_state = &*app_context.app_reducer_handle;
-    let make_handle_select_pre_play_card = |i: usize| {
+    let make_handle_select_pre_play_card = |i: usize, disabled: bool| {
         let reducer_handle = app_context.app_reducer_handle.clone();
         Callback::from(move |_: MouseEvent| {
+            if disabled {
+                return;
+            }
             reducer_handle.dispatch(AppReducerAction::SetSelectedPrePlayCard(i))
         })
     };
@@ -16,6 +20,17 @@ pub fn pre_play_hand() -> Html {
         Callback::from(move |_: MouseEvent| {
             reducer_handle.dispatch(AppReducerAction::RemoveSelectedPrePlayCard)
         })
+    };
+
+    // disable card when user is looking at them to try and decide whether to call grand tichu or not
+    let all_cards_disabled = if let Some(PublicGameState {
+        stage: PublicGameStage::GrandTichu(_),
+        ..
+    }) = &app_state.game_state
+    {
+        true
+    } else {
+        false
     };
 
     if let Some(game_state) = &app_state.game_state {
@@ -36,11 +51,14 @@ pub fn pre_play_hand() -> Html {
                         ""
                     };
 
+                    let disabled = !app_state.can_select_pre_play_card() || all_cards_disabled;
+
                     let handle_click = if card_is_selected {
                         handle_remove_selected_card.clone()
                     } else {
-                        make_handle_select_pre_play_card(i)
+                        make_handle_select_pre_play_card(i, disabled)
                     };
+
 
                     // do not render card if the stage is Trade and it has been selected for trade with opponent
                     if app_state.stage_is_trade() && app_state.is_card_is_set_to_trade(card) {
@@ -49,8 +67,8 @@ pub fn pre_play_hand() -> Html {
                             html!{
                                 <li>
                                     <button
-                                        disabled={!app_state.can_select_pre_play_card()}
                                         onclick={handle_click}
+                                        {disabled}
                                         {class}
                                     >
                                         if card.suit.is_special() {

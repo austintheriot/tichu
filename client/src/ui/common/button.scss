@@ -5,9 +5,11 @@
   border: 1px solid var(--gray-75);
   font-size: 16px;
   cursor: pointer;
+  transition: 0.2s;
 
   &:disabled {
     cursor: not-allowed;
+    background-color: var(--gray-100);
   }
 
   // VARIANTS:
