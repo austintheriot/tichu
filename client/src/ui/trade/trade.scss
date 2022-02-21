@@ -9,17 +9,74 @@
     margin-bottom: 32px;
 
     // move middle card up
-    .trade-to-person:nth-of-type(2) {
+    .trade-to-person-button:nth-of-type(2) {
       margin-top: calc(var(--margin) * -1);
     }
   }
 
-  .trade-to-person {
+  .trade-to-person-button {
     --width: 96px;
     width: var(--width);
     height: calc(var(--width) / var(--card-aspect-ratio));
+    padding: 0;
+    position: relative;
       
-    @include text-ellipsis;
+    .display-name {
+      width: 100%;
+      @include text-ellipsis;
+
+      position: absolute;
+      top: -24px;
+      left: 0;
+    }
+
+    .card-icon-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+
+      .regular-value, .special {
+        display: block;
+        font-size: 32px;
+        text-align: center;
+        margin-bottom: 4px;
+      }
+      .regular-suit {
+        display: block;
+        text-align: center;
+      }  
+    }
+
+    // not disabled
+    .add-container {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid var(--primary-40);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      svg {
+        stroke: var(--primary-40);
+      }
+    }
+
+    // disabled
+    &:disabled {
+      .add-container {
+        border: 2px solid var(--gray-75);
+
+        svg {
+          stroke: var(--gray-75);
+        }
+      }
+    }
   }
   
   button[type=submit] {

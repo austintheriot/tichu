@@ -1,5 +1,6 @@
 use crate::global::state::{AppContext, AppReducerAction};
 use crate::ui::common::button::Button;
+use crate::ui::icons::add::Add;
 use common::OtherPlayerOption;
 use yew::prelude::*;
 
@@ -19,7 +20,7 @@ pub fn trade_to_person(props: &TradeToPersonProps) -> Html {
         OtherPlayerOption::Opponent2 => &app_state.trade_to_opponent2,
     };
 
-    let trade_to_person_display_name = {
+    let trade_to_person = {
         let public_other_players = &app_state
             .game_state
             .as_ref()
@@ -27,18 +28,15 @@ pub fn trade_to_person(props: &TradeToPersonProps) -> Html {
 
         if let Some(public_other_players) = public_other_players {
             match &props.player {
-                OtherPlayerOption::Opponent1 => {
-                    public_other_players.opponent_1.display_name.clone()
-                }
-                OtherPlayerOption::Teammate => public_other_players.teammate.display_name.clone(),
-                OtherPlayerOption::Opponent2 => {
-                    public_other_players.opponent_2.display_name.clone()
-                }
+                OtherPlayerOption::Opponent1 => Some(public_other_players.opponent_1.clone()),
+                OtherPlayerOption::Teammate => Some(public_other_players.teammate.clone()),
+                OtherPlayerOption::Opponent2 => Some(public_other_players.opponent_2.clone()),
             }
         } else {
-            String::new()
+            None
         }
-    };
+    }
+    .expect("Couldn't find trade to person in trade_to_person.rs");
 
     let handle_remove_trade = {
         let reducer_handle = app_context.app_reducer_handle.clone();
@@ -56,35 +54,45 @@ pub fn trade_to_person(props: &TradeToPersonProps) -> Html {
         })
     };
 
+    let onclick = if app_state.selected_pre_play_card.is_none() {
+        handle_remove_trade
+    } else {
+        handle_set_trade
+    };
+
+    let disabled =
+        app_state.selected_pre_play_card.is_none() && !app_state.can_remove_trade(&props.player);
+
     html! {
-          <>
-            {if app_state.selected_pre_play_card.is_none() {
-                html!{
-                    <Button
-                        classes={vec!["trade-to-person".to_string()]}
-                        disabled={!app_state.can_remove_trade(&props.player)}
-                        onclick={handle_remove_trade}
-                    >
-                    {match trade_to_person_state {
-                        Some(card) => format!("Remove {:?} to {}", card, trade_to_person_display_name),
-                        None => format!("No trade selected for {}", trade_to_person_display_name),
-                    }}
-                    </Button>
-                }
-            } else {
-                    html!{
-                        <Button
-                            classes={vec!["trade-to-person".to_string()]}
-                            onclick={handle_set_trade}
-                        >
-                            {if trade_to_person_state.is_some() {
-                                format!("Replace trade with {}", trade_to_person_display_name)
-                            } else {
-                                    format!("Send to {}", trade_to_person_display_name)
-                            }}
-                        </Button>
-                }
+        <Button
+            classes={vec!["trade-to-person-button".to_string()]}
+            {disabled}
+            {onclick}
+        >
+            <p class="display-name">{trade_to_person.display_name.clone()}</p>
+            {match trade_to_person_state {
+                // card has been selected for person
+                Some(card) => html!{
+                   <div class="card-icon-container">
+                        if card.suit.is_special() {
+                        <span class="special">{card.suit.icon()}</span>
+                        } else {
+                            <span class="regular-value">
+                                {card.value.icon()}
+                            </span>
+                            <span class="regular-suit">
+                                {card.suit.icon()}
+                            </span>
+                        }
+                   </div>
+                },
+                // card has NOT been selected for person
+                None => html!{
+                    <div class="add-container">
+                        <Add />
+                    </div>
+                },
             }}
-          </>
+        </Button>
     }
 }
