@@ -11,6 +11,10 @@
     cursor: not-allowed;
     background-color: var(--gray-100);
   }
+  
+  &:focus {
+    border: 2px solid var(--primary-40);
+  }
 
   // VARIANTS:
   &.square {
