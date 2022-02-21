@@ -19,7 +19,7 @@
     width: 95%;
     max-width: 600px;
     margin: 0 auto;
-    border: 1px solid var(--gray-75);
+    border: 2px solid var(--gray-75);
     border-radius: 5px;
     display: flex;
     flex-direction: column;
@@ -37,7 +37,7 @@
 
   .view-user-as-card {
     position: relative;
-    border: 1px solid var(--gray-75);
+    border: 2px solid var(--gray-75);
     border-radius: 7px;
     min-width: 64px;
     min-height: 99.5px;
@@ -63,6 +63,7 @@
     padding: 0;
 
     svg {
+      transition: 0.2s;
       height: 20px;
       width: 20px;
     }
@@ -74,7 +75,7 @@
     }
 
     &:not(:disabled) {
-      border: 1px solid var(--primary-40);
+      border: 2px solid var(--primary-40);
       svg {
         stroke: var(--primary-40);
       }
