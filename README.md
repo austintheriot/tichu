@@ -20,6 +20,12 @@ cd server
 cargo watch -x run
 ```
 
+- To run /server in watch mode (watching entire project): 
+```
+cd server
+cargo watch -w ../ -x run
+```
+
 - To build /common files in watch mod:
 ```
 cd common
@@ -30,6 +36,12 @@ cargo watch -x build
 ```
 cd client
 npm start
+```
+
+- To run /client in watch mode (watching entire project):
+```
+cd client
+cargo watch -w ../ -- npm run start
 ```
 
 - To build docker container: 
