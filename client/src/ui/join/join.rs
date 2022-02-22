@@ -5,6 +5,9 @@ use crate::global::{
 use crate::ui::common::button::Button;
 use crate::ui::common::input::Input;
 use crate::ui::common::layout::Layout;
+use common::{
+    clean_up_display_name, validate_display_name, DISPLAY_NAME_MAX_LEN, GAME_CODE_MAX_LEN,
+};
 use wasm_bindgen::JsCast;
 use web_sys::{EventTarget, HtmlInputElement};
 use yew::prelude::*;
@@ -21,13 +24,44 @@ pub fn join() -> Html {
         })
     };
 
-    let handle_join_room_display_name_input = {
+    let handle_display_name_input = {
         let reducer_handle = app_context.app_reducer_handle.clone();
         Callback::from(move |e: InputEvent| {
             let target: Option<EventTarget> = e.target();
             let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
-            let msg = input.map(|input| AppReducerAction::SetDisplayNameInput(input.value()));
-            reducer_handle.dispatch(msg.unwrap());
+
+            // set raw input value
+            let set_input_message =
+                input.map(|input| AppReducerAction::SetDisplayNameInput(input.value()));
+            reducer_handle.dispatch(set_input_message.unwrap());
+
+            // reset any errors
+            let reset_error_message = AppReducerAction::SetDisplayNameInputError(None);
+            reducer_handle.dispatch(reset_error_message);
+        })
+    };
+
+    let handle_display_name_blur = {
+        let reducer_handle = app_context.app_reducer_handle.clone();
+        // sanitize on blur
+        Callback::from(move |e: FocusEvent| {
+            let target: Option<EventTarget> = e.target();
+            let input_value = target
+                .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
+                .unwrap()
+                .value();
+            let sanitized_input_value = clean_up_display_name(&input_value);
+
+            // set sanitized input value
+            let set_input_message =
+                AppReducerAction::SetDisplayNameInput(sanitized_input_value.clone());
+            reducer_handle.dispatch(set_input_message);
+
+            // set any errors found
+            let set_error_message = AppReducerAction::SetDisplayNameInputError(
+                validate_display_name(&sanitized_input_value),
+            );
+            reducer_handle.dispatch(set_error_message);
         })
     };
 
@@ -49,16 +83,6 @@ pub fn join() -> Html {
         })
     };
 
-    let handle_create_room_display_name_input = {
-        let reducer_handle = app_context.app_reducer_handle.clone();
-        Callback::from(move |e: InputEvent| {
-            let target: Option<EventTarget> = e.target();
-            let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
-            let msg = input.map(|input| AppReducerAction::SetDisplayNameInput(input.value()));
-            reducer_handle.dispatch(msg.unwrap());
-        })
-    };
-
     let app_state = &*app_context.app_reducer_handle;
 
     html! {
@@ -68,9 +92,12 @@ pub fn join() -> Html {
                 <Input
                     label="Display Name"
                     id="join-room-display-name-input"
-                    oninput={handle_join_room_display_name_input}
+                    oninput={handle_display_name_input.clone()}
+                    onblur={handle_display_name_blur.clone()}
                     input_type="text"
                     value={app_state.display_name_input.clone()}
+                    error={app_state.display_name_input_error.clone()}
+                    maxlength={Some(DISPLAY_NAME_MAX_LEN)}
                 />
                 <Input
                     label="Game Code"
@@ -78,6 +105,7 @@ pub fn join() -> Html {
                     input_type="text"
                     oninput={handle_join_room_room_code_input}
                     value={app_state.join_room_game_code_input.clone()}
+                    maxlength={Some(GAME_CODE_MAX_LEN)}
                 />
                 <Button
                     button_type="submit"
@@ -92,8 +120,11 @@ pub fn join() -> Html {
                     label="Display Name"
                     id="join-room-display-name-input"
                     input_type="text"
-                    oninput={handle_create_room_display_name_input}
+                    oninput={handle_display_name_input}
+                    onblur={handle_display_name_blur}
                     value={app_state.display_name_input.clone()}
+                    maxlength={Some(DISPLAY_NAME_MAX_LEN)}
+                    error={app_state.display_name_input_error.clone()}
                 />
                 <Button
                     button_type="submit"

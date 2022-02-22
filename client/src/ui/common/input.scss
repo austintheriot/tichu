@@ -1,6 +1,4 @@
 .input {
-  --height: 60px;
-  height: var(--height);
   width: 100%;
   max-width: 300px;
   position: relative;
@@ -37,6 +35,13 @@
       cursor: not-allowed;
       background-color: var(--gray-100);
     }
+  }
+
+  .error {
+    font-size: 14px;
+    color: var(--error);
+    margin-top: 2.5px;
+    width: 100%;
   }
 }
 

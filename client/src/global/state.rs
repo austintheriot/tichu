@@ -40,6 +40,7 @@ pub enum AppReducerAction {
     SetUserId(String),
     SetDisplayName(String),
     SetDisplayNameInput(String),
+    SetDisplayNameInputError(Option<String>),
     SetJoinRoomGameCodeInput(String),
     SetTeamANameInput(String),
     SetTeamBNameInput(String),
@@ -64,6 +65,7 @@ pub struct AppState {
 
     pub join_room_game_code_input: String,
     pub display_name_input: String,
+    pub display_name_input_error: Option<String>,
     pub team_a_name_input: String,
     pub team_b_name_input: String,
 
@@ -157,6 +159,9 @@ impl Reducible for AppState {
                 }
                 AppReducerAction::SetDisplayNameInput(s) => {
                     next_state.display_name_input = s;
+                }
+                AppReducerAction::SetDisplayNameInputError(s) => {
+                    next_state.display_name_input_error = s;
                 }
                 AppReducerAction::SetTeamANameInput(s) => {
                     next_state.team_a_name_input = s;
@@ -305,6 +310,7 @@ impl Default for AppState {
             user_id,
             display_name: display_name.clone(),
             display_name_input: display_name,
+            display_name_input_error: None,
             game_state: None,
             join_room_game_code_input: "".into(),
             team_a_name_input: "".into(),

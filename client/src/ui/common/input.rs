@@ -14,10 +14,16 @@ pub struct InputProps {
     pub label: String,
     pub id: String,
     pub value: String,
-    #[prop_or_else(|| Callback::from(|_| {}))]
+    #[prop_or_default]
     pub oninput: Callback<InputEvent>,
     #[prop_or_default]
     pub classes: Vec<String>,
+    #[prop_or_default]
+    pub onblur: Callback<FocusEvent>,
+    #[prop_or_default]
+    pub error: Option<String>,
+    #[prop_or_default]
+    pub maxlength: Option<usize>,
 }
 
 #[function_component(Input)]
@@ -26,6 +32,8 @@ pub fn input(props: &InputProps) -> Html {
     base_classes.push("input".into());
     let input_ref = use_node_ref();
     let is_empty = use_state(|| props.value.is_empty());
+
+    // when component is mounted, check whether this element is the document's active element
     let is_focused = use_state(|| {
         let active_element = document().active_element();
         let input_element = input_ref.cast::<HtmlInputElement>();
@@ -62,7 +70,13 @@ pub fn input(props: &InputProps) -> Html {
 
     let handle_blur = {
         let is_focused = is_focused.clone();
-        Callback::from(move |_: FocusEvent| {
+        let onblur = props.onblur.clone();
+        Callback::from(move |e: FocusEvent| {
+            {
+                // emit callback that was passed to component
+                let e = e.clone();
+                onblur.emit(e);
+            }
             is_focused.set(false);
         })
     };
@@ -83,7 +97,11 @@ pub fn input(props: &InputProps) -> Html {
           onblur={handle_blur}
           ref={input_ref}
           disabled={props.disabled}
+          maxlength={props.maxlength.map(|maxlength| maxlength.to_string())}
         />
+        if let Some(error) = &props.error {
+            <p class="error">{error}</p>
+        }
       </div>
     }
 }

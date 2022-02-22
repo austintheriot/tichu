@@ -330,9 +330,12 @@ fn send_ws_message(
             false
         }
         CTSMsgInternal::CreateGame => {
-            if !(*app_reducer_handle).can_create_game() {
+            if !app_reducer_handle.can_create_game() {
                 return false;
             }
+
+            // reset any errors on display name field
+            app_reducer_handle.dispatch(AppReducerAction::SetDisplayNameInputError(None));
 
             let msg = CTSMsg::CreateGame {
                 user_id: (*app_reducer_handle).user_id.clone(),
@@ -345,6 +348,9 @@ fn send_ws_message(
             if !(*app_reducer_handle).can_join_game() {
                 return false;
             }
+
+            // reset any errors on display name field
+            app_reducer_handle.dispatch(AppReducerAction::SetDisplayNameInputError(None));
 
             let msg = CTSMsg::JoinGameWithGameCode {
                 game_code: (*app_reducer_handle)
