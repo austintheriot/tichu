@@ -20,6 +20,11 @@ IDEAS:
 TODO:
 - Add "played by" note under combo
 - move more front-end state checks into /common (in prep for bot player)
+- Add message when form is submitted and input contains errors
+  - Join page (Display Name Input & Game Codes)
+  - Teams (Team Name Input)
+- Add notifications for events
+- Add message when reconnecting to the server websocket
   
 - use "into" pattern more?:
 - fn last_name(mut self, last_name: impl Into<String>) -> Self {
