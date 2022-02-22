@@ -1,5 +1,5 @@
 use crate::global::state::{AppContext, AppReducerAction};
-use common::{CardValue, Deck};
+use common::Deck;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlSelectElement;
 use yew::prelude::*;

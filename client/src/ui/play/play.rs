@@ -9,6 +9,7 @@ use super::wish_for_card_input::WishForCardInput;
 use super::wished_for_card::WishedForCard;
 use crate::global::{state::AppContext, ws::CTSMsgInternal};
 use crate::ui::common::call_small_tichu_button::CallSmallTichuButton;
+use crate::ui::common::layout::Layout;
 use common::{get_card_combination, DRAGON, MAH_JONG};
 use yew::prelude::*;
 
@@ -32,34 +33,21 @@ pub fn play() -> Html {
     };
 
     html! {
-          <>
-            <h1>{"Play"}</h1>
-            <br />
-            <br />
+          <Layout classes={vec!["play-container".to_string()]}>
             <Scores />
-            <br />
-            <br />
             <Turns />
-            <br />
-            <br />
             <CardsOnTable />
-            <br />
-            <br />
             <WishedForCard />
             {if app_state.selected_play_cards.contains(&MAH_JONG) {
                 html!{ <WishForCardInput /> }
             } else {
                 html!{}
             }}
-            <br />
-            <br />
             {if app_state.selected_play_cards.contains(&DRAGON) {
                html!{ <ChooseOpponentInput /> }
             } else {
                 html!{}
             }}
-            <br />
-            <br />
             {if app_state.selected_play_cards.len() == 0 {
                html!{
                 <button
@@ -81,11 +69,7 @@ pub fn play() -> Html {
                     </button>
                 }
             }}
-            <br />
-            <br />
             <CallSmallTichuButton />
-            <br />
-            <br />
             <p>
               {if get_card_combination(app_state
                   .get_prev_played_combo(),
@@ -97,15 +81,9 @@ pub fn play() -> Html {
                   "Invalid combination"
               }}
             </p>
-            <br />
-            <br />
             <SelectedPlayCards />
-            <br />
-            <br />
             <PlayHand />
-            <br />
-            <br />
             <Tricks />
-          </>
+          </Layout>
     }
 }

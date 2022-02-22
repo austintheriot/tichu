@@ -1,0 +1,44 @@
+@import '../../styles/mixins.scss';
+
+.play-container {
+  .scores {
+    display: flex;
+    flex: 1;
+    justify-content: space-evenly;
+
+    .score {
+      display: flex;
+
+      .team-name {
+        max-width: 100%;
+        margin-right: 1rem;
+        @include text-ellipsis;
+      }
+
+      .team-score {
+        min-width: fit-content;
+      }
+    }
+  }
+
+  .turns {
+    display: flex;
+    justify-content: space-evenly;
+    width: 100%;
+    gap: 1rem;
+    margin: 0.5rem auto;
+
+    .display-name {
+      display: block;
+      width: 100%;
+      max-width: 25%;
+      @include text-ellipsis;
+      padding: 0.25rem;
+      border-radius: 5px;
+
+      &.selected {
+        background-color: var(--secondary-70);
+      }
+    }
+  }
+}

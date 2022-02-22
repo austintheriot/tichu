@@ -10,17 +10,16 @@ pub fn scores() -> Html {
     if let Some(game_state) = &app_state.game_state {
         if let PublicGameStage::Play(play_state) = &game_state.stage {
             return html! {
-              <>
-                <p>{"Scores:"}</p>
+              <div class="scores">
                 {for play_state.teams.iter().map(|team| {
                   html!{
-                   <>
-                    <p>{&team.team_name}</p>
-                    <p>{&team.score}</p>
-                   </>
+                    <div class="score">
+                      <p class="team-name">{&team.team_name}{":"}</p>
+                      <p class="team-score">{&team.score}</p>
+                    </div>
                   }
                 })}
-              </>
+              </div>
             };
         };
     }
