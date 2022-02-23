@@ -135,10 +135,12 @@ pub async fn cleanup_state_after_disconnect(
         } else {
             // no other users left in game and user is not in lobby: only mark this user as disconnected
             eprintln!("{FUNCTION_NAME} Marking user {} as not connected", user_id);
-            write_connections
-                .get_mut(user_id)
-                .expect(USER_ID_NOT_IN_MAP)
-                .connected = false;
+
+            if let Some(connection_data) = write_connections.get_mut(user_id) {
+                connection_data.connected = false;
+            } else {
+                eprintln!("User not {} not found in connection map", user_id);
+            }
 
             drop(write_connections);
             drop(write_games);

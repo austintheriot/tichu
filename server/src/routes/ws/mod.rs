@@ -17,8 +17,6 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use uuid::Uuid;
 use warp::ws::{Message, WebSocket};
 
-pub static CLOSE_WEBSOCKET: &str = "INTERNAL_MESSAGE: CLOSE WEBSOCKET";
-
 pub async fn handle_ws_upgrade(
     ws: WebSocket,
     user_id: String,
@@ -42,7 +40,7 @@ pub async fn handle_ws_upgrade(
     tokio::task::spawn(async move {
         while let Some(message) = rx.next().await {
             // user didn't respond to ping: close connection
-            if message == Message::text(CLOSE_WEBSOCKET) {
+            if Message::is_close(&message) {
                 let result = user_ws_tx.close().await;
                 if let Err(e) = result {
                     eprintln!("Error closing websocket {:#?}", e);
@@ -129,11 +127,14 @@ pub async fn handle_ws_upgrade(
 
             // if user is associated with a game_id, send the new participant a state update
             let read_games = games.read().await;
-            let game_state = read_games.get(&game_id).expect(GAME_ID_NOT_IN_MAP).clone();
+            let game_state = read_games
+                .get(&game_id)
+                .and_then(|game_state| game_state.to_public_game_state(&user_id).ok());
             drop(read_games);
+
             send_ws_message::to_user(
                 &user_id,
-                STCMsg::GameState(Box::new(game_state.to_public_game_state(&user_id).ok())),
+                STCMsg::GameState(Box::new(game_state)),
                 &connections,
             )
             .await;

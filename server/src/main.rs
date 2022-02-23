@@ -15,12 +15,13 @@ use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{
+    mpsc::{self, error::SendError},
+    RwLock,
+};
 use tokio::{task, time};
 use warp::ws::Message;
 use warp::Filter;
-
-use crate::routes::ws::CLOSE_WEBSOCKET;
 
 /// Maps `user_id`s to websocket connections and `game_codes`
 pub type Connections = Arc<RwLock<HashMap<String, ConnectionData>>>;
@@ -65,10 +66,14 @@ async fn main() {
                 if connection_data.connected && !*connection_data.is_alive.read().await {
                     // user is still connected but didn't respond to ping: close their websocket
                     eprintln!("Closing websocket connection for idle user {}", &user_id);
-                    connection_data
-                        .tx
-                        .send(Message::text(CLOSE_WEBSOCKET))
-                        .expect("Couldn't send internal CLOSE websocket message");
+
+                    let result = connection_data.tx.send(Message::close());
+                    if let Err(SendError(message)) = result {
+                        eprintln!(
+                            "Couldn't send internal websocket message {:?}",
+                            message.to_str()
+                        );
+                    }
                 } else {
                     // send ping to user
                     let mut is_alive = connection_data.is_alive.write().await;
