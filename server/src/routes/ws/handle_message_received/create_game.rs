@@ -1,5 +1,5 @@
 use super::send_ws_message;
-use crate::{errors::USER_ID_NOT_IN_MAP, Connections, GameCodes, Games};
+use crate::{Connections, GameCodes, Games};
 use common::{validate_display_name, CTSMsg, PrivateGameState, STCMsg};
 
 const FUNCTION_NAME: &str = "create_game";
@@ -23,9 +23,12 @@ pub async fn create_game(
 
         // verify that user_id is not already associated with a game before creating a new one
         let mut write_connections = connections.write().await;
-        let connection = write_connections
-            .get_mut(&user_id)
-            .expect(USER_ID_NOT_IN_MAP);
+        let connection = if let Some(connection_data) = write_connections.get_mut(&user_id) {
+            eprintln!("{FUNCTION_NAME}: User {user_id} can't create game because ConnectionData could not be found for user_id");
+            connection_data
+        } else {
+            return;
+        };
 
         // user already associated with a game, no action needed
         if connection.game_id.is_some() {

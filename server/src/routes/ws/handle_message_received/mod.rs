@@ -47,7 +47,15 @@ pub async fn handle_message_received(
         return;
     }
 
-    let msg: CTSMsg = bincode::deserialize(msg.as_bytes()).expect("Could not serialize message");
+    let msg: CTSMsg = if let Ok(msg) = bincode::deserialize(msg.as_bytes()) {
+        msg
+    } else {
+        eprintln!(
+            "Could not deserialize received message from user {}",
+            user_id
+        );
+        return;
+    };
 
     match msg {
         CTSMsg::Test(_) => {

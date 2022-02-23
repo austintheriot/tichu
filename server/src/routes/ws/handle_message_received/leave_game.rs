@@ -1,8 +1,6 @@
 use crate::routes::ws::send_ws_message;
-use crate::{
-    errors::{GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
-    Connections, GameCodes, Games,
-};
+use crate::ConnectionData;
+use crate::{Connections, GameCodes, Games};
 use common::{PrivateGameStage, STCMsg};
 
 const FUNCTION_NAME: &str = "leave_game";
@@ -18,27 +16,25 @@ pub async fn leave_game(
     let mut write_game_codes = game_codes.write().await;
 
     // extract game_id
-    // if user is not in a game, no action needed
-    let game_id_clone = match &write_connections.get(user_id) {
-        Some(connection) => {
-            if let Some(game_id) = &connection.game_id {
-                game_id.clone()
-            } else {
-                eprintln!("{FUNCTION_NAME}: User {user_id} can't leave game because they are not associated with any game_id");
-                return;
-            }
-        }
-        None => {
-            eprintln!("{FUNCTION_NAME}: User {user_id} can't leave game because their user_id could not be found in the Connections HashMap");
-            return;
-        }
+    let game_id_clone = if let Some(ConnectionData {
+        game_id: Some(game_id),
+        ..
+    }) = &write_connections.get(user_id)
+    {
+        game_id.clone()
+    } else {
+        eprintln!("{FUNCTION_NAME}: User {user_id} can't leave game because their user_id could not be found in the Connections HashMap");
+        return;
     };
 
     // extract all needed game state
-    let game_state_clone = write_games
-        .get(&game_id_clone)
-        .expect(GAME_ID_NOT_IN_MAP)
-        .clone();
+    let game_state_clone = if let Some(game_state) = write_games.get(&game_id_clone) {
+        game_state.clone()
+    } else {
+        eprintln!("{FUNCTION_NAME}: User {user_id} can't leave game because game_state could not be found in Games HashMap");
+        return;
+    };
+
     let game_code_clone = game_state_clone.game_code.clone();
     let participants_clone = game_state_clone.participants.clone();
 
@@ -88,15 +84,16 @@ pub async fn leave_game(
                     Err(err) => return eprintln!("{}", err),
                 }
             };
-            *write_games
-                .get_mut(&game_id_clone)
-                .expect(GAME_ID_NOT_IN_MAP) = new_game_state.clone();
+
+            // update game state
+            if let Some(game_state) = write_games.get_mut(&game_id_clone) {
+                *game_state = new_game_state.clone();
+            }
 
             // disassociate user_id with game
-            write_connections
-                .get_mut(user_id)
-                .expect(USER_ID_NOT_IN_MAP)
-                .game_id = None;
+            if let Some(connection_data) = write_connections.get_mut(user_id) {
+                connection_data.game_id = None;
+            }
 
             drop(write_connections);
             drop(write_games);
@@ -156,10 +153,9 @@ pub async fn leave_game(
         write_game_codes.remove(&game_code_clone);
 
         // disassociate user with game_id
-        write_connections
-            .get_mut(user_id)
-            .expect(USER_ID_NOT_IN_MAP)
-            .game_id = None;
+        if let Some(connection_data) = write_connections.get_mut(user_id) {
+            connection_data.game_id = None;
+        }
 
         drop(write_connections);
         drop(write_games);

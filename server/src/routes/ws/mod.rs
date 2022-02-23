@@ -1,16 +1,11 @@
 mod cleanup_state_after_disconnect;
 mod handle_message_received;
 pub mod send_ws_message;
-
+use crate::{ConnectionData, Connections, GameCodes, Games};
 pub use cleanup_state_after_disconnect::cleanup_state_after_disconnect;
-pub use handle_message_received::handle_message_received;
-
-use crate::{
-    errors::{GAME_ID_NOT_IN_MAP, USER_ID_NOT_IN_MAP},
-    ConnectionData, Connections, GameCodes, Games,
-};
 use common::{STCMsg, NO_USER_ID};
 use futures::{SinkExt, StreamExt};
+pub use handle_message_received::handle_message_received;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -24,7 +19,7 @@ pub async fn handle_ws_upgrade(
     games: Games,
     game_codes: GameCodes,
 ) {
-    eprintln!("User {user_id} connected!");
+    eprintln!("User {user_id}: Connected");
 
     let (mut user_ws_tx, mut user_ws_rx) = ws.split();
     // use a channel to send messages to our websocket sink (sender)
@@ -67,7 +62,10 @@ pub async fn handle_ws_upgrade(
         }
     });
 
+    eprintln!("User {user_id}: Waiting for RWLock to Connections");
     let mut write_connections = connections.write().await;
+    eprintln!("User {user_id}: Connections RWLock received");
+
     let is_a_returning_user = write_connections.contains_key(&user_id);
     let mut new_user_id_assigned = false;
     let mut game_id = None;
@@ -77,7 +75,7 @@ pub async fn handle_ws_upgrade(
     let user_id = if user_id == NO_USER_ID {
         new_user_id_assigned = true;
         let new_user_id = Uuid::new_v4().to_string();
-        eprintln!("User {user_id} received new user_id: {new_user_id}");
+        eprintln!("User {user_id}: New user_id: {new_user_id}");
         new_user_id
     } else {
         user_id
@@ -85,9 +83,14 @@ pub async fn handle_ws_upgrade(
 
     // get associated game_id from returning users
     if is_a_returning_user {
-        eprintln!("User {} reconnected", user_id);
-        let existing_user = write_connections.get(&user_id).expect(USER_ID_NOT_IN_MAP);
-        game_id = existing_user.game_id.clone();
+        eprintln!("User {user_id} is a returning user");
+
+        if let Some(connection_data) = write_connections.get(&user_id) {
+            game_id = connection_data.game_id.clone();
+        } else {
+            eprintln!("User {user_id}: error: Returning user should be in write_connections");
+            return;
+        }
     }
 
     let ws = ConnectionData {

@@ -27,9 +27,12 @@ pub async fn join_game_with_game_code(
 
         // Verify that user isn't already associated with another game first
         let mut write_connections = connections.write().await;
-        let connection = write_connections
-            .get_mut(&user_id)
-            .expect(USER_ID_NOT_IN_MAP);
+        let connection = if let Some(connection_data) = write_connections.get_mut(&user_id) {
+            connection_data
+        } else {
+            eprintln!("Could not find connection_data for user {}", user_id);
+            return;
+        };
 
         // user already associated with a game, no action needed
         if let Some(game_id) = &connection.game_id {

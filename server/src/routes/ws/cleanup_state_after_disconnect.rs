@@ -1,5 +1,5 @@
 use super::send_ws_message;
-use crate::{errors::USER_ID_NOT_IN_MAP, Connections, GameCodes, Games};
+use crate::{Connections, GameCodes, Games};
 use common::{PrivateGameStage, STCMsg};
 
 const FUNCTION_NAME: &str = "cleanup_state_after_disconnect";

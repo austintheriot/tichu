@@ -5,7 +5,7 @@ extern crate common;
 mod errors;
 mod routes;
 
-use common::{PrivateGameState, STCMsg};
+use common::{PrivateGameState, STCMsg, NO_USER_ID};
 use futures::join;
 use routes::{
     index,
@@ -95,8 +95,13 @@ async fn main() {
         .and(warp::ws())
         // get `user_id` query parameter
         .and(warp::filters::query::raw().map(|e: String| {
-            let result = e.split_once('=').expect("Couldn't split string at '='");
-            String::from(result.1)
+            let user_id = if let Some(user_id) = e.split_once('=') {
+                user_id.1
+            } else {
+                eprintln!("Error parsing user_id from query parameters. Using NO_USER_ID value instead for user");
+                NO_USER_ID
+            };
+            String::from(user_id)
         }))
         // get connections hashmap
         .and(warp::any().map(move || Arc::clone(&connections)))
