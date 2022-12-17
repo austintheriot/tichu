@@ -1,4 +1,3 @@
-#![feature(format_args_capture)]
 #[cfg(feature = "client")]
 extern crate js_sys;
 extern crate rand;

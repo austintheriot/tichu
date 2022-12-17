@@ -1,4 +1,3 @@
-#![feature(format_args_capture)]
 #![recursion_limit = "1024"]
 extern crate common;
 extern crate console_error_panic_hook;

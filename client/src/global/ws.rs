@@ -19,7 +19,10 @@ use common::{
     sort_cards_for_hand, validate_team_name, CTSMsg, CallGrandTichuRequest, CardTrade, CardValue,
     OtherPlayerOption, PublicGameStage, STCMsg, TeamOption,
 };
-use gloo::timers::callback::{Interval, Timeout};
+use gloo::{
+    timers::callback::{Interval, Timeout},
+    utils::format::JsValueSerdeExt,
+};
 use log::*;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, rc::Rc};

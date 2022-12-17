@@ -7,7 +7,10 @@ use common::{
     PublicGameStage, PublicGameState, TeamCategories, TichuCallStatus, ValidCardCombo, DRAGON,
     NO_USER_ID,
 };
-use gloo::storage::{LocalStorage, Storage};
+use gloo::{
+    storage::{LocalStorage, Storage},
+    utils::format::JsValueSerdeExt,
+};
 use js_sys::Date;
 use log::*;
 use serde::{Deserialize, Serialize};

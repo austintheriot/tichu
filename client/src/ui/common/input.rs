@@ -81,7 +81,7 @@ pub fn input(props: &InputProps) -> Html {
         })
     };
 
-    if *is_empty && !*is_focused {
+    if *is_empty && props.value.is_empty() && !*is_focused {
         base_classes.push("input-label-down".into());
     }
 
